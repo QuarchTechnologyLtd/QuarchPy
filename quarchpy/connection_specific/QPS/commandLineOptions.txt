@@ -1,0 +1,10 @@
+
+-ccs=HIDE           Disable initial display of Common Connection Screen.
+-devdebug=ON        Enable development debug - strange and fascinating, to some, things may happen.
+-logging=ON         Enable logging.
+-logtarget=DIR      Specifies the logging file directory.
+-loglevel=INFO, ... Specifies the logging level.
+-logconsole=ON      Logging to console.
+-open=FILE          Opens an archived file; eg -open=C:\>path-to-file\recording.qps
+--help              Command line help.
+--version           Version number.

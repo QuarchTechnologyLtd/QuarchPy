@@ -1,0 +1,248 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>quarchpy.debug package &#8212; quarchpy  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="quarchpy.fio package" href="quarchpy.fio.html" />
+    <link rel="prev" title="quarchpy.connection_specific package" href="quarchpy.connection_specific.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="quarchpy-debug-package">
+<h1>quarchpy.debug package<a class="headerlink" href="#quarchpy-debug-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-quarchpy.debug.SystemTest">
+<span id="quarchpy-debug-systemtest-module"></span><h2>quarchpy.debug.SystemTest module<a class="headerlink" href="#module-quarchpy.debug.SystemTest" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.SystemTest.QuarchSimpleIdentify">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.SystemTest.</span></span><span class="sig-name descname"><span class="pre">QuarchSimpleIdentify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.SystemTest.QuarchSimpleIdentify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints basic identification test data on the specified module, compatible with all Quarch devices</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>device1</strong> (<a class="reference internal" href="quarchpy.device.html#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><em>quarchDevice</em></a>) – Open connection to a quarch device</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.SystemTest.fix_usb">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.SystemTest.</span></span><span class="sig-name descname"><span class="pre">fix_usb</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.SystemTest.fix_usb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.SystemTest.get_QIS_version">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.SystemTest.</span></span><span class="sig-name descname"><span class="pre">get_QIS_version</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.SystemTest.get_QIS_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the version of QIS.  This is the version of QIS currenty running on the local system if one exists.
+Otherwise the local version within quarchpy will be exectued and its version returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>version</strong> – String representation of the QIS version number</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.SystemTest.get_java_location">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.SystemTest.</span></span><span class="sig-name descname"><span class="pre">get_java_location</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.SystemTest.get_java_location" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the location of java.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>location</strong> – String representation of the java location.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.SystemTest.get_quarchpy_version">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.SystemTest.</span></span><span class="sig-name descname"><span class="pre">get_quarchpy_version</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.SystemTest.get_quarchpy_version" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.SystemTest.main">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.SystemTest.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.SystemTest.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main function to allow the system test to be called direct from the command line</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.SystemTest.test_communication">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.SystemTest.</span></span><span class="sig-name descname"><span class="pre">test_communication</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.SystemTest.test_communication" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.SystemTest.test_system_info">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.SystemTest.</span></span><span class="sig-name descname"><span class="pre">test_system_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.SystemTest.test_system_info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-quarchpy.debug.upgrade_quarchpy">
+<span id="quarchpy-debug-upgrade-quarchpy-module"></span><h2>quarchpy.debug.upgrade_quarchpy module<a class="headerlink" href="#module-quarchpy.debug.upgrade_quarchpy" title="Permalink to this headline">¶</a></h2>
+<p>Functions to allow automatic update and checking of the quarchpy package.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.upgrade_quarchpy.check_if_update">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.upgrade_quarchpy.</span></span><span class="sig-name descname"><span class="pre">check_if_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">auto_update</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.upgrade_quarchpy.check_if_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if updated version is available on pip. Prompts for shutdown of QIS and QPS if they are open, as this will
+prevent the update from working</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>auto_update</strong> (<em>bool</em>) – If True, QPS and QIS will be checked and shut down to prepare for update</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.upgrade_quarchpy.main">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.upgrade_quarchpy.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argstring</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.upgrade_quarchpy.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main function to allow access to access to the upgrade system from the command line</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.upgrade_quarchpy.updateQuarchpy">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.upgrade_quarchpy.</span></span><span class="sig-name descname"><span class="pre">updateQuarchpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">versionNumber</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.upgrade_quarchpy.updateQuarchpy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Requests an upgrade to the quarchpy package_list. Prints to the terminal</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>versionNumber</strong> (<em>str</em><em>, </em><em>optional</em>) – Optional quarchpy version number in string form for previous/dev build access</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-quarchpy.debug.versionCompare">
+<span id="quarchpy-debug-versioncompare-module"></span><h2>quarchpy.debug.versionCompare module<a class="headerlink" href="#module-quarchpy.debug.versionCompare" title="Permalink to this headline">¶</a></h2>
+<p>Provides functions to compare quarchpy versions</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.debug.versionCompare.requiredQuarchpyVersion">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.debug.versionCompare.</span></span><span class="sig-name descname"><span class="pre">requiredQuarchpyVersion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">requiredVersion</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.debug.versionCompare.requiredQuarchpyVersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if the given (required) version is present.  This is used by example scripts to ensure the features they use
+are supported by the installed package version</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>requiredVersion</strong> (<em>str</em>) – String representation of the minimum quarchpy version required</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>safe_to_run</strong> – True if the minimum version requirement is met, otherwise false</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-quarchpy.debug">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-quarchpy.debug" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">quarchpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog (Quarchpy)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">quarchpy</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="quarchpy.html">quarchpy package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="readme.html">Quarchpy - Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licenses.html">LICENSES</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">quarchpy</a><ul>
+  <li><a href="quarchpy.html">quarchpy package</a><ul>
+      <li>Previous: <a href="quarchpy.connection_specific.html" title="previous chapter">quarchpy.connection_specific package</a></li>
+      <li>Next: <a href="quarchpy.fio.html" title="next chapter">quarchpy.fio package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Quarch Technology Ltd.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/source/quarchpy.debug.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

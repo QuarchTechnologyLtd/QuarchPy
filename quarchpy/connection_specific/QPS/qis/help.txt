@@ -1,0 +1,594 @@
+(C)Quarch Technology Ltd 2023, QIS v1.37
+
+qis:
+
+	Greatly simplifies the task of interfacing user scripts to the PPM. All time dependent code and 
+	data decoding is hidden behind a TCP/IP server interface supporting both REST and raw TCP protocols.
+	In addition, the live stream data passes through an internal intermediary buffer further simplifying
+	the timing requirements of any interfacing scripts.
+	   
+	On startup, qis creates a toolbar icon and optionally displays the inbuilt terminal interface. A 
+	right click on the toolbar icon displays a menu with the following options:
+		About
+		Show Terminal
+		Exit
+		
+	The Show Terminal menu item may appear disable/grayed out in the following circumstances
+		A terminal window is already open
+		The inbuilt terminal interface is disabled, see "The inbuilt terminal window".
+
+
+	
+Command line parameters:
+
+	The files qis.bat, qis-NoGUI.bat (Windows) and qis.sh, qis-NoGUI.sh (Linux) contain examples of 
+	command line parameter usage.
+
+	-terminal 
+		Displays a terminal window on application start. N.B. Only valid when the terminal window
+		option is unlocked where locked is defined as when the file disableterminal.txt exists
+		and is set to read only.
+
+	-logging
+		Enables application logging to file
+		
+	-logtarget=file
+		Logs to the specified file
+		
+	-devdebug
+		Enables development debug output to the console
+		
+	-devdebug2
+		Enables devdebug and some more costly debug output
+		
+	-Djava.awt.headless=true
+		This is a Java environment setting where Java is configured to run without GUI components 
+		and qis will run in headless mode, no system tray icon or terminal window so interaction
+		is only possible via a separate REST or TCP application.
+
+	
+
+Client side connections:
+
+	REST is accepted on port 9780
+	TCP  is accepted on port 9722, NB it is possible to connect via a standard Telnet client if said
+	client supports raw mode, I recommend Putty.
+	
+	These port settings can be found and changed in the qis local directory file qis.properties.
+
+
+	
+The inbuilt terminal window:
+
+	At startup qis opens a command/terminal window allowing the user immediate interaction without the
+	need to script a connection or track down a copy of Putty. The opening of terminal window may be
+	prevented by setting the qis local directory file disableterminal.txt to read only.
+	
+	     
+
+$ Commands internal to qis:
+
+	$help
+		Displays copyright, license and help information.
+		
+		
+		 
+	$list 			
+		List attached devices, eg
+		
+		1) usb::qtl1847-01-016
+		2) rest::qtl1944-01-020
+		3) tcp::qtl1944-01-020
+	
+	
+	$list details
+		List attached devices with additional information, eg
+		
+		1) usb::QTL1847-01-016 Port:9 Stream:Yes Name:XLC Programmable Power Module
+		2) rest::QTL1999-02-020 IP:192.168.1.90 Port:80 NBName:1999-02-020 Stream:Yes Name:HD Programmable Power Module +Triggering
+		3) tcp::QTL1999-02-020 IP:192.168.1.90 Port:9760 NBName:1999-02-020 Stream:Yes Name:HD Programmable Power Module +Triggering
+	
+	
+	
+	$scan
+		Perform a scan for connected network attached devices via UPD port 30303. This command returns immediately 
+		but the actual scan takes about 3 seconds to complete. It is recommended to wait 3 seconds before executing
+		any other command. 
+		
+		N.B. USB devices are scanned automatically.
+		
+	
+	$scan TCPIPdevicespecifier 
+		Scan for a device at a specific tcp/ip address, eg
+	
+		$scan tcp::192.168.1.90
+		Located Device: qtl1944-01-020
+		
+		$scan tcp::192.168.1.91
+		No Quarch Device Found at: 192.168.1.91
+
+		$scan tcp::NetBIOSName
+	
+		Once a device tcp/ip address has been scanned successfully the device will appear in the $list
+		and is available for use.
+	
+	$scan?
+		Returns state of USB and Ethernet scanners. Ethernet information includes scan time in mS
+		
+	$scan integer
+		Integer value is in milliseconds (1000 = 1 second). Sets the Ethernet scan timer to the specified value, if the value is 0 the
+		automatic scan is stopped. The minimum realistic scan time is 10mS, the default is 20000mS (20 seconds)
+	
+	$debug [on|off]
+		Sets debug mode.
+
+	$debug?
+		Returns current debug mode setting
+	
+	$debug history
+		Returns the most recent debug messages.
+
+	
+	$default device
+	$def device
+		set device as the default target for all device commands, eg
+		
+		$default tcp::qtl1944-01-020
+		hello?
+		HD Programmable Power Module +Triggering
+	
+		The default device is unique to each client side connection, though due to the nature of
+		http it may be unwise to rely on the connection been maintained during a REST session.  
+		
+		
+	$default deviceListEntryNumber
+	$def deviceListEntryNumber
+		set device as default for all device commands, eg
+		
+		Assuming the $list command returns
+		1) usb::qtl1824-03-161
+		2) rest::qtl1944-01-020
+		3) tcp::qtl1944-01-020
+		
+		$default 3
+		Will set list entry 3) tcp::qtl1944-01-020 as the default device 
+	
+	
+	$default?
+	$def?
+		Displays the current default device, eg
+		
+		$default?
+		Default Device tcp::qtl1944-01-020
+	
+		
+	
+	$sysinfo
+		Displays memory usage and stream task information, eg
+			Used Memory: 36.591705 MB
+			Free Memory: 34.908295 MB
+			Total Memory: 71.500000 MB
+			Max Memory: 1808.000000 MB
+	
+	
+	
+	$shutdown
+		Close this application
+	
+	
+	$sleep [integer value]
+		the command will return after [integer value] milliseconds.
+	
+	$sockets?
+		returns a list of connected TCP devices/TCP sockets in use.
+		
+		$sockets?
+		No Connections
+		
+		$sockets?
+		/192.168.1.182
+		
+	$version
+		Returns QIS version number
+
+Non $ Commands internal to qis:
+
+	Although the stream command is executed internally by qis it differs from the $ commands in that
+	the targeted device may be specified on the stream command line, eg
+		
+		stream text header
+			Returns the stream header information from the most recent stream to be run on the current
+			default device.
+
+		usb::qtl1824-03-161 stream text header
+			Returns the stream header information form the most recent stream to be run on 
+			device usb::qtl1824-03-161
+		
+	
+	stream?
+		Returns running status and buffer information for the current stream operation, eg
+		
+		Stopped: User
+		Stripes Buffered: 94 of 8388608
+		
+		Running
+		Stripes Buffered: 1167 of 8388608
+		
+	
+	stream text header
+		Returns header information for the current stream operation eg
+
+		stream text header
+		Version: 5
+		Format: 15
+		Average: 14
+	
+		See Appendix A for examples of the header data returned by this command.
+	
+	stream text [all|number of stripes]
+		The option all is subject to a limit of 3072 stripes.
+		To ease timing considerations, qis implements an internal buffer of approximately
+		8 million stripes.
+		Returns N stripes in formatted ASCII text from the stream buffer, the format of each line is:
+        
+        sampleAverageTime(uS) [group 0 channel data] [group 1 channel data] ...
+        
+        The following example is for a PPM with the single group 0 and 4 channels [5V(V), 5V(A), 12V(V), 12V(A)]
+        with the channel values corresponding to their dataPosition value in the stream text header XML:
+        
+        stream text 3
+        0    947 59 948 -26
+        4096 947 57 948 -27
+        8192 947 58 948 -26
+
+	stream buffer text [all|number of stripes]
+		PAM only, text is derived directly from the buffer and returned in a simple record by record 
+		format.
+	
+	stream bin [all|number of stripes]
+		The option all is subject to a limit of 4096 stripes.
+		To ease timing considerations, qis implements an internal buffer of approximately
+		8 million stripes.
+		Returns N stripes in binary format from the stream buffer.
+	
+	
+	stream mode power [enable|disable]
+		HD / XLC only. Enable/disable internal power calculation. Only valid when both voltage and current
+		values are available for a given channel. Default is disabled
+		
+	stream mode power total
+		HD / XLC only. Enable/disable internal power calculation and total power calculation. Only valid
+		when two or more power calculations are enabled. Default is disabled and once enabled a stream 
+		mode power [enable|disable] command will disable this option
+	
+	stream mode header [v1|v2|v3]
+		PAM / HD / XLC only. Specify header mode. Default is device default. See Appendix A for header details.
+
+	stream mode resample? 
+	stream mode resample off
+	stream mode resample 1..n[ms|us]
+	stream mode resample group g 1..n[ms|us]
+        In the case of a single-rate device "stream mode resample #" sets the re-sampling value to #. In the case of a
+        multi-rate device "stream mode resample #" sets all groups to #.
+		Force stream data to specified resample period. If device period > resample period, device period
+		will be used.
+		The absolute maximum resample time is 2,147,483,647us or about 2,147 seconds, this is untested!
+        For example:
+        stream mode resample 10mS           --> sets all groups to 10mS
+        stream mode resample group 0 100mS  --> sets group 0 to 100mS
+        stream mode resample group 1 200mS  --> sets group 1 to 200mS
+
+
+	Synthetic Channel Functions, see Appendix B
+
+	stream create channel ...
+		Creates a new channel.
+	stream created channel delete ...
+		Deletes a previously created channel.
+	stream created channels clear
+		Deletes all previously created channels.
+	stream created channels?
+		Returns a list of all previously created channels.
+	stream created function definitions?
+		Returns an XML description of all supported functions.
+
+	
+	tcp::DeviceIdentifier forcereset
+	
+	tcp::DeviceIdentifier forceIPAddress aaa.bbb.ccc.ddd
+	
+	close
+		closes the default or specified device connection. NB if a stream is in progress the stream is first stopped
+		before the connection is closed therefore the actual close may happen a few seconds after the command is issued.
+		For a USB connection any stream will be stopped
+		For a TCP connection any stream will be stopped and the TCP connection will be closed
+		
+			close
+			tcp::qtl1999-03-161 close
+		
+		
+TCPIPdevicespecifier
+	The TCP/IP device specifier has two general forms:
+		interface::DeviceIdentifier
+			tcp::qtl1944-01-020
+			
+		interface::IPAddress
+			tcp::192.168.1.90
+			
+	Overrides for the protocol port number and message timeout may be appended to the device
+	specifier, eg
+		tcp::192.168.1.90:5432%3000
+		
+		Forces the device connection to use port number 5432 with a message timeout of 3000ms. The initial
+		connection timeout for TCP is 10 times the message timeout. 
+	
+	
+	
+Any command not recognised by qis will be passed on to the current default device or to the device specified on the command line eg
+
+	hello? 
+	HD Programmable Power Module +Triggering
+	
+	usb::qtl1824-03-161 hello?
+	XLC Programmable Power Module +Triggering
+	
+	
+	
+The $help screen:
+
+    >$help
+    Quarch Instrument Server v1.35.01 (C)Quarch Technology Ltd 2023
+
+    This program uses:
+    usb4java V1.3 distributed under LGPL v3.0
+    Netty v4.1.43 distributed under Apache License 2.0
+
+    Application Start Directory: P:\Software\Java\PPMUtils\qis
+
+    Help:
+
+    $list : list attached devices
+    $list details : list attached devices with additional information
+    $scan : perform a scan for connected devices
+
+    $default device : set device as default for all device commands
+    $default? : displays the current default device
+
+    $sysinfo : Displays memory usage and stream task information, eg
+
+    $shutdown : close this application
+
+    stream? : returns running status and buffer information for the current stream operation
+    stream text header : returns header information for the current stream operation
+    stream text [all|number of stripes] : returns N stripes in formatted ASCII text from the stream buffer
+    stream bin [all|number of stripes] : returns N stripes in binary format from the stream buffer
+
+QuarchInstrumentServer.properties.xml
+
+	The following allow setting the port numbers and device message timeouts (in milliseconds)
+	
+    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    <Properties>
+        <lastModified>2020-12-17 16:49:16</lastModified>
+        <defaultTCPTimeout>5000</defaultTCPTimeout>
+        <defaultTCPSemaphoreTimeout>5000</defaultTCPSemaphoreTimeout>
+        <localPorts>
+            <rest>9780</rest>
+            <scan>-1</scan>
+            <tcp>NA</tcp>
+            <telnet>9722</telnet>
+        </localPorts>
+    </Properties>
+
+
+	Legacy information:
+		Local, ie client, ports may be changed from their default values. 
+		Scan:
+			-1 		= use default local port allocation for the scan/locate process.
+			0		= disable the scan/locate process.	
+			30303 	= value for pre 5.002 hd sw
+
+	These changes will take effect after a restart
+
+	
+Appendix A: Header Examples
+
+The following are examples of supported headers:
+	
+	V1
+		Version: 5
+		Format: 15
+		Average: 14
+
+	V2
+		Version: 5
+		Format: 15
+		Average: 10
+		V2
+		@Channels
+		Status status NA
+		5V voltage mV
+		5V current uA
+		12V voltage mV
+		12V current uA
+		5V power uW
+		12V power uW
+		@Channels_End
+	
+	V3
+		<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+		<header>
+			<version>V3</version>
+			<devicePeriod>4096us</devicePeriod>
+			<mainPeriod>4096uS</mainPeriod>
+			<legacyVersion>5</legacyVersion>
+			<legacyFormat>15</legacyFormat>
+			<legacyAverage>10</legacyAverage>
+			<channels>
+				<channel>
+					<name>Status</name>
+					<group>status</group>
+					<units>NA</units>
+					<maxTValue>0</maxTValue>
+					<dataPosition>0</dataPosition>
+				</channel>
+				<channel>
+					<name>5V</name>
+					<group>voltage</group>
+					<units>mV</units>
+					<maxTValue>16384</maxTValue>
+					<dataPosition>1</dataPosition>
+				</channel>
+				<channel>
+					<name>5V</name>
+					<group>current</group>
+					<units>uA</units>
+					<maxTValue>16777216</maxTValue>
+					<dataPosition>2</dataPosition>
+				</channel>
+				<channel>
+					<name>12V</name>
+					<group>voltage</group>
+					<units>mV</units>
+					<maxTValue>16384</maxTValue>
+					<dataPosition>3</dataPosition>
+				</channel>
+				<channel>
+					<name>12V</name>
+					<group>current</group>
+					<units>uA</units>
+					<maxTValue>16777216</maxTValue>
+					<dataPosition>4</dataPosition>
+				</channel>
+				<channel>
+					<name>5V</name>
+					<group>power</group>
+					<units>uW</units>
+					<maxTValue>274877906</maxTValue>
+					<dataPosition>5</dataPosition>
+				</channel>
+				<channel>
+					<name>12V</name>
+					<group>power</group>
+					<units>uW</units>
+					<maxTValue>274877906</maxTValue>
+					<dataPosition>6</dataPosition>
+				</channel>
+				<channel>
+					<name>Tot</name>
+					<group>power</group>
+					<units>uW</units>
+					<maxTValue>549755812</maxTValue>
+					<dataPosition>7</dataPosition>
+				</channel>
+			</channels>
+		</header>
+
+Appendix B: Synthetic Channel Functions
+
+	stream create channel ...
+		Creates a new channel.
+	stream created channel delete ...
+		Deletes a previously created channel.
+	stream created channels clear
+		Deletes all previously created channels.
+	stream created channels?
+		Returns a list of all previously created channels.
+	stream created function definitions?
+		Returns an XML description of all supported functions.
+
+A more detailed description, with examples, of each command follows:
+
+	stream create channel chan(chName,chGroup) function(arg1, arg2, ...)
+		A new synthetic channel is created by way of specifying a channel function using the chan() function, which takes
+		arguments of the new channel name and its display group. Following the newly defined channel is the function name that
+		takes two or more arguments. For example:
+		
+		stream create channel chan(L1_RMS,V) rms(100ms, chan(L1,V))
+		
+		Here we define a new synthetic channel called "L1_RMS" and assign it to the group "V". It is defined using the function rms(), which is
+		short for the root mean square function. The rms() function takes two argument, the first being the time window and the second being a channel
+		on which the RMS is calculated.
+		
+		Other examples are:
+		
+		chan(L1_pf,PF%) PowerFactor(chan(L1_PAct,W),chan(L1_PApp,VA))
+		chan(L2_PApp,VA) pApparent(chan(L2_RMS,V),chan(L2_RMS,A))
+		
+	stream created channel delete chan(chName,chGroup)
+		A previously defined channel is deleted using the delete command by specifying both the channel name and group. For example:
+		
+		stream created channel delete chan(L1_RMS,V)
+		
+	stream created channels clear
+		Deletes all previously created channels, and serves as a convenience command to the above in which all channels are
+		deleted with a single command.
+		
+	stream created channels?
+		Returns a list of all previously created channels. For example:
+		
+		stream created channels?
+		
+		could return the following list:
+		
+		chan(L1_RMS,V) rms(100mS, chan(L1,V))
+		chan(L1_RMS,A) rms(100mS, chan(L1,A))
+		...
+		
+	stream created function definitions?
+		Returns the XML schema used to define the supported synthetic channel functions. For example:
+		
+		>stream created function definitions?
+		<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+		<functionDefinitions>
+		<function>
+		<name>rms</name>
+		<returnType>int</returnType>
+		<description>The effective value of a sinusoidal waveform which gives the same heating effect as an equivalent DC supply.</description>
+		<parameters>
+		<parameter>
+		<name>window</name>
+		<type>timeWindow</type>
+		...
+		
+The currently supported synthetic channel functions are:
+
+	rms
+		The effective value of a sinusoidal waveform which gives the same heating effect as an equivalent DC supply.
+	sinewave
+		A test function generating a sine wave based on the supplied parameters.
+	frequency
+		The frequency of the signal specified by the source channel.
+	phase
+		The difference in phase, expressed in degrees, between the two source channels.
+	pInstantaneous
+		The product of voltage and current.
+	pApparent
+		The product of RMS voltage and RMS current.
+	pActive
+		The actual power which is transferred to the load / dissipated in the circuit.
+	pReactive
+		Power absorbed by and returned from the load due to its reactive properties.
+	PowerFactor
+		The ratio of the real power absorbed by the load to the apparent power flowing in the circuit.
+	Sum
+		The sum of the specified channels.
+		
+Each of the above functions have differing arguments and return value and the best source of reference for each function's
+details is via the XML function definitions command described above.
+	
+Appendix C: FAQ
+
+	Why does the client side REST interface default to port number 9780 instead of the standard
+	port 80?
+	In their infinite wisdom the Windows 10 designers hijack port 80 for their own needs.  	
+	
+	When I try to launch qis I see a dialogue box/terminal window saying the application is 
+	"Shutting Down".
+	qis supports two client side interfaces, REST and TCP, if neither interface can be claimed
+	there is no means of communicating with client software so the application shuts down.   
+	
+	Can I increase the amount of memory available to qis/java?
+	See Java documentation for the -Xmx launch option. eg -Xmx4096m would allow java to use up to
+	4GB of system ram.
+	

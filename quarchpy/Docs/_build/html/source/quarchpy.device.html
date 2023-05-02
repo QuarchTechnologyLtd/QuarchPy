@@ -1,0 +1,1025 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>quarchpy.device package &#8212; quarchpy  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="quarchpy.qis package" href="quarchpy.qis.html" />
+    <link rel="prev" title="quarchpy package" href="quarchpy.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="quarchpy-device-package">
+<h1>quarchpy.device package<a class="headerlink" href="#quarchpy-device-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-quarchpy.device.device">
+<span id="quarchpy-device-device-module"></span><h2>quarchpy.device.device module<a class="headerlink" href="#module-quarchpy.device.device" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.device.checkModuleFormat">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.device.</span></span><span class="sig-name descname"><span class="pre">checkModuleFormat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ConString</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.device.checkModuleFormat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.device.getQuarchDevice">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.device.</span></span><span class="sig-name descname"><span class="pre">getQuarchDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connectionTarget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ConType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'PY'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'5'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.device.getQuarchDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>creates a quarch device to be returned. Handles sub devices in quarch arrays.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.device.quarchDevice">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.device.</span></span><span class="sig-name descname"><span class="pre">quarchDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ConString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ConType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'PY'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'5'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.device.quarchDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Allows control over a Quarch device, over a wide range of underlying connection methods.  This is the core class
+used for control of all Quarch products.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.device.quarchDevice.closeConnection">
+<span class="sig-name descname"><span class="pre">closeConnection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.device.quarchDevice.closeConnection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes the connection to the module, freeing the module for other uses.  This should always be called whern you are finished with a device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.device.quarchDevice.getRuntime">
+<span class="sig-name descname"><span class="pre">getRuntime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'conf:runtimes?'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.device.quarchDevice.getRuntime" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>command</strong> – can be overridden to ask for PAM fixture runtime</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.device.quarchDevice.openConnection">
+<span class="sig-name descname"><span class="pre">openConnection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.device.quarchDevice.openConnection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens the connection to the module.  This will be open by default on creation of quarchDevice but this
+allows re-opening if required.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.device.quarchDevice.resetDevice">
+<span class="sig-name descname"><span class="pre">resetDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.device.quarchDevice.resetDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Issues a power-on-reset command to the device.  Attempts to recover the connection to the module after reset.
+Function halts until the timeout is complete or the module is found</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>int</em>) – Number of seconds to wait for the module to re-enumerate and become available</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>result</strong> – True if the device was found and reconnected, false if it was not and we timed out</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.device.quarchDevice.sendAndVerifyCommand">
+<span class="sig-name descname"><span class="pre">sendAndVerifyCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">commandString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">responseExpected</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'OK'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.device.quarchDevice.sendAndVerifyCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sends a command to the device and verifies the response is as expected.  This is a simple
+wrapper of sendCommand and helps write cleaner code in test scripts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>commandString</strong> (<em>str</em><em>, </em><em>optional</em>) – The text command to send to the device</p></li>
+<li><p><strong>commandString</strong> – The expected text response from the module.</p></li>
+<li><p><strong>exception</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, an exception is raised on mismatch.  If False, we just return False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>result</strong> – True if we matched the response, False if we did not</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the response does not match AND the exception parameter is set to True</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.device.quarchDevice.sendBinaryCommand">
+<span class="sig-name descname"><span class="pre">sendBinaryCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.device.quarchDevice.sendBinaryCommand" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.device.quarchDevice.sendCommand">
+<span class="sig-name descname"><span class="pre">sendCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CommandString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expectedResponse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.device.quarchDevice.sendCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes a text based command on the device.  This is the primary way of controlling a device.  The full command set available to use
+is found in the technical manual for the device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>CommandString</strong> (<em>str</em>) – The text based command string to send to the device</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>command_response</strong> – The response text from the module.  Multiline responses will be seperated with LF. Some commands
+do not return a response and None will be returned</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-quarchpy.device.quarchArray">
+<span id="quarchpy-device-quarcharray-module"></span><h2>quarchpy.device.quarchArray module<a class="headerlink" href="#module-quarchpy.device.quarchArray" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.isThisAnArrayController">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchArray.</span></span><span class="sig-name descname"><span class="pre">isThisAnArrayController</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">moduleString</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.isThisAnArrayController" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.quarchArray">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchArray.</span></span><span class="sig-name descname"><span class="pre">quarchArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">baseDevice</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.quarchArray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchpy.device.device.quarchDevice</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.quarchArray.getSubDevice">
+<span class="sig-name descname"><span class="pre">getSubDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.quarchArray.getSubDevice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.quarchArray.scanSubModules">
+<span class="sig-name descname"><span class="pre">scanSubModules</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.quarchArray.scanSubModules" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.subDevice">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchArray.</span></span><span class="sig-name descname"><span class="pre">subDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">baseDevice</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.subDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchpy.device.device.quarchDevice</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.subDevice.sendCommand">
+<span class="sig-name descname"><span class="pre">sendCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CommandString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expectedResponse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.subDevice.sendCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes a text based command on the device.  This is the primary way of controlling a device.  The full command set available to use
+is found in the technical manual for the device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>CommandString</strong> (<em>str</em>) – The text based command string to send to the device</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>command_response</strong> – The response text from the module.  Multiline responses will be seperated with LF. Some commands
+do not return a response and None will be returned</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-quarchpy.device.quarchPPM">
+<span id="quarchpy-device-quarchppm-module"></span><h2>quarchpy.device.quarchPPM module<a class="headerlink" href="#module-quarchpy.device.quarchPPM" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.quarchPPM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchPPM.</span></span><span class="sig-name descname"><span class="pre">quarchPPM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">originObj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.quarchPPM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchpy.device.device.quarchDevice</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.quarchPPM.setupPowerOutput">
+<span class="sig-name descname"><span class="pre">setupPowerOutput</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.quarchPPM.setupPowerOutput" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.quarchPPM.startStream">
+<span class="sig-name descname"><span class="pre">startStream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'streamData.txt'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fileMaxMB</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Stream</span> <span class="pre">With</span> <span class="pre">No</span> <span class="pre">Name'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamAverage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">releaseOnData</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.quarchPPM.startStream" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.quarchPPM.stopStream">
+<span class="sig-name descname"><span class="pre">stopStream</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.quarchPPM.stopStream" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.quarchPPM.streamBufferStatus">
+<span class="sig-name descname"><span class="pre">streamBufferStatus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.quarchPPM.streamBufferStatus" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.quarchPPM.streamInterrupt">
+<span class="sig-name descname"><span class="pre">streamInterrupt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.quarchPPM.streamInterrupt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.quarchPPM.streamResampleMode">
+<span class="sig-name descname"><span class="pre">streamResampleMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">streamCom</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.quarchPPM.streamResampleMode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.quarchPPM.streamRunningStatus">
+<span class="sig-name descname"><span class="pre">streamRunningStatus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.quarchPPM.streamRunningStatus" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.quarchPPM.waitStop">
+<span class="sig-name descname"><span class="pre">waitStop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.quarchPPM.waitStop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-quarchpy.device.quarchQPS">
+<span id="quarchpy-device-quarchqps-module"></span><h2>quarchpy.device.quarchQPS module<a class="headerlink" href="#module-quarchpy.device.quarchQPS" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.current_milli_time">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchQPS.</span></span><span class="sig-name descname"><span class="pre">current_milli_time</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.current_milli_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.current_second_time">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchQPS.</span></span><span class="sig-name descname"><span class="pre">current_second_time</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.current_second_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.qpsNowStr">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchQPS.</span></span><span class="sig-name descname"><span class="pre">qpsNowStr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.qpsNowStr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchQPS">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchQPS.</span></span><span class="sig-name descname"><span class="pre">quarchQPS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quarchDevice</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchQPS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchpy.device.device.quarchDevice</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchQPS.startStream">
+<span class="sig-name descname"><span class="pre">startStream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchQPS.startStream" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchQPS.</span></span><span class="sig-name descname"><span class="pre">quarchStream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quarchQPS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#quarchpy.device.quarchQPS.quarchQPS" title="quarchpy.device.quarchQPS.quarchQPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchpy.device.quarchQPS.quarchQPS</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.addAnnotation">
+<span class="sig-name descname"><span class="pre">addAnnotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationTime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extraText</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yPos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">titleColor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationColor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationGroup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.addAnnotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a custom annotation to stream with given parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>title=</strong> (<em>str</em>) – The title appears next to the annotation in the stream</p></li>
+<li><p><strong>extraText=</strong> (<em>str</em><em>, </em><em>optional</em>) – The additional text that can be viewed when selecting the annotation</p></li>
+<li><p><strong>yPos</strong> (<em>str</em><em>, </em><em>optional</em>) – The percetange of how high up the screen the annotation should appear 0 is the bottom and 100 the top</p></li>
+<li><p><strong>titleColor</strong> (<em>str</em><em>, </em><em>optional</em>) – The color of the text next to the annotation in hex format 000000 to FFFFFF</p></li>
+<li><p><strong>annotationColor</strong> (<em>str</em><em>, </em><em>optional</em>) – The color of the annotation marker in hex format 000000 to FFFFFF</p></li>
+<li><p><strong>annotationGroup</strong> (<em>str</em><em>, </em><em>optional</em>) – The group the annotation belongs to</p></li>
+<li><p><strong>annotationTime</strong> (<em>int</em><em>, </em><em>optional</em>) – The time in milliseconds after the start of the stream at which the annotation should be placed. 0 will plot the annotation live at the most recent sample</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>command_response</strong> – The response text from QPS. “ok” if annotation successfully added</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.addComment">
+<span class="sig-name descname"><span class="pre">addComment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commentTime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extraText</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yPos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">titleColor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commentColor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationGroup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.addComment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.addDataPoint">
+<span class="sig-name descname"><span class="pre">addDataPoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channelName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groupName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataValue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataPointTime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.addDataPoint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.channels">
+<span class="sig-name descname"><span class="pre">channels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.channels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.createChannel">
+<span class="sig-name descname"><span class="pre">createChannel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channelName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channelGroup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baseUnits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">usePrefix</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.createChannel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.failCheck">
+<span class="sig-name descname"><span class="pre">failCheck</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">newDirectory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.failCheck" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.getStreamState">
+<span class="sig-name descname"><span class="pre">getStreamState</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.getStreamState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Askes QPS for the stream status.
+QPS stream state != Module stream state.
+This is different from “rec stream?” cmd to the module as it will return “streaming” when the module is nolonger streaming but QPS is still receiveing stream data from the module.
+ei the module has stopped streaming but is emptying the stream buffer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.get_custom_stats_range">
+<span class="sig-name descname"><span class="pre">get_custom_stats_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.get_custom_stats_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the QPS statistics information over a specific time ignoring any set annotations.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>start_time =<span class="classifier">str</span></dt><dd><p>The time in seconds you would like the stats to start this can be in integer or sting format.
+or using the following format to specify daysDhours:minutes:seconds.milliseconds
+xxxDxx:xx:xx.xxxx</p>
+</dd>
+<dt>end_time =<span class="classifier">str</span></dt><dd><p>The time in seconds you would like the stats to stop this can be in integer or sting format
+or using the following format to specify daysDhours:minutes:seconds.milliseconds
+xxxDxx:xx:xx.xxxx</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>df =<span class="classifier">dataframe</span></dt><dd><p>The response text from QPS. If successful “ok. Saving stats to : file_name” otherwise returns the exception thrown</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.get_stats">
+<span class="sig-name descname"><span class="pre">get_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'df'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.get_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the QPS annotation statistics grid information as a pandas dataframe object</p>
+<blockquote>
+<div><dl class="simple">
+<dt>df =<span class="classifier">dataframe</span></dt><dd><p>The response text from QPS. If successful “ok. Saving stats to : file_name” otherwise returns the exception thrown</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.hideAllDefaultChannels">
+<span class="sig-name descname"><span class="pre">hideAllDefaultChannels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.hideAllDefaultChannels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.hideChannel">
+<span class="sig-name descname"><span class="pre">hideChannel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channelSpecifier</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.hideChannel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.myChannels">
+<span class="sig-name descname"><span class="pre">myChannels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.myChannels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.saveCSV">
+<span class="sig-name descname"><span class="pre">saveCSV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filePath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linesPerFile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.saveCSV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the stream to csv file at specified location</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filePath=</strong> (<em>str</em>) – The file path that ou would like the CSV file saved to.</p></li>
+<li><p><strong>linesPerFile=</strong> (<em>str</em><em>, </em><em>optional</em>) – The number of lines per CSV file. Can be any int number or “all”</p></li>
+<li><p><strong>cr</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether the end of line terminator should include a carriage return.</p></li>
+<li><p><strong>delimiter</strong> (<em>str</em><em>, </em><em>optional</em>) – The delimiter to be used by the csv file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>command_response</strong> – The response text from QPS. “ok” if command is successful or the stack trace if exception thrown</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.showChannel">
+<span class="sig-name descname"><span class="pre">showChannel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channelSpecifier</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.showChannel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.stats_to_CSV">
+<span class="sig-name descname"><span class="pre">stats_to_CSV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.stats_to_CSV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the statistics grid to a csv file</p>
+<blockquote>
+<div><dl class="simple">
+<dt>file-name=<span class="classifier">str, optional</span></dt><dd><p>The absolute path of the file you would like to save the csv to. If left empty then a filename will be give.
+Default location is the path of the executable.</p>
+</dd>
+</dl>
+<p>command_response : str or None</p>
+<blockquote>
+<div><p>The response text from QPS. If successful “ok. Saving stats to : file_name” otherwise returns the exception thrown</p>
+</div></blockquote>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.stopStream">
+<span class="sig-name descname"><span class="pre">stopStream</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.stopStream" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.stopStreamAndAllowBufferToEmpty">
+<span class="sig-name descname"><span class="pre">stopStreamAndAllowBufferToEmpty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">checkInterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.stopStreamAndAllowBufferToEmpty" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.quarchStream.takeSnapshot">
+<span class="sig-name descname"><span class="pre">takeSnapshot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.quarchStream.takeSnapshot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Triggers QPS take snapshot function and saves it in the streams directory.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-quarchpy.device.scanDevices">
+<span id="quarchpy-device-scandevices-module"></span><h2>quarchpy.device.scanDevices module<a class="headerlink" href="#module-quarchpy.device.scanDevices" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.filter_module_type">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">filter_module_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module_type_filter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">found_devices</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.filter_module_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Used in scandevices to filter modules by their type.
+Uses config files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module_type_filter</strong> – Acceptable values are ‘Cable’, ‘Card’, ‘Drive’, ‘Power’, ‘Switch’</p></li>
+<li><p><strong>found_devices</strong> – List of found devices passed from scan_devices</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Returns all devices in found devices that are of ‘module filter type’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.getSerialNumberFromConnectionTarget">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">getSerialNumberFromConnectionTarget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connectionTarget</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.getSerialNumberFromConnectionTarget" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.get_connection_target">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">get_connection_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module_string</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan_dictionary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connection_preference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_conn_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.get_connection_target" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.get_user_level_serial_number">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">get_user_level_serial_number</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network_modules</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.get_user_level_serial_number" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.listDevices">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">listDevices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scanDictionary</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.listDevices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.list_USB">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">list_USB</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">debuPrint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.list_USB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.list_network">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">list_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_conn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debugPring</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lanTimeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipAddressLookup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.list_network" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.list_serial">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">list_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">debuPrint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.list_serial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.lookupDevice">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">lookupDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ipAddressLookup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mySocket</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lan_modules</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.lookupDevice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.mergeDict">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">mergeDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.mergeDict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.scanDevices">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">scanDevices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_conn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lanTimeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scanInArray</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">favouriteOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filterStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module_type_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipAddressLookup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.scanDevices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices.userSelectDevice">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.scanDevices.</span></span><span class="sig-name descname"><span class="pre">userSelectDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scanDictionary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scanFilterStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">favouriteOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nice</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additionalOptions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_conn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices.userSelectDevice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-quarchpy.device">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-quarchpy.device" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.getQuarchDevice">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">getQuarchDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connectionTarget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ConType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'PY'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'5'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.getQuarchDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>creates a quarch device to be returned. Handles sub devices in quarch arrays.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.getSerialNumberFromConnectionTarget">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">getSerialNumberFromConnectionTarget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connectionTarget</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.getSerialNumberFromConnectionTarget" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.get_connection_target">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">get_connection_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module_string</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan_dictionary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connection_preference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_conn_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.get_connection_target" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.listDevices">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">listDevices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scanDictionary</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.listDevices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.qpsNowStr">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">qpsNowStr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.qpsNowStr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">quarchArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">baseDevice</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchpy.device.device.quarchDevice</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.getSubDevice">
+<span class="sig-name descname"><span class="pre">getSubDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.getSubDevice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.scanSubModules">
+<span class="sig-name descname"><span class="pre">scanSubModules</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.scanSubModules" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.quarchDevice">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">quarchDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ConString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ConType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'PY'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'5'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Allows control over a Quarch device, over a wide range of underlying connection methods.  This is the core class
+used for control of all Quarch products.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchDevice.closeConnection">
+<span class="sig-name descname"><span class="pre">closeConnection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchDevice.closeConnection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes the connection to the module, freeing the module for other uses.  This should always be called whern you are finished with a device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchDevice.getRuntime">
+<span class="sig-name descname"><span class="pre">getRuntime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'conf:runtimes?'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchDevice.getRuntime" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>command</strong> – can be overridden to ask for PAM fixture runtime</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchDevice.openConnection">
+<span class="sig-name descname"><span class="pre">openConnection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchDevice.openConnection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens the connection to the module.  This will be open by default on creation of quarchDevice but this
+allows re-opening if required.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchDevice.resetDevice">
+<span class="sig-name descname"><span class="pre">resetDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchDevice.resetDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Issues a power-on-reset command to the device.  Attempts to recover the connection to the module after reset.
+Function halts until the timeout is complete or the module is found</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>int</em>) – Number of seconds to wait for the module to re-enumerate and become available</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>result</strong> – True if the device was found and reconnected, false if it was not and we timed out</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchDevice.sendAndVerifyCommand">
+<span class="sig-name descname"><span class="pre">sendAndVerifyCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">commandString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">responseExpected</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'OK'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchDevice.sendAndVerifyCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sends a command to the device and verifies the response is as expected.  This is a simple
+wrapper of sendCommand and helps write cleaner code in test scripts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>commandString</strong> (<em>str</em><em>, </em><em>optional</em>) – The text command to send to the device</p></li>
+<li><p><strong>commandString</strong> – The expected text response from the module.</p></li>
+<li><p><strong>exception</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, an exception is raised on mismatch.  If False, we just return False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>result</strong> – True if we matched the response, False if we did not</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the response does not match AND the exception parameter is set to True</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchDevice.sendBinaryCommand">
+<span class="sig-name descname"><span class="pre">sendBinaryCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchDevice.sendBinaryCommand" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchDevice.sendCommand">
+<span class="sig-name descname"><span class="pre">sendCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CommandString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expectedResponse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchDevice.sendCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes a text based command on the device.  This is the primary way of controlling a device.  The full command set available to use
+is found in the technical manual for the device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>CommandString</strong> (<em>str</em>) – The text based command string to send to the device</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>command_response</strong> – The response text from the module.  Multiline responses will be seperated with LF. Some commands
+do not return a response and None will be returned</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">quarchPPM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">originObj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchpy.device.device.quarchDevice</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.setupPowerOutput">
+<span class="sig-name descname"><span class="pre">setupPowerOutput</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.setupPowerOutput" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.startStream">
+<span class="sig-name descname"><span class="pre">startStream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'streamData.txt'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fileMaxMB</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Stream</span> <span class="pre">With</span> <span class="pre">No</span> <span class="pre">Name'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamAverage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">releaseOnData</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.startStream" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.stopStream">
+<span class="sig-name descname"><span class="pre">stopStream</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.stopStream" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.streamBufferStatus">
+<span class="sig-name descname"><span class="pre">streamBufferStatus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.streamBufferStatus" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.streamInterrupt">
+<span class="sig-name descname"><span class="pre">streamInterrupt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.streamInterrupt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.streamResampleMode">
+<span class="sig-name descname"><span class="pre">streamResampleMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">streamCom</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.streamResampleMode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.streamRunningStatus">
+<span class="sig-name descname"><span class="pre">streamRunningStatus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.streamRunningStatus" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchPPM.waitStop">
+<span class="sig-name descname"><span class="pre">waitStop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchPPM.waitStop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">quarchQPS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quarchDevice</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchpy.device.device.quarchDevice</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchQPS.startStream">
+<span class="sig-name descname"><span class="pre">startStream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchQPS.startStream" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">quarchStream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quarchQPS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#quarchpy.device.quarchQPS.quarchQPS" title="quarchpy.device.quarchQPS.quarchQPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchpy.device.quarchQPS.quarchQPS</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.addAnnotation">
+<span class="sig-name descname"><span class="pre">addAnnotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationTime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extraText</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yPos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">titleColor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationColor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationGroup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.addAnnotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a custom annotation to stream with given parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>title=</strong> (<em>str</em>) – The title appears next to the annotation in the stream</p></li>
+<li><p><strong>extraText=</strong> (<em>str</em><em>, </em><em>optional</em>) – The additional text that can be viewed when selecting the annotation</p></li>
+<li><p><strong>yPos</strong> (<em>str</em><em>, </em><em>optional</em>) – The percetange of how high up the screen the annotation should appear 0 is the bottom and 100 the top</p></li>
+<li><p><strong>titleColor</strong> (<em>str</em><em>, </em><em>optional</em>) – The color of the text next to the annotation in hex format 000000 to FFFFFF</p></li>
+<li><p><strong>annotationColor</strong> (<em>str</em><em>, </em><em>optional</em>) – The color of the annotation marker in hex format 000000 to FFFFFF</p></li>
+<li><p><strong>annotationGroup</strong> (<em>str</em><em>, </em><em>optional</em>) – The group the annotation belongs to</p></li>
+<li><p><strong>annotationTime</strong> (<em>int</em><em>, </em><em>optional</em>) – The time in milliseconds after the start of the stream at which the annotation should be placed. 0 will plot the annotation live at the most recent sample</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>command_response</strong> – The response text from QPS. “ok” if annotation successfully added</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.addComment">
+<span class="sig-name descname"><span class="pre">addComment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commentTime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extraText</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yPos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">titleColor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commentColor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotationGroup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.addComment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.addDataPoint">
+<span class="sig-name descname"><span class="pre">addDataPoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channelName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groupName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataValue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataPointTime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.addDataPoint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.channels">
+<span class="sig-name descname"><span class="pre">channels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.channels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.createChannel">
+<span class="sig-name descname"><span class="pre">createChannel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channelName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channelGroup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baseUnits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">usePrefix</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.createChannel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.failCheck">
+<span class="sig-name descname"><span class="pre">failCheck</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">newDirectory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.failCheck" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.getStreamState">
+<span class="sig-name descname"><span class="pre">getStreamState</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.getStreamState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Askes QPS for the stream status.
+QPS stream state != Module stream state.
+This is different from “rec stream?” cmd to the module as it will return “streaming” when the module is nolonger streaming but QPS is still receiveing stream data from the module.
+ei the module has stopped streaming but is emptying the stream buffer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.get_custom_stats_range">
+<span class="sig-name descname"><span class="pre">get_custom_stats_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.get_custom_stats_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the QPS statistics information over a specific time ignoring any set annotations.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>start_time =<span class="classifier">str</span></dt><dd><p>The time in seconds you would like the stats to start this can be in integer or sting format.
+or using the following format to specify daysDhours:minutes:seconds.milliseconds
+xxxDxx:xx:xx.xxxx</p>
+</dd>
+<dt>end_time =<span class="classifier">str</span></dt><dd><p>The time in seconds you would like the stats to stop this can be in integer or sting format
+or using the following format to specify daysDhours:minutes:seconds.milliseconds
+xxxDxx:xx:xx.xxxx</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>df =<span class="classifier">dataframe</span></dt><dd><p>The response text from QPS. If successful “ok. Saving stats to : file_name” otherwise returns the exception thrown</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.get_stats">
+<span class="sig-name descname"><span class="pre">get_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'df'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.get_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the QPS annotation statistics grid information as a pandas dataframe object</p>
+<blockquote>
+<div><dl class="simple">
+<dt>df =<span class="classifier">dataframe</span></dt><dd><p>The response text from QPS. If successful “ok. Saving stats to : file_name” otherwise returns the exception thrown</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.hideAllDefaultChannels">
+<span class="sig-name descname"><span class="pre">hideAllDefaultChannels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.hideAllDefaultChannels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.hideChannel">
+<span class="sig-name descname"><span class="pre">hideChannel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channelSpecifier</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.hideChannel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.myChannels">
+<span class="sig-name descname"><span class="pre">myChannels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.myChannels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.saveCSV">
+<span class="sig-name descname"><span class="pre">saveCSV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filePath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linesPerFile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.saveCSV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the stream to csv file at specified location</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filePath=</strong> (<em>str</em>) – The file path that ou would like the CSV file saved to.</p></li>
+<li><p><strong>linesPerFile=</strong> (<em>str</em><em>, </em><em>optional</em>) – The number of lines per CSV file. Can be any int number or “all”</p></li>
+<li><p><strong>cr</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether the end of line terminator should include a carriage return.</p></li>
+<li><p><strong>delimiter</strong> (<em>str</em><em>, </em><em>optional</em>) – The delimiter to be used by the csv file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>command_response</strong> – The response text from QPS. “ok” if command is successful or the stack trace if exception thrown</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.showChannel">
+<span class="sig-name descname"><span class="pre">showChannel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channelSpecifier</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.showChannel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.stats_to_CSV">
+<span class="sig-name descname"><span class="pre">stats_to_CSV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.stats_to_CSV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the statistics grid to a csv file</p>
+<blockquote>
+<div><dl class="simple">
+<dt>file-name=<span class="classifier">str, optional</span></dt><dd><p>The absolute path of the file you would like to save the csv to. If left empty then a filename will be give.
+Default location is the path of the executable.</p>
+</dd>
+</dl>
+<p>command_response : str or None</p>
+<blockquote>
+<div><p>The response text from QPS. If successful “ok. Saving stats to : file_name” otherwise returns the exception thrown</p>
+</div></blockquote>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.stopStream">
+<span class="sig-name descname"><span class="pre">stopStream</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.stopStream" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.stopStreamAndAllowBufferToEmpty">
+<span class="sig-name descname"><span class="pre">stopStreamAndAllowBufferToEmpty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">checkInterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.stopStreamAndAllowBufferToEmpty" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchStream.takeSnapshot">
+<span class="sig-name descname"><span class="pre">takeSnapshot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchStream.takeSnapshot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Triggers QPS take snapshot function and saves it in the streams directory.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.scanDevices">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">scanDevices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_conn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lanTimeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scanInArray</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">favouriteOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filterStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module_type_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipAddressLookup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.scanDevices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.device.subDevice">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">subDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">baseDevice</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.subDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchpy.device.device.quarchDevice</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.subDevice.sendCommand">
+<span class="sig-name descname"><span class="pre">sendCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CommandString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expectedResponse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.subDevice.sendCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes a text based command on the device.  This is the primary way of controlling a device.  The full command set available to use
+is found in the technical manual for the device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>CommandString</strong> (<em>str</em>) – The text based command string to send to the device</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>command_response</strong> – The response text from the module.  Multiline responses will be seperated with LF. Some commands
+do not return a response and None will be returned</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.device.userSelectDevice">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">userSelectDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scanDictionary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scanFilterStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">favouriteOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nice</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additionalOptions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_conn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.userSelectDevice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">quarchpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog (Quarchpy)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">quarchpy</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="quarchpy.html">quarchpy package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="readme.html">Quarchpy - Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licenses.html">LICENSES</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">quarchpy</a><ul>
+  <li><a href="quarchpy.html">quarchpy package</a><ul>
+      <li>Previous: <a href="quarchpy.html" title="previous chapter">quarchpy package</a></li>
+      <li>Next: <a href="quarchpy.qis.html" title="next chapter">quarchpy.qis package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Quarch Technology Ltd.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/source/quarchpy.device.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

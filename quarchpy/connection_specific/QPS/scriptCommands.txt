@@ -1,0 +1,1040 @@
+QPS Command Summary
+Copyright (c) Quarch Ltd
+QPS v1.31.02
+Generated: 31-Mar-2023
+
+
+*** Commands ***
+
+Command: $annotate
+Description: Adds an annotation
+Version: 1
+See also: $comment, $stream annotation add, $stream comment add
+Arguments
+Argument: time
+Description: Annotation time
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: text
+Description: Annotation string
+Index: 1
+Type: STRING
+Default value: NONE
+Notes:
+Format of params string: time_specifier[space]text to be added, eg 123.456 hello world
+Time specifier is of the form:
+for elapsed time relative to the recording: exxxDxxx:xxx:xxx.xxx
+for absolute time, pass the number of milliseconds since the epoch (midnight 1 January 1970 UTC, ie Unix time common to many environments): xxxxxxxxxxxx
+The annotation text may be split over two or more lines by including \n in the string
+Examples:
+$annotate 0 Annotation1 --> adds an annotation at time 0 and so at record number 0
+
+Command: $channels
+Description: Returns details of the current channels
+Version: 1
+See also: $stream channels
+Notes:
+Return details of current channels in the format: channelName groupName baseUnits
+
+Command: $chart channel hide
+Description: Hides a channel
+Version: 2
+See also: $hide channel
+Arguments
+Argument: channel
+Description: Channel
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: group
+Description: Group
+Index: 1
+Type: STRING
+Default value: NONE
+
+Command: $chart channel show
+Description: Shows a channel
+Version: 2
+See also: $show channel
+Arguments
+Argument: channel
+Description: Channel
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: group
+Description: Group
+Index: 1
+Type: STRING
+Default value: NONE
+
+Command: $chart reposition
+Description: Sets the chart main view to the specified start and end times
+Version: 2
+Arguments
+Argument: startTime
+Description: Start time
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: endTime
+Description: End time
+Index: 1
+Type: STRING
+Default value: NONE
+Notes:
+Both the start and end times are specified as a time-unit pair; for example: 100mS
+startTime > 0, endTime > 0 and startTime < endTime
+
+Command: $chart snapshot
+Description: Takes a snapshot of the chart, timeline and channels windows
+Version: 2
+See also: $take snapshot
+Arguments
+Argument: type
+Description: Type of snapshot to take consisting of a comma separated list of options: [all, chart, timeline, key]
+Index: 0
+Type: STRING
+Default value: all
+Acceptable values: [all, chart, timeline, key]
+Argument: filePath
+Description: Optional file path instead of using default archive path
+Index: 1
+Type: STRING
+Default value: NONE
+Examples:
+$chart snapshot --> default and captures chart+timeline+key
+$chart snapshot all --> same as default
+$chart snapshot chart --> chart only
+$chart snapshot chart,key --> chart+key
+$chart snapshot chart,timeline --> chart+timeline
+
+Command: $comment
+Description: Adds a comment
+Version: 1
+See also: $annotate, $stream annotation add, $stream comment add
+Arguments
+Argument: time
+Description: Comment time
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: text
+Description: Comment string
+Index: 1
+Type: STRING
+Default value: NONE
+Notes:
+Format of params string: time_specifier[space]text to be added, eg 123.456 hello world
+Time specifier is of the form:
+for elapsed time relative to the recording: exxxDxxx:xxx:xxx.xxx
+for absolute time, pass the number of milliseconds since the epoch (midnight 1 January 1970 UTC, ie Unix time common to many environments): xxxxxxxxxxxx
+The annotation text may be split over two or more lines by including \n in the string
+Examples:
+$comment e1 Comment1 --> adds a comment after an elapsed time of 1 second
+
+Command: $connect
+Description: Connects to a specified device
+Version: 1
+See also: $module connect
+Arguments
+Argument: device
+Description: Device ID
+Index: 0
+Type: STRING
+Default value: NONE
+Notes:
+Command is passed to QIS which will test the connection availability and suitability for streaming data returning a status of OK
+or the reason for connection failure if connection is successful, ccs and file dialogs should close and the chart window connected to the device should display
+Examples:
+$connect usb::QTL1999-02-999
+$connect tcp::QTL1999-02-999
+
+Command: $connected
+Description: Returns the connected device ID
+Version: 1
+See also: $module name
+
+Command: $create channel
+Description: Creates a new channel
+Version: 1
+See also: $stream channel add
+Arguments
+Argument: channelName
+Description: Channel name
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: channelGroup
+Description: Channel group
+Index: 1
+Type: STRING
+Default value: NONE
+Argument: baseUnits
+Description: Base units
+Index: 2
+Type: STRING
+Default value: NONE
+Argument: usePrefix
+Description: Indicates whether or not using a prefix; values either yes/no
+Index: 3
+Type: STRING
+Default value: NONE
+Notes:
+Format: channelName channelGroup baseUnits yes/no(usePrefix)
+usePrefix [yes/no] option 'no' disables the application of metric prefixes u, m, k, M etc
+
+Command: $debug list commands
+Description: Returns a list of commands
+Version: 2
+
+Command: $echo
+Description: Echo command
+Version: 1
+Arguments
+Argument: string
+Description: A string of text to simply echo back
+Index: 0
+Type: STRING
+Default value: NONE
+
+Command: $get custom stats range
+Description: Returns statistics for a specified range
+Version: 1
+See also: $stream stats table
+Arguments
+Argument: startTime
+Description: Start time. For example: 5432.1 is 5432.1 seconds, 17d5432.1 is 17 days 5432.1 seconds, 17d200:5432.1 is 17 days 200 minutes and 5432.1 seconds etc
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: endTime_numRecords
+Description: End time OR number of records of form: [endTime | lnumber of records] in which letter "l" denotes that number of records is being specified
+Index: 1
+Type: STRING
+Default value: NONE
+
+Command: $get stats
+Description: Returns statistics
+Version: 1
+See also: $stream stats table
+
+Command: $help
+Description: Help command
+Version: 1
+Arguments
+Argument: type
+Description: The type of help to return. Options: 1) None [same as "all"], 2) "all", 3) "internal", 4) help summary of another command; eg $help $echo
+Index: 0
+Type: STRING
+Default value: all
+Examples:
+$help --> returns a list of all supported commands, each with a brief description
+$help all --> same as $help
+$help $echo --> returns a help summary of the $echo command
+$help $chart snapshot --> returns a help summary of the $chart snapshot command
+
+Command: $hide channel
+Description: Hides a channel
+Version: 1
+See also: $chart channel hide
+Arguments
+Argument: channelInfo
+Description: Channel information; a string split by : and assumed the following order: #0 = name, #1 = groupName, #2+ ignore
+Index: 0
+Type: STRING
+Default value: NONE
+
+Command: $list
+Description: Lists available devices
+Version: 1
+See also: $module list
+
+Command: $list -details
+Description: Lists available device details
+Version: 1
+See also: $module list details
+
+Command: $log
+Description: Adds a channel/group value at a specified time
+Version: 1
+See also: $stream data add
+Arguments
+Argument: channel
+Description: Channel name
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: group
+Description: Group name
+Index: 1
+Type: STRING
+Default value: NONE
+Argument: time
+Description: Time
+Index: 2
+Type: INT
+Default value: NONE
+Argument: value
+Description: Value
+Index: 3
+Type: FLOAT
+Default value: NONE
+Notes:
+Format: channelName channelGroup time value
+Time format: UNIX time in mS or exxxDxx:xx:xx.xxxx for daysDhours:minutes:seconds.xxx
+To indicate the end marker of an interval then set the value to 'endSeq'; eg : myStream.addDataPoint(channelName, groupName, 'endSeq')
+
+Command: $module connect
+Description: Device ID
+Version: 2
+See also: $connect
+Arguments
+Argument: device
+Description: 
+Index: 0
+Type: STRING
+Default value: NONE
+
+Command: $module disconnect
+Description: Disconnects the current connection
+Version: 2
+See also: $connect, $module connect
+
+Command: $module list
+Description: Lists available devices
+Version: 2
+See also: $list
+
+Command: $module list details
+Description: Lists available device details
+Version: 2
+See also: $list -details
+
+Command: $module name
+Description: Returns the connected device ID
+Version: 2
+See also: $connected
+
+Command: $module scan
+Description: Scans for available devices
+Version: 2
+See also: $scan
+Arguments
+Argument: deviceSpecifier
+Description: TCP/IP address to scan for devices
+Index: 0
+Type: STRING
+Default value: NONE
+Examples:
+$module scan tcp::192.168.1.90
+
+Command: $qis launch
+Description: Launches new QIS instance
+Version: 2
+See also: $qis shutdown
+
+Command: $qis shutdown
+Description: Shutsdown current QIS instance
+Version: 2
+See also: $qis launch
+
+Command: $qis status
+Description: Reports the connection status of QIS
+Version: 1
+
+Command: $qps hide
+Description: Hides the QPS application
+Version: 2
+See also: $qps show
+
+Command: $qps show
+Description: Shows the QPS application
+Version: 2
+See also: $qps hide
+
+Command: $read
+Description: Reads data between from a given start time and either end time or number of records
+Version: 1
+See also: $stream read
+Arguments
+Argument: startTime
+Description: Start time
+Index: 0
+Type: INT
+Default value: NONE
+Argument: endTime_numRecords
+Description: Number of records of form: [endTime | lnumber of records], in which the letter "l" denotes that the number of records is being specified
+Index: 1
+Type: STRING
+Default value: NONE
+Notes:
+Times are xxxDxx:xx:xx.xxxx for daysDhours:minutes:seconds.xxx, number of records is exactly what you'd expect
+Returns corresponding (long) sample time and all columns in raw format separated by ' ' spaces.
+Examples:
+$read 0 l100
+
+Command: $save csv
+Description: Saves to CSV format
+Version: 1
+See also: $stream export
+Arguments
+Argument: file
+Description: The optional file to save the CSV data. If the file does not have a .csv extension then one is added.
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: maxLines
+Description: Maximum number of lines; -l[ALL|Max lines per file]
+Index: 1
+Type: INT
+Default value: -lall
+Argument: lineTerminator
+Description: Indicates whether a line terminator; acceptable values: -c[yes/no]
+Index: 2
+Type: STRING
+Default value: -cyes
+Argument: delimiter
+Description: Value separator; acceptable values: -s[",", "\t", ";", " "]
+Index: 3
+Type: STRING
+Default value: -s,
+Notes:
+Format: $save csv "file path/file name" -l[ALL|Max lines per file] -c[yes/no] -s[",", "\t", ";", " "]
+If no .csv file is specified then the following is assigned: .../path to recording directory/csvExport+yyyyMMddHHmmss.csv
+Examples:
+$save csv filePath -11000 -cyes -s,
+
+Command: $scan
+Description: Scans for available devices
+Version: 1
+See also: $module scan
+
+Command: $show channel
+Description: Shows a channel
+Version: 1
+See also: $chart channel show
+Arguments
+Argument: channelInfo
+Description: Channel information
+Index: 0
+Type: STRING
+Default value: NONE
+Notes:
+Channel is a string split by ":" and assumed the following order: #0 = name, #1 = groupName, #2+ ignore
+
+Command: $shutdown
+Description: Shuts down QPS
+Version: 1
+
+Command: $start stream
+Description: Starts streaming
+Version: 1
+See also: $stream record
+Arguments
+Argument: file
+Description: File specifier is of the form /dir/dir/dir/recordingName. Any '\' characters are replaced with '/' character
+Index: 0
+Type: STRING
+Default value: NONE
+
+Command: $stats to csv
+Description: Saves the statistics to CSV format
+Version: 1
+See also: $stream stats export
+Arguments
+Argument: file
+Description: A single argument string specifying file path of form: *STREAM_DIR*+"statsGrid"+yyyyMMddHHmmss+".csv" - Path for data to be saved to.
+Index: 0
+Type: STRING
+Default value: NONE
+
+Command: $stop stream
+Description: Stops streaming
+Version: 1
+See also: $stream stop
+
+Command: $stream annotation add
+Description: Adds an annotation
+Version: 2
+See also: $annotate, $comment, $stream comment add
+Arguments
+Argument: time
+Description: Annotation time
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: text
+Description: Annotation string
+Index: 1
+Type: STRING
+Default value: NONE
+Argument: extraText
+Description: Additional annotation text
+Index: 2
+Type: STRING
+Default value: NONE
+Argument: yPosition
+Description: y position percentage on screen; range: [0:100]
+Index: 3
+Type: INT
+Default value: 100
+Argument: type
+Description: Type string used when assigning colour and text colour
+Index: 4
+Type: STRING
+Default value: Type1
+Argument: colour
+Description: Colour in hex format. The default is #FF0000, which equates to red
+Index: 5
+Type: STRING
+Default value: #FF0000
+Argument: textColour
+Description: Text colour in hex format. The default is #FF0000, which equates to red
+Index: 6
+Type: STRING
+Default value: #FF0000
+Argument: timeFormat
+Description: Time format ["elapsed", "unix"]. The default is "elapsed"
+Index: 7
+Type: STRING
+Default value: elapsed
+Acceptable values: [elapsed, unix]
+Notes:
+Time can be either an elapsed time or Unix time, determined by the timeFormat argument which is set to elapsed time by default
+Examples:
+$stream annotation add 7S Annotation1
+$stream annotation add 7500mS Annotation2
+$stream annotation add 00:00:08 Annotation3
+
+Command: $stream annotations list
+Description: Returns a list of all annotations
+Version: 2
+See also: $stream annotations table
+Arguments
+Argument: type
+Description: Specifies the type of annotations. Options: [all, annotations, comments]. The default is "all"
+Index: 0
+Type: STRING
+Default value: all
+Acceptable values: [all, annotations, comments]
+Notes:
+If the annotation text is empty then "Annotation ?" or "Comment ?" is used for annotations and comments respectively
+Annotations are ordered by time since the start of recording
+
+Command: $stream annotations table
+Description: Returns a table of all annotations
+Version: 2
+See also: $stream annotations list
+Arguments
+Argument: type
+Description: Specifies the type of annotations. Options: [all, annotations, comments]. The default is "all"
+Index: 0
+Type: STRING
+Default value: all
+Acceptable values: [all, annotations, comments]
+Argument: timeFormat
+Description: Specifies the time format. Options: [nS, uS, mS, S, HMS]. The default is "S"
+Index: 1
+Type: STRING
+Default value: S
+Acceptable values: [nS, uS, mS, S, HMS]
+Notes:
+If the annotation text is empty then "Annotation ?" or "Comment ?" is used for annotations and comments respectively
+Annotations are ordered by time since the start of recording
+
+Command: $stream channel add
+Description: Creates a new channel
+Version: 2
+See also: $create channel
+Arguments
+Argument: channelName
+Description: Channel name
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: channelGroup
+Description: Channel group
+Index: 1
+Type: STRING
+Default value: NONE
+Argument: baseUnits
+Description: Base units
+Index: 2
+Type: STRING
+Default value: NONE
+Argument: usePrefix
+Description: Indicates whether or not using a prefix; values either yes/no
+Index: 3
+Type: STRING
+Default value: NONE
+Acceptable values: [yes, no]
+
+Command: $stream channel add synthetic
+Description: Defines a new channel function
+Version: 2
+See also: $stream channel clear synthetic, $stream channel list, $stream channel remove synthetic, $stream channel table
+Arguments
+Argument: channel
+Description: Defines the synthetic channel
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: function
+Description: Specifies the synthetic function
+Index: 1
+Type: STRING
+Default value: NONE
+Examples:
+$stream channel add synthetic channel="chan(L1_RMS,V)" function="rms(100ms, chan(L1,V))"
+
+Command: $stream channel clear synthetic
+Description: Clears all created functions
+Version: 2
+See also: $stream channel add synthetic, $stream channel list, $stream channel remove synthetic, $stream channel table
+
+Command: $stream channel list
+Description: Returns a list of created channels
+Version: 2
+See also: $stream channel add synthetic, $stream channel clear synthetic, $stream channel remove synthetic, $stream channel table
+Arguments
+Argument: channelType
+Description: Defines the user or synthetic channel.  Options: [all, user, synthetic]. The default is "all"
+Index: 0
+Type: STRING
+Default value: all
+Acceptable values: [all, user, synthetic]
+
+Command: $stream channel remove synthetic
+Description: Deletes a previously created channel function
+Version: 2
+See also: $stream channel add synthetic, $stream channel clear synthetic, $stream channel list, $stream channel table
+Arguments
+Argument: channel
+Description: Specifies the synthetic channel
+Index: 0
+Type: STRING
+Default value: NONE
+Examples:
+$stream channel remove synthetic channel="chan(L1_RMS,V)"
+
+Command: $stream channel table
+Description: Returns XML of function definitions
+Version: 2
+See also: $stream channel add synthetic, $stream channel clear synthetic, $stream channel list, $stream channel remove synthetic
+Arguments
+Argument: channelType
+Description: Defines the user or synthetic channel.  Options: [all, user, synthetic]. The default is "all"
+Index: 0
+Type: STRING
+Default value: all
+Acceptable values: [all, user, synthetic]
+
+Command: $stream channels
+Description: Returns details of the current channels
+Version: 2
+See also: $channels
+
+Command: $stream comment add
+Description: Adds a comment
+Version: 2
+See also: $annotate, $comment, $stream annotation add
+Arguments
+Argument: time
+Description: Comment time
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: text
+Description: Comment string
+Index: 1
+Type: STRING
+Default value: NONE
+Argument: extraText
+Description: Additional comment text
+Index: 2
+Type: STRING
+Default value: NONE
+Argument: yPosition
+Description: y position percentage on screen; range: [0:100]
+Index: 3
+Type: INT
+Default value: 100
+Argument: type
+Description: Type string used when assigning colour and text colour
+Index: 4
+Type: STRING
+Default value: Type2
+Argument: colour
+Description: Colour in hex format. The default is #FFFF00, which equates to yellow
+Index: 5
+Type: STRING
+Default value: #FFFF00
+Argument: textColour
+Description: Text colour in hex format. The default is #FFFF00, which equates to yellow
+Index: 6
+Type: STRING
+Default value: #FFFF00
+Argument: timeFormat
+Description: Time format ["elapsed", "unix"]. The default is "elapsed"
+Index: 7
+Type: STRING
+Default value: elapsed
+Acceptable values: [elapsed, unix]
+Notes:
+Time can be either an elapsed time or Unix time, determined by the timeFormat argument which is set to elapsed time by default
+Examples:
+$stream comment add 10.25S Comment1
+$stream comment add 11000mS Comment2
+$stream comment add 00:00:12 Comment3
+
+Command: $stream data add
+Description: Adds a channel/group value at a specified time
+Version: 2
+See also: $log
+Arguments
+Argument: channel
+Description: Channel
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: group
+Description: Group
+Index: 1
+Type: STRING
+Default value: NONE
+Argument: time
+Description: Time
+Index: 2
+Type: INT
+Default value: NONE
+Argument: value
+Description: Value
+Index: 3
+Type: FLOAT
+Default value: NONE
+Argument: timeFormat
+Description: Time format ["elapsed", "unix"]. The default is "elapsed"
+Index: 4
+Type: STRING
+Default value: elapsed
+Acceptable values: [elapsed, unix]
+Notes:
+Format: channel group time value timeFormat
+Time can be either an elapsed time or Unix time, determined by the timeFormat argument which is set to elapsed time by default
+To indicate the end marker of an interval then set the value to 'endSeq'; eg : myStream.addDataPoint(channelName, groupName, 'endSeq')
+
+Command: $stream export
+Description: Saves to a given format
+Version: 2
+See also: $save csv
+Arguments
+Argument: file
+Description: The file path to save the export
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: maxLines
+Description: Maximum number of lines
+Index: 1
+Type: STRING
+Default value: all
+Argument: lineTerminator
+Description: Indicates whether a line terminator; acceptable values: [yes/no]
+Index: 2
+Type: STRING
+Default value: yes
+Acceptable values: [yes, no]
+Argument: delimiter
+Description: Value separator; eg ,
+Index: 3
+Type: STRING
+Default value: ,
+Acceptable values: [TAB, ;, ,, SPACE, EMPTY SPACE]
+Argument: fileType
+Description: File type; eg CSV
+Index: 4
+Type: STRING
+Default value: csv
+Notes:
+Format: $save csv file path/file name ALL|Max lines per file yes/no ",", "\t", ";", " "
+Argument file is optional and if not specified then a file name is assigned and of the form: 
+If no fileType file is specified then the following is assigned: .../path to recording directory/fileType+Export+yyyyMMddHHmmss.fileType
+
+Command: $stream read
+Description: Reads data between from a given start time and either end time or number of records
+Version: 2
+See also: $read
+Arguments
+Argument: startTime
+Description: Start time
+Index: 0
+Type: INT
+Default value: NONE
+Argument: endTime
+Description: End time
+Index: 1
+Type: STRING
+Default value: NONE
+Argument: timeFormat
+Description: Time format ["elapsed", "unix"]. The default is "elapsed"
+Index: 2
+Type: STRING
+Default value: elapsed
+Acceptable values: [elapsed, unix]
+Notes:
+Time can be either an elapsed time or Unix time, determined by the timeFormat argument which is set to elapsed time by default
+Examples:
+$stream read 0 l100
+
+Command: $stream record
+Description: Starts streaming
+Version: 2
+See also: $start stream
+Arguments
+Argument: file
+Description: File specifier of the form /dir/dir/dir/recordingName. Any '\' characters are replaced with '/' character
+Index: 0
+Type: STRING
+Default value: NONE
+
+Command: $stream record duration
+Description: Returns the total recording time
+Version: 2
+See also: $stream start time, $stream stop time
+Arguments
+Argument: timeFormat
+Description: Specifies the time format. Options: [nS, uS, mS, S, HMS]. The default is "S"
+Index: 0
+Type: STRING
+Default value: S
+Acceptable values: [nS, uS, mS, S, HMS]
+Notes:
+A value of -1 is returned if streaming has not commenced
+
+Command: $stream start time
+Description: Returns the time that streaming started
+Version: 2
+See also: $stream record duration, $stream stop time
+Arguments
+Argument: timeFormat
+Description: Specifies the time format. Options: [nS, uS, mS, S, HMS]. The default is "S"
+Index: 0
+Type: STRING
+Default value: S
+Acceptable values: [nS, uS, mS, S, HMS]
+Notes:
+A value of -1 is returned if streaming has not commenced
+
+Command: $stream state
+Description: The current state of streaming
+Version: 1
+
+Command: $stream stats export
+Description: Saves the statistics to a given format
+Version: 2
+See also: $stats to csv
+Arguments
+Argument: file
+Description: Single argument string specifying file path of form: *STREAM_DIR*+"statsGrid"+yyyyMMddHHmmss+".csv" - Path for data to be saved to.
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: fileType
+Description: Type of export file; eg .csv
+Index: 1
+Type: STRING
+Default value: csv
+
+Command: $stream stats table
+Description: Returns statistics
+Version: 2
+See also: $get custom stats range, $get stats
+Arguments
+Argument: startTime
+Description: Start time. Time format either a HMS or (time,unit) pair; eg 100mS
+Index: 0
+Type: INT
+Default value: NONE
+Argument: endTime
+Description: End time. Time format either a HMS or (time,unit) pair; eg 100mS
+Index: 1
+Type: INT
+Default value: NONE
+Argument: timeFormat
+Description: Time format ["elapsed", "unix"]. The default is "elapsed"
+Index: 2
+Type: STRING
+Default value: elapsed
+Acceptable values: [elapsed, unix]
+Notes:
+Time can be either an elapsed time or Unix time, determined by the timeFormat argument which is set to elapsed time by default
+
+Command: $stream stop
+Description: Stops streaming
+Version: 2
+See also: $stop stream
+
+Command: $stream stop time
+Description: Returns the time that streaming stopped
+Version: 2
+See also: $stream record duration, $stream start time
+Arguments
+Argument: timeFormat
+Description: Specifies the time format. Options: [nS, uS, mS, S, HMS]. The default is "S"
+Index: 0
+Type: STRING
+Default value: S
+Acceptable values: [nS, uS, mS, S, HMS]
+Notes:
+A value of -1 is returned if streaming has not commenced
+
+Command: $take snapshot
+Description: Takes a snapshot of the chart, timeline and channels windows
+Version: 1
+See also: $chart snapshot
+Arguments
+Argument: type
+Description: Type of snapshot to take consisting of a comma separated list of options: [all, chart, timeline, key]
+Index: 0
+Type: STRING
+Default value: all
+Examples:
+$take snapshot --> default and captures chart+timeline+key
+$take snapshot all --> same as default
+$take snapshot chart --> chart only
+$take snapshot chart,key --> chart+key
+$take snapshot chart,timeline --> chart+timeline
+
+Command: $version
+Description: Version number
+Version: 1
+
+
+*** Command Index ***
+
+$annotate ~ Adds an annotation
+
+$channels ~ Returns details of the current channels
+
+$chart channel hide ~ Hides a channel
+
+$chart channel show ~ Shows a channel
+
+$chart reposition ~ Sets the chart main view to the specified start and end times
+
+$chart snapshot ~ Takes a snapshot of the chart, timeline and channels windows
+
+$comment ~ Adds a comment
+
+$connect ~ Connects to a specified device
+
+$connected ~ Returns the connected device ID
+
+$create channel ~ Creates a new channel
+
+$debug list commands ~ Returns a list of commands
+
+$echo ~ Echo command
+
+$get custom stats range ~ Returns statistics for a specified range
+
+$get stats ~ Returns statistics
+
+$help ~ Help command
+
+$hide channel ~ Hides a channel
+
+$list ~ Lists available devices
+
+$list -details ~ Lists available device details
+
+$log ~ Adds a channel/group value at a specified time
+
+$module connect ~ Device ID
+
+$module disconnect ~ Disconnects the current connection
+
+$module list ~ Lists available devices
+
+$module list details ~ Lists available device details
+
+$module name ~ Returns the connected device ID
+
+$module scan ~ Scans for available devices
+
+$qis launch ~ Launches new QIS instance
+
+$qis shutdown ~ Shutsdown current QIS instance
+
+$qis status ~ Reports the connection status of QIS
+
+$qps hide ~ Hides the QPS application
+
+$qps show ~ Shows the QPS application
+
+$read ~ Reads data between from a given start time and either end time or number of records
+
+$save csv ~ Saves to CSV format
+
+$scan ~ Scans for available devices
+
+$show channel ~ Shows a channel
+
+$shutdown ~ Shuts down QPS
+
+$start stream ~ Starts streaming
+
+$stats to csv ~ Saves the statistics to CSV format
+
+$stop stream ~ Stops streaming
+
+$stream annotation add ~ Adds an annotation
+
+$stream annotations list ~ Returns a list of all annotations
+
+$stream annotations table ~ Returns a table of all annotations
+
+$stream channel add ~ Creates a new channel
+
+$stream channel add synthetic ~ Defines a new channel function
+
+$stream channel clear synthetic ~ Clears all created functions
+
+$stream channel list ~ Returns a list of created channels
+
+$stream channel remove synthetic ~ Deletes a previously created channel function
+
+$stream channel table ~ Returns XML of function definitions
+
+$stream channels ~ Returns details of the current channels
+
+$stream comment add ~ Adds a comment
+
+$stream data add ~ Adds a channel/group value at a specified time
+
+$stream export ~ Saves to a given format
+
+$stream read ~ Reads data between from a given start time and either end time or number of records
+
+$stream record ~ Starts streaming
+
+$stream record duration ~ Returns the total recording time
+
+$stream start time ~ Returns the time that streaming started
+
+$stream state ~ The current state of streaming
+
+$stream stats export ~ Saves the statistics to a given format
+
+$stream stats table ~ Returns statistics
+
+$stream stop ~ Stops streaming
+
+$stream stop time ~ Returns the time that streaming stopped
+
+$take snapshot ~ Takes a snapshot of the chart, timeline and channels windows
+
+$version ~ Version number
+

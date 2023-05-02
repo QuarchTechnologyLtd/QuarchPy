@@ -15,9 +15,9 @@ Change Log
 
 2.1.11
 ------
-- New QPS v1.31
-- New QIS v1.34
-- module_debug command added to quarchpy.run for checking state of module and DUT
+- New QPS v1.32
+- New QIS v1.37
+- quarchpy.run module_debug added for checking state of module and DUT
 
 2.1.10
 ------

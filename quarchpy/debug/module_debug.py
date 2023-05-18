@@ -106,10 +106,31 @@ def main(filepath=None):
     logText(my_device.sendCommand("RUN:POWER?"))
     logText("\n")
 
-    # Print glitch status of the module
-    logText("Glitch Status:")
-    logText(my_device.sendCommand("run:glitch?"))
-    logText("\n")
+    for key, value in dev_caps.get_general_capabilities().items():
+        if key == "GlitchState_Read_Present" and value == "true":
+            # Print glitch status of the module
+            logText("Glitch Status:")
+            logText(my_device.sendCommand("run:glitch?"))
+            logText("\n")
+
+            # Print additional glitch information
+            logText("\nGlitch Engine\n===================\n")
+            logText("Glitch Length: ", "end")
+            logText(my_device.sendCommand("glitch:length?"))
+            logText("\nGlitch Cycle Length: ", "end")
+            logText(my_device.sendCommand("glitch:cycle:length?"))
+            logText("\nPRBS Ratio: ", "end")
+            logText(my_device.sendCommand("glitch:prbs?"))
+            logText("\n")
+        if key == "SignalMonitor_Present" and value == "true":
+            logText("\nSignal Monitoring\n===================\n")
+            for sig in dev_caps.get_signals():
+                for key, value in sig.parameters.items():
+                    if key == "SignalMonitor_Present" and value == "true":
+                        logText(sig.name, "end")
+                        logText(", Host Monitor: " + my_device.sendCommand("sig:{}:stat:host?".format(sig.name)), "end")
+                        logText(", Device Monitor: " + my_device.sendCommand("sig:{}:stat:dev?".format(sig.name)), "end")
+                    logText("\n")
 
     # Print the list of signals on the module, and the capability flags for each signal
     # This can be used to iterate a test over every signal in a module
@@ -117,31 +138,21 @@ def main(filepath=None):
     for sig in dev_caps.get_signals():
         logText(sig.name, "end")
         for key, value in sig.parameters.items():
-            if key == "DefaultSource":
-                logText(", Source:" + my_device.sendCommand("sig:{}:sour?".format(sig.name)), "end")
-            elif key == "GlitchEnable_Present":
+            logText(", Source:" + my_device.sendCommand("sig:{}:sour?".format(sig.name)), "end")
+            if key == "GlitchEnable_Present" and value == "true":
                 logText(", Glitch Enable: " + my_device.sendCommand("sig:{}:glit:ena?".format(sig.name)), "end")
-            elif key == "SignalDrive_Present":
+            if key == "SignalDrive_Present" and value == "true":
                 logText(", Drive Open:" + my_device.sendCommand("sig:{}:dri:ope?".format(sig.name)), "end")
                 logText(", Drive Closed:" + my_device.sendCommand("sig:{}:dri:clo?".format(sig.name)), "end")
         logText("\n")
     logText("\n")
 
-    logText("\nSignal Monitoring\n===================\n")
-    for sig in dev_caps.get_signals():
-        for key, value in sig.parameters.items():
-            if key == "SignalMonitor_Present":
-                logText(sig.name, "end")
-                logText(", Host Monitor: " + my_device.sendCommand("sig:{}:stat:host?".format(sig.name)), "end")
-                logText(", Device Monitor: " + my_device.sendCommand("sig:{}:stat:dev?".format(sig.name)), "end")
-                logText("\n")
-
     logText("\nVoltage Measurements\n===================\n")
     for volt in dev_caps.get_voltage_measurements():
         if volt.type == "Voltage":
-            logText(volt.name + ": " + my_device.sendCommand("meas:volt {}".format(volt.name)), "end")
+            logText(volt.name + ": " + my_device.sendCommand("meas:volt {}".format(volt.name + "?")), "end")
         else:
-            logText(volt.name + " Self Test: " + my_device.sendCommand("meas:volt:self {}".format(volt.name)), "end")
+            logText(volt.name + " Self Test: " + my_device.sendCommand("meas:volt:self {}".format(volt.name + "?")), "end")
         logText("\n")
     logText("\n")
 
@@ -150,9 +161,11 @@ def main(filepath=None):
         logText(source.name, "end")
         for key, value in source.parameters.items():
             sourcename = source.name[7:]
-            if key == "DefaultDelay":
+            if key == "Type" and value == "Timed":
                 logText(", Delay: " + my_device.sendCommand("sour:" + sourcename + ":delay?"), "end")
-            if key == "SourceBounce_Present":
+            if key == "SourceEnable_Present" and value == "true":
+                logText(", Source: " + my_device.sendCommand("sour:" + sourcename + ":state?"), "end")
+            if key == "SourceBounce_Present" and value == "true":
                 logText(", Bounce: " + my_device.sendCommand("sour:" + sourcename + ":boun:mode?"), "end")
                 logText(", Bounce-Length: " + my_device.sendCommand("sour:" + sourcename + ":boun:len?"), "end")
                 logText(", Bounce-Period: " + my_device.sendCommand("sour:" + sourcename + ":boun:per?"), "end")

@@ -274,22 +274,24 @@ def get_config_path_for_module (idn_string = None, module_connection = None):
                     device_fpga = None
                 else:
                     device_fpga = device_fpga[pos+1:].strip()
+            else:
+                device_fpga = 0.0
 
         # Log the failure if we did not get all the info needed
         if (device_number is None):
             result = False
-            logging.error("Unable to indentify module - no module number")
+            logging.error("Unable to identify module - no module number")
         if (device_fw is None):
-            logging.error("Unable to indentify module - no firmware version")
+            logging.error("Unable to identify module - no firmware version")
             result = False
         if (device_fpga is None):
-            logging.error("Unable to indentify module - no FPGA version")
+            logging.error("Unable to identify module - no FPGA version")
             result = False
 
         # If we got all the data, use it to find the config file
         config_matches = list()
         if (result == False):
-            return None
+            raise FileNotFoundError()
         else:
             # Get all config files as a dictionary of their basic header information
             config_file_header = get_config_file_headers ()

@@ -69,16 +69,19 @@ def listSelection(title="",message="",selectionList=[], additionalOptions = [], 
     if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
 
         converted = False
+        itemListString = ""
         if type(selectionList) is list:
             converted = True
             tempSelectionListStringDict = ""
             for row in selectionList:
                 tempSelectionListStringDict += str(row[0])+"="+str(row[1])+","
-            selectionList = tempSelectionListStringDict[0:-1]
+            itemListString = tempSelectionListStringDict[0:-1]
+        else:
+            itemListString = selectionList
 
         retVal = TestCenter.testPoint("Quarch_Host.ShowGenericDialog", "Title=" + __formatForTestcenter(title),
                                 "Message=" + __formatForTestcenter(message),
-                                "ItemListString=" + __formatForTestcenter(selectionList),
+                                "ItemListString=" + __formatForTestcenter(itemListString),
                                 "OptionListString=" + __formatForTestcenter(str(additionalOptions)));
         if converted:
             i=0

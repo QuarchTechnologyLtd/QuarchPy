@@ -116,7 +116,7 @@ def beginTestBlock (message_text):
             
     """  
 
-    caller = getframeinfo(stack()[1][0])
+    caller = getframeinfo(stack()[2][0])
 
     # Write the command and params to STDOUT
     sys.stdout.write ("BLOCK_START," + str(caller.filename) + "," + str(caller.lineno) + "," + "\"" + message_text + "\"")

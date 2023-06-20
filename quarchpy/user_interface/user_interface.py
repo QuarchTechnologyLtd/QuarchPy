@@ -395,6 +395,15 @@ def logResults(test,notes):
         return
 
 
+def showYesNoDialog(title, message):
+    if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
+        response = TestCenter.testPoint("Quarch_Host.ShowYesNoDialog", "Title=" + title,
+                             "Message=" + message)
+    else:
+        response = listSelection(title, message, "Yes,No", nice=True)
+    return response
+
+
 '''
 requestDialog(title, message)
 '''

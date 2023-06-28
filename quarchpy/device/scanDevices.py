@@ -199,7 +199,11 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
 
         # Broadcast the message.
         logging.debug("Broadcast LAN discovery message for UDP scan")
-        mySocket.bind((ip,56732))
+        try:    
+            mySocket.bind((ip,56732))
+        except
+            logging.debug("Error while trying to bind ip: "+str(ip)+"  Continuing with next IP.")
+            continue
         mySocket.sendto(b'Discovery: Who is out there?\0\n', ('255.255.255.255', 30303))
         #mySocket.sendto(b'Discovery: Who is out there?\0\n', ('255.255.255.255', 30303)) #56732
 

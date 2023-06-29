@@ -94,7 +94,10 @@ class quarchStream:
             try:
                 import warnings
                 warnings.simplefilter(action='ignore', category=FutureWarning)
-                import pandas as pd
+                if 'pandas' in sys.modules or 'pd' in sys.modules:
+                    print("Pandas already imported.")
+                else:
+                    import pandas as pd
                 pd.set_option('display.max_columns', None)
                 pd.set_option('display.width', 1024)
             except Exception as e:
@@ -156,7 +159,10 @@ class quarchStream:
         try:
             import warnings
             warnings.simplefilter(action='ignore', category=FutureWarning)
-            import pandas as pd
+            if 'pandas' in sys.modules or 'pd' in sys.modules:
+                print("Pandas already imported.")
+            else:
+                import pandas as pd
             pd.set_option('max_columns', None)
             pd.set_option('display.width', 1024)
         except:

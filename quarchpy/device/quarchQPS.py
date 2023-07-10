@@ -95,7 +95,7 @@ class quarchStream:
                 import warnings
                 warnings.simplefilter(action='ignore', category=FutureWarning)
                 if 'pandas' in sys.modules or 'pd' in sys.modules:
-                    print("Pandas already imported.")
+                    logging.debug("Pandas already imported.")
                 else:
                     import pandas as pd
                 pd.set_option('display.max_columns', None)
@@ -160,7 +160,7 @@ class quarchStream:
             import warnings
             warnings.simplefilter(action='ignore', category=FutureWarning)
             if 'pandas' in sys.modules or 'pd' in sys.modules:
-                print("Pandas already imported.")
+                logging.debug("Pandas already imported.")
             else:
                 import pandas as pd
             pd.set_option('max_columns', None)

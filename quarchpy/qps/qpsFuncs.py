@@ -174,7 +174,7 @@ QPS requires time in mS with no decimal point, so this is converted here
 
 def toQpsTimeStamp(timestamp):
     """
-
+    DEPRICATED - QPS expects time passed as a sring and error hadling is done in QPS.
     Returns the parameter passed as a valid qps timestamp
     Assumes
 

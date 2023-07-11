@@ -251,7 +251,9 @@ class quarchStream:
                 pass
             else:
                 # Convert timestamp to QPS format
-                annotationTime = toQpsTimeStamp(annotationTime)
+                #annotationTime = toQpsTimeStamp(annotationTime)
+                annotationTime = str(annotationTime)
+
 
             if title != "":
                 annotationString += "<text>" + str(title) + "</text>"
@@ -375,11 +377,20 @@ class quarchStream:
     
     #function to add a data point the the stream
     #time value will default to current time if none passed
-    def addDataPoint(self, channelName, groupName, dataValue, dataPointTime = 0):
-        if dataPointTime == 0:
+    def addDataPoint(self, channelName, groupName, dataValue, dataPointTime=0, timeFormat="unix"):
+        '''
+        channelName - str
+        groupName - str
+        dataValue - int/float value of the data point
+        dataPointTime=0 - time of the data point
+        timeFormat="unix" - the format of the given time
+        '''
+        if dataPointTime == None or dataPointTime == 0:
             dataPointTime = qpsNowStr()
         else:
             dataPointTime = toQpsTimeStamp (dataPointTime)
 
         #print ("printing command:  $log " + channelName + " " + groupName + " " + str(dataPointTime) + " " + str(dataValue))
-        self.connectionObj.qps.sendCmdVerbose("$log " + channelName + " " + groupName + " " + str(dataPointTime) + " " + str(dataValue))
+        #self.connectionObj.qps.sendCmdVerbose("$log " + channelName + " " + groupName + " " + str(dataPointTime) + " " + str(dataValue))
+
+        self.connectionObj.qps.sendCmdVerbose("$stream data add " + channelName+ " " + groupName+ " " + str(dataPointTime)+ " " + str(dataValue)+ " " + timeFormat)

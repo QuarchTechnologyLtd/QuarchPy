@@ -194,6 +194,9 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
         if ipAddressLookup is not None:
             # Attempts to find the device through UDP then REST
             specifiedDevice = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules )
+            mySocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            mySocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            mySocket.settimeout(lanTimeout)
 
 
 

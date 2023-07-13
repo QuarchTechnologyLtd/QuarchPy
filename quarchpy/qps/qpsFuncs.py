@@ -110,47 +110,64 @@ def closeQps(host='127.0.0.1', port=9822):
     del myQps
     time.sleep(1) #needed as calling "isQpsRunning()" will throw an error if it ties to connect while shutdown is in progress.
 
-def GetQpsModuleSelection(QpsConnection, favouriteOnly=True, additionalOptions=[], scan=True):
+def GetQpsModuleSelection(QpsConnection, favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
+    favourite = favouriteOnly
+    ip_address = None
+    while True:
+        printText("QPS scanning for devices")
+        tableHeaders = ["Module"]
+        # Request a list of all USB and LAN accessible power modules
+        if ip_address == None:
+            devList = QpsConnection.getDeviceList(scan=scan)
+        else:
+            devList = QpsConnection.getDeviceList(scan=scan, ipAddress=ip_address)
+        if "no device" in devList[0].lower() or "no module" in devList[0].lower():
+            favourite = False  # If no device found conPref wont match and will bugout
 
-    printText("QPS scanning for devices")
-    tableHeaders = ["Module"]
-    # Request a list of all USB and LAN accessible power modules
-    devList = QpsConnection.getDeviceList(scan=scan)
-    if "no device" in devList[0].lower() or "no module" in devList[0].lower():
-        favouriteOnly = False  # If no device found conPref wont match and will bugout
+        # Removes rest devices
+        devList = [x for x in devList if "rest" not in x]
+        message = "Select a quarch module"
 
-    # Removes rest devices
-    devList = [x for x in devList if "rest" not in x]
-    message = "Select a quarch module"
+        if (favourite):
+            index = 0
+            sortedDevList = []
+            conPref = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
+            while len(sortedDevList) != len(devList):
+                for device in devList:
+                    if conPref[index] in device.upper():
+                        sortedDevList.append(device)
+                index += 1
+            devList = sortedDevList
 
-    if (favouriteOnly):
-        index = 0
-        sortedDevList = []
-        conPref = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
-        while len(sortedDevList) != len(devList):
-            for device in devList:
-                if conPref[index] in device.upper():
-                    sortedDevList.append(device)
-            index += 1
-        devList = sortedDevList
+            # new dictionary only containing one favourite connection to each device.
+            favConDevList = []
+            index = 0
+            for device in sortedDevList:
+                if (favConDevList == [] or not device.split("::")[1] in str(favConDevList)):
+                    favConDevList.append(device)
+            devList = favConDevList
 
-        # new dictionary only containing one favourite connection to each device.
-        favConDevList = []
-        index = 0
-        for device in sortedDevList:
-            if (favConDevList == [] or not device.split("::")[1] in str(favConDevList)):
-                favConDevList.append(device)
-        devList = favConDevList
-
-    if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
-        tempString = ""
-        for module in devList:
-            tempString+=module+"="+module+","
-        devList = tempString[0:-1]
+        if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
+            tempString = ""
+            for module in devList:
+                tempString+=module+"="+module+","
+            devList = tempString[0:-1]
 
 
-    myDeviceID = listSelection(title=message, message=message, selectionList=devList,
-                               additionalOptions=additionalOptions, nice=True, tableHeaders=tableHeaders, indexReq=True)
+        myDeviceID = listSelection(title=message, message=message, selectionList=devList,
+                                   additionalOptions=additionalOptions, nice=True, tableHeaders=tableHeaders, indexReq=True)
+
+        if myDeviceID in 'rescan':
+            continue
+        elif myDeviceID in 'all con types':
+            printText('Displaying all conection types...')
+            favourite = False
+            continue
+        elif myDeviceID in 'ip scan':
+            ip_address = requestDialog("Please input IP Address of the module you would like to connect to")
+            favourite = False
+            continue
+
 
     return myDeviceID
 

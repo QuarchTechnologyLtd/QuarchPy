@@ -565,19 +565,22 @@ def userSelectDevice(scanDictionary=None, scanFilterStr=None,favouriteOnly=True,
         nice = False
     if message is None: message = "Please select a quarch device"
     if title is None: title = "Select a Device"
-
+    ip_address = None
     while (True):
         # Scan first, if no list is supplied
         if (scanDictionary is None):
             printText("Scanning for devices...")
-            scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly, target_conn=target_conn)
+            if ip_address == None:
+                scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly, target_conn=target_conn)
+            else:
+                scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly, target_conn=target_conn, ipAddressLookup=ip_address)
 
         if len(scanDictionary)<1:
             scanDictionary["***No Devices Found***"]="***No Devices Found***"
 
 
         if nice: #Prepair the data for niceListSelection using displayTable().
-            if additionalOptions is None: additionalOptions = ["Rescan","Quit"]
+            if additionalOptions is None: additionalOptions = ["Rescan","Quit","IP Scan"]
             tempList = []
             tempEl = []
             for k, v in scanDictionary.items():
@@ -600,7 +603,7 @@ def userSelectDevice(scanDictionary=None, scanFilterStr=None,favouriteOnly=True,
                 devicesString.append(k + '=' + v + ": " + k[:charPos])
             devicesString = ','.join(devicesString)
             if additionalOptions is None :
-                additionalOptions = "Rescan=Rescan,Quit=Quit"
+                additionalOptions = "Rescan=Rescan,Quit=Quit,IP Scan=IP Scan"
             userStr = listSelection(title=title,message=message,selectionList=devicesString, additionalOptions=additionalOptions)
 
         # Process the user response
@@ -610,6 +613,10 @@ def userSelectDevice(scanDictionary=None, scanFilterStr=None,favouriteOnly=True,
             scanDictionary = None
             favouriteOnly = True
         elif (userStr.lower() in 'all conn types'):
+            scanDictionary = None
+            favouriteOnly = False
+        elif(userStr.lower() in 'ip scan'):
+            ip_address = input("Please input the IP Address of the module you would like to connect to.")
             scanDictionary = None
             favouriteOnly = False
         else:

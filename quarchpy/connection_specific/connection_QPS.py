@@ -116,13 +116,16 @@ class QpsInterface:
         time.sleep(
             sleep)  # Time must be allowed for QPS to Scan. If another scan request is sent it will time out and throw an error.
 
-    def getDeviceList(self, scan = True):
+    def getDeviceList(self, scan = True, ipAddress = None):
         deviceList = []
         scanWait = 2
         foundDevices = "1"
         foundDevices2 = "2"
         if scan:
-            devString = self.sendCmdVerbose('$scan')
+            if ipAddress == None:
+                devString = self.sendCmdVerbose('$scan')
+            else:
+                devString = self.sendCmdVerbose('$module scan tcp::' + ipAddress)
             time.sleep(scanWait)
             while foundDevices not in foundDevices2:
                 foundDevices = self.sendCmdVerbose('$list')

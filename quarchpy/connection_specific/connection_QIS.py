@@ -165,8 +165,8 @@ class QisInterface:
 
 
     def stopStream(self, module, blocking = True):
-
-        i = self.deviceMulti(module)
+        moduleName=module.ConString
+        i = self.deviceMulti(moduleName)
         self.stopFlagList[i] = False
         # Wait until the stream thread is finished before returning to user.
         # This means this function will block until the QIS buffer is emptied by the second while
@@ -178,8 +178,16 @@ class QisInterface:
                 threadNameList = []
                 for t1 in threading.enumerate():
                     threadNameList.append(t1.name)
-                if (module in threadNameList):
-                    time.sleep(0.5)
+                moduleStreaming= module.sendCommand("rec stream?").lower() #checking if module thinks its streaming.
+                moduleStreaming2= module.sendCommand("stream?").lower() #checking if the module has told qis it has stopped streaming.
+
+                #print("thread list = " + str(threadNameList))
+                #print("moduleStreaming rec stream? = " + str(moduleStreaming))
+                #print("moduleStreaming stream? = " + str(moduleStreaming2))
+
+                if (moduleName in threadNameList or "running" in moduleStreaming or "running" in moduleStreaming2):
+                    time.sleep(0.1)
+
                 else:
                     running = False
         time.sleep(0.1)
@@ -341,6 +349,12 @@ class QisInterface:
                                 break
                     #printText('Left while 1')
                     self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay = 0)
+                    streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
+                    while "stopped" not in streamState.lower():
+                        logging.warning("waiting for stream? to contained stopped")  # TODO change this to debug
+                        time.sleep(0.1)
+                        streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
+
                     if (not streamOverrun) and (not maxFileExceeded):
                         self.deviceDict[module][0:3] = [False, 'Stopped', 'Stream stopped - emptying buffer']
                     # print self.streamBufferStatus(device=module, sock=self.streamSock)
@@ -540,8 +554,12 @@ class QisInterface:
 
                 # printText('Left while 1')
                 self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay=0)
+                # streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0) # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
+                # while "stopped" not in streamState.lower():
+                #     logging.warning("waiting for stream? to contained stopped") #TODO change this to debug
+                #     time.sleep(0.1)
+                #     streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module,betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
 
-                time.sleep(0.2)
                 isRun = False
             except IOError as err:
                 # printText('\n\n!!!!!!!!!!!!!!!!!!!! IO Error in QisInterface !!!!!!!!!!!!!!!!!!!!\n\n')

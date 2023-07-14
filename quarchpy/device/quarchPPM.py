@@ -39,7 +39,7 @@ class quarchPPM(quarchDevice):
         return retVal
 
     def stopStream(self):
-        return self.connectionObj.qis.stopStream(self.ConString)
+        return self.connectionObj.qis.stopStream(self)
 
     '''
     Simple function to check the output mode of the power module, setting it to 3v3 if required

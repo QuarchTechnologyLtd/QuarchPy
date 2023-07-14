@@ -1,7 +1,7 @@
 QPS Command Summary
 Copyright (c) Quarch Ltd
-QPS v1.31.02
-Generated: 31-Mar-2023
+QPS v1.33.2
+Generated: 25-May-2023
 
 
 *** Commands ***
@@ -86,6 +86,8 @@ Default value: NONE
 Notes:
 Both the start and end times are specified as a time-unit pair; for example: 100mS
 startTime > 0, endTime > 0 and startTime < endTime
+Examples:
+$chart reposition 10S 20S
 
 Command: $chart snapshot
 Description: Takes a snapshot of the chart, timeline and channels windows
@@ -184,6 +186,7 @@ Default value: NONE
 Notes:
 Format: channelName channelGroup baseUnits yes/no(usePrefix)
 usePrefix [yes/no] option 'no' disables the application of metric prefixes u, m, k, M etc
+A custom channel group name must be distinct from device group names
 
 Command: $debug list commands
 Description: Returns a list of commands
@@ -336,7 +339,7 @@ Version: 2
 See also: $qis shutdown
 
 Command: $qis shutdown
-Description: Shutsdown current QIS instance
+Description: Shuts down current QIS instance
 Version: 2
 See also: $qis launch
 
@@ -570,6 +573,8 @@ Index: 3
 Type: STRING
 Default value: NONE
 Acceptable values: [yes, no]
+Notes:
+A custom channel group name must be distinct from device group names
 
 Command: $stream channel add synthetic
 Description: Defines a new channel function
@@ -966,7 +971,7 @@ $module scan ~ Scans for available devices
 
 $qis launch ~ Launches new QIS instance
 
-$qis shutdown ~ Shutsdown current QIS instance
+$qis shutdown ~ Shuts down current QIS instance
 
 $qis status ~ Reports the connection status of QIS
 

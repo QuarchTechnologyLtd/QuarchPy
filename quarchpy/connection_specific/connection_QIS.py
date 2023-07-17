@@ -889,24 +889,47 @@ class QisInterface:
 
 
 
-    def GetQisModuleSelection(self, favouriteOnly=True , additionalOptions=[], scan=True):
+    def GetQisModuleSelection(self, favouriteOnly=True , additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
         tableHeaders =["Modules"]
-        if scan :
-            foundDevices = self.qis_scan_devices(scan=scan, favouriteOnly=favouriteOnly)
+        ip_address = None
+        favourite = favouriteOnly
+        while True:
+            printText("Scanning for modules...")
+            if scan and ip_address is None:
+                foundDevices = self.qis_scan_devices(scan=scan, favouriteOnly=favourite)
+            elif scan and ip_address is not None:
+                foundDevices = self.qis_scan_devices(scan=scan, favouriteOnly=favourite, ipAddress=ip_address)
 
-        myDeviceID = listSelection(title="Select a module",message="Select a module",selectionList=foundDevices,
-                                   additionalOptions= additionalOptions, nice=True, tableHeaders=tableHeaders,
-                                   indexReq=True)
+            myDeviceID = listSelection(title="Select a module",message="Select a module",selectionList=foundDevices,
+                                       additionalOptions= additionalOptions, nice=True, tableHeaders=tableHeaders,
+                                       indexReq=True)
+            if myDeviceID in 'rescan':
+                favourite = True
+                ip_address = None
+                continue
+            elif myDeviceID in 'all con types':
+                favourite = False
+                printText("Displaying all connection types...")
+                continue
+            elif myDeviceID in 'ip scan':
+                ip_address = requestDialog(title="Please input the IP Address you would like to scan")
+                favourite = False
+                continue
+            break
+
         return myDeviceID
 
-    def qis_scan_devices(self, scan=True, favouriteOnly=True):
+    def qis_scan_devices(self, scan=True, favouriteOnly=True, ipAddress=None):
         deviceList = []
         foundDevices = "1"
         foundDevices2 = "2"  # this is used to check if new modules are being discovered or if all have been found.
         scanWait = 2  # The number of seconds waited between the two scans.
         if self.pythonVersion == '3':
             if scan:
-                devString = self.sendAndReceiveText(self.sock, '$scan').decode
+                if ipAddress == None:
+                    devString = self.sendAndReceiveText(self.sock, '$scan').decode
+                else:
+                    devString = self.sendAndReceiveText(self.sock, '$scan TCP::' + ipAddress).decode
                 time.sleep(scanWait)
                 while foundDevices not in foundDevices2:
                     foundDevices = self.sendAndReceiveText(self.sock, '$list').decode()
@@ -917,7 +940,10 @@ class QisInterface:
 
         else:
             if scan:
-                devString = self.sendAndReceiveText(self.sock, '$scan')
+                if ipAddress == None:
+                    devString = self.sendAndReceiveText(self.sock, '$scan').decode
+                else:
+                    devString = self.sendAndReceiveText(self.sock, '$scan TCP::' + ipAddress).decode
                 time.sleep(scanWait)
                 while foundDevices not in foundDevices2:
                     foundDevices = self.sendAndReceiveText(self.sock, '$list')

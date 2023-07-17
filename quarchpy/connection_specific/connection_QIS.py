@@ -876,6 +876,7 @@ class QisInterface:
         ip_address = None
         favourite = favouriteOnly
         while True:
+            printText("Scanning for modules...")
             if scan and ip_address is None:
                 foundDevices = self.qis_scan_devices(scan=scan, favouriteOnly=favourite)
             elif scan and ip_address is not None:
@@ -885,9 +886,9 @@ class QisInterface:
                                        additionalOptions= additionalOptions, nice=True, tableHeaders=tableHeaders,
                                        indexReq=True)
             if myDeviceID in 'rescan':
+                favourite = True
+                ip_address = None
                 continue
-                printText("Scanning for modules...")
-                printText("Scanning for modules...")
             elif myDeviceID in 'all con types':
                 favourite = False
                 printText("Displaying all connection types...")

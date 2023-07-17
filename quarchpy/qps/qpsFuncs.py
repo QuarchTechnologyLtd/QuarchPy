@@ -158,13 +158,15 @@ def GetQpsModuleSelection(QpsConnection, favouriteOnly=True, additionalOptions=[
                                    additionalOptions=additionalOptions, nice=True, tableHeaders=tableHeaders, indexReq=True)
 
         if myDeviceID in 'rescan':
+            ip_address = None
+            favourite = True
             continue
         elif myDeviceID in 'all con types':
             printText('Displaying all conection types...')
             favourite = False
             continue
         elif myDeviceID in 'ip scan':
-            ip_address = requestDialog("Please input IP Address of the module you would like to connect to")
+            ip_address = requestDialog("Please input IP Address of the module you would like to connect to: ")
             favourite = False
             continue
 

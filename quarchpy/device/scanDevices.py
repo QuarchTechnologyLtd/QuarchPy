@@ -610,13 +610,15 @@ def userSelectDevice(scanDictionary=None, scanFilterStr=None,favouriteOnly=True,
         if (userStr.lower() in 'quit'):
             return "quit"
         elif (userStr.lower() in 'rescan'):
+            ip_address = None
             scanDictionary = None
             favouriteOnly = True
         elif (userStr.lower() in 'all conn types'):
+            ip_address = None
             scanDictionary = None
             favouriteOnly = False
         elif(userStr.lower() in 'ip scan'):
-            ip_address = input("Please input the IP Address of the module you would like to connect to.")
+            ip_address = requestDialog("Please input IP Address of the module you would like to connect to: ")
             scanDictionary = None
             favouriteOnly = False
         else:

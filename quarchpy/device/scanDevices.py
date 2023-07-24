@@ -577,7 +577,7 @@ def userSelectDevice(scanDictionary=None, scanFilterStr=None,favouriteOnly=True,
 
 
         if nice: #Prepair the data for niceListSelection using displayTable().
-            if additionalOptions is None: additionalOptions = ["Rescan","Quit","IP Scan"]
+            if additionalOptions is None: additionalOptions = ["Specify IP Address","Rescan","Quit"]
             tempList = []
             tempEl = []
             for k, v in scanDictionary.items():
@@ -600,7 +600,7 @@ def userSelectDevice(scanDictionary=None, scanFilterStr=None,favouriteOnly=True,
                 devicesString.append(k + '=' + v + ": " + k[:charPos])
             devicesString = ','.join(devicesString)
             if additionalOptions is None :
-                additionalOptions = "Rescan=Rescan,Quit=Quit,IP Scan=IP Scan"
+                additionalOptions = "Specify IP Address=IP Scan,Rescan=Rescan,Quit=Quit"
             userStr = listSelection(title=title,message=message,selectionList=devicesString, additionalOptions=additionalOptions)
 
         # Process the user response
@@ -614,7 +614,7 @@ def userSelectDevice(scanDictionary=None, scanFilterStr=None,favouriteOnly=True,
             ip_address = None
             scanDictionary = None
             favouriteOnly = False
-        elif(userStr.lower() in 'ip scan'):
+        elif(userStr.lower() in 'specify ip address'):
             ip_address = requestDialog("Please input IP Address of the module you would like to connect to: ")
             scanDictionary = None
             favouriteOnly = False

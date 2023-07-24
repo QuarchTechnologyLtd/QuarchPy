@@ -679,14 +679,13 @@ def get_check_valid_calPath(calPath, message="Enter the desired save path for th
             inputOK = True
     return calPath
     
-def check_path_write_permissions(path, message="Please enter a valid stream path with write permissions. "):
+def check_path_write_permissions(path, message="Please enter a valid path with write permissions: "):
     import tempfile, errno
     valid_path=False
     while valid_path==False:
         try:
             if path==None:
-                path=requestDialog("No write permissions at path: \""+path+"\".   ",
-                                    message + "Leave blank to default to [" + os.path.expanduser("~") + "] :",desiredType="path", defaultUserInput=os.path.expanduser("~"))
+                path=""
             f = open(path+"\\tempFile.txt", "w")
             f.write("some text")
             f.flush()

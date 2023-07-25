@@ -1,4 +1,4 @@
-(C)Quarch Technology Ltd 2023, QIS v1.37
+(C)Quarch Technology Ltd 2023, QIS v1.38
 
 qis:
 
@@ -115,7 +115,7 @@ $ Commands internal to qis:
 	$scan?
 		Returns state of USB and Ethernet scanners. Ethernet information includes scan time in mS
 		
-	$scan integer
+	$scan -tinteger
 		Integer value is in milliseconds (1000 = 1 second). Sets the Ethernet scan timer to the specified value, if the value is 0 the
 		automatic scan is stopped. The minimum realistic scan time is 10mS, the default is 20000mS (20 seconds)
 	

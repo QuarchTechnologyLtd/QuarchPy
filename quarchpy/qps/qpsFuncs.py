@@ -169,9 +169,10 @@ def GetQpsModuleSelection(QpsConnection, favouriteOnly=True, additionalOptions=[
             ip_address = requestDialog("Please input IP Address of the module you would like to connect to: ")
             favourite = False
             continue
+        else:
+            return myDeviceID
 
 
-    return myDeviceID
 
 
 '''

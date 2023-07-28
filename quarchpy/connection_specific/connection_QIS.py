@@ -351,7 +351,7 @@ class QisInterface:
                     self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay = 0)
                     streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
                     while "stopped" not in streamState.lower():
-                        logging.debug("waiting for stream? to contained stopped")
+                        logging.debug("waiting for stream? to return stopped")
                         time.sleep(0.1)
                         streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
 

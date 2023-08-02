@@ -3,8 +3,6 @@ Provides functions to compare quarchpy versions
 
 """
 
-import pkg_resources
-from pkg_resources import parse_version, get_distribution
 import re
 import logging
 from quarchpy.debug.SystemTest import get_quarchpy_version

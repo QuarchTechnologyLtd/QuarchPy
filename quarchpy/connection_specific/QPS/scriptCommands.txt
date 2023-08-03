@@ -1,7 +1,7 @@
 QPS Command Summary
 Copyright (c) Quarch Ltd
-QPS v1.33.2
-Generated: 25-May-2023
+QPS v1.35
+Generated: 31-Jul-2023
 
 
 *** Commands ***
@@ -292,7 +292,7 @@ To indicate the end marker of an interval then set the value to 'endSeq'; eg : m
 Command: $module connect
 Description: Device ID
 Version: 2
-See also: $connect
+See also: $connect, $module disconnect
 Arguments
 Argument: device
 Description: 
@@ -332,6 +332,18 @@ Type: STRING
 Default value: NONE
 Examples:
 $module scan tcp::192.168.1.90
+
+Command: $open recording
+Description: Opens a recording
+Version: 2
+Arguments
+Argument: qpsFile
+Description: .qps file
+Index: 0
+Type: STRING
+Default value: NONE
+Examples:
+$open recording qpsFile="C:\quarch\recordings\AC\AC_Gen_test\AC_Gen_Test.qps"
 
 Command: $qis launch
 Description: Launches new QIS instance
@@ -413,6 +425,15 @@ Command: $scan
 Description: Scans for available devices
 Version: 1
 See also: $module scan
+Arguments
+Argument: deviceSpecifier
+Description: TCP/IP address to scan for devices
+Index: 0
+Type: STRING
+Default value: NONE
+Examples:
+$scan
+$scan tcp::192.168.1.90
 
 Command: $show channel
 Description: Shows a channel
@@ -756,7 +777,7 @@ Description: Value separator; eg ,
 Index: 3
 Type: STRING
 Default value: ,
-Acceptable values: [TAB, ;, ,, SPACE, EMPTY SPACE]
+Acceptable values: ["\t", ";", ",", " "]
 Argument: fileType
 Description: File type; eg CSV
 Index: 4
@@ -968,6 +989,8 @@ $module list details ~ Lists available device details
 $module name ~ Returns the connected device ID
 
 $module scan ~ Scans for available devices
+
+$open recording ~ Opens a recording
 
 $qis launch ~ Launches new QIS instance
 

@@ -17,7 +17,7 @@ from quarchpy.user_interface import*
 from quarchpy._version import __version__ as quarchpyVersion
 def main():
     print(quarchpyVersion)
-    moduleStr = userSelectDevice(nice=True, additionalOptions=["rescan","all conn types", "ip scan", "quit"])
+    moduleStr = userSelectDevice(nice=True, additionalOptions=["Rescan","All Conn Types", "Specify IP Address", "Quit"])
     #moduleStr = "TCP:1999-05-005"
     if moduleStr == "quit":
         return 0

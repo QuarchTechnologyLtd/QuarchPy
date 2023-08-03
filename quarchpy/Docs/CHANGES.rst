@@ -15,7 +15,9 @@ Change Log
 
 2.1.12
 ------
-- New QPS v1.33
+- New QPS v1.35
+- New QIS v1.38
+- minor bug fixes and removal of depricated code.
 
 2.1.11
 ------

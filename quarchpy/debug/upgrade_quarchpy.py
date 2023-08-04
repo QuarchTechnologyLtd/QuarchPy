@@ -61,23 +61,21 @@ def updateQuarchpy(versionNumber=None):
             printText(e)
 
 
-# TODO: Wierd function to check for updates AND shutdown QIS/QPS but not actually do the update.
-# Better form would be one function to check for update and one to 'prepare_for_update' by shutting things down
-# (no prompt to user). This avoids so many low level user prompts and prints.
 def check_if_update(auto_update):
     """
     Checks if updated version is available on pip. Prompts for shutdown of QIS and QPS if they are open, as this will
-    prevent the update from working
+    prevent the update from working.
+    Returns
     
     Parameters
     ----------
     auto_update : bool
-        If True, QPS and QIS will be checked and shut down to prepare for update
+        If True, QPS and QIS will shut down if running to prepare for update.
+    returns: bool
+        True if ready to proceed up an update, False if not to proceed.
     
     """
     # check if quarchpy is outdated
-    # TOOO: No obvious version check code in here, how does this work?
-    # TODO: Should this use the pkg_resources module from versionCompare?
     update_desired = False
     package_list = (bytes(subprocess.check_output(['pip', 'list', '-o'], stderr=subprocess.STDOUT)).decode())
     if "quarchpy" in package_list:
@@ -91,11 +89,11 @@ def check_if_update(auto_update):
         if update_desired:
             if isQpsRunning() == True:
                  usr_input = requestDialog(title="", message="QPS must be closed to update. Close QPS Y/N?")
-                 if usr_input == "Y" or usr_input == "y": closeQPS()
+                 if auto_update or usr_input == "Y" or usr_input == "y": closeQPS()
                  else: return False
             if isQisRunning() == True:
                  usr_input = requestDialog(title="", message="QIS must be closed to update. Close QIS Y/N?")
-                 if usr_input == "Y" or usr_input == "y": closeQIS()
+                 if auto_update or usr_input == "Y" or usr_input == "y": closeQIS()
                  else: return False
         else:
             return False
@@ -104,6 +102,5 @@ def check_if_update(auto_update):
         return False
     return True
 
-# Allows flow through of command line arguments
 if __name__ == "__main__":
     main(sys.argv[1:])

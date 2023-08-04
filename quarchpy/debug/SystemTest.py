@@ -1,14 +1,11 @@
 from quarchpy import *
 from quarchpy.device import *
-import pkg_resources
-from pkg_resources import parse_version, get_distribution
+from importlib.metadata import distribution
 import os
 import platform
-import time
 import sys
 import subprocess
 from quarchpy._version import __version__
-# TODO: Move this code to a seperate system_test function so it can be called from other places.  Only argument handling should be done in main
 
 def test_communication():
     print("")
@@ -43,8 +40,9 @@ def test_system_info():
     except:
         print("Unable to detect Quarchpy version")
     try:
-        print("Quarchpy Location: " + pkg_resources.get_distribution("quarchpy").location)
-    except:
+        print("Quarchpy info Location: " + str(distribution("quarchpy")._path))
+    except Exception as e:
+        print(e)
         print("Unable to detect Quarchpy location")
     try:
         print("Python Version: " + sys.version)

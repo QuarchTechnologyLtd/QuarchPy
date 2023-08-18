@@ -4,6 +4,19 @@ from quarchpy.connection import QISConnection, PYConnection, QPSConnection
 from quarchpy import user_interface
 import re
 
+# Check Python version
+if sys.version_info.major == 2:
+    # Python 2: Use socket.timeout
+    try:
+        import socket
+        timeout_exception = socket.timeout
+    except AttributeError:
+        timeout_exception = None
+        print("Socket timeout is not available in this Python version.")
+else:
+    # Python 3: Use built-in TimeoutError
+    timeout_exception = TimeoutError
+
 class quarchDevice:
     """
     Allows control over a Quarch device, over a wide range of underlying connection methods.  This is the core class
@@ -129,7 +142,7 @@ class quarchDevice:
                     # If not, check if it contains a valid IP address format
                     ip_address = re.search(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", self.ConString)
                     if not ip_address:
-                        raise ValueError(f"ConString {self.ConString} does not contain a valid QTL number or IP address")
+                        raise ValueError("ConString " + self.ConString + " does not contain a valid QTL number or IP address")
 
                     # Attempt to get QTL number from qis "$list details"
                     temp_str = _check_ip_in_qis_list(ip_address.group(), self.connectionObj.qis.get_list_details())
@@ -170,7 +183,7 @@ class quarchDevice:
                     list_str = "".join(list).lower()
             else:
                 # If we didn't hit a 'break' condition in the above loop, then it timed out
-                raise TimeoutError(f"Could not find module '{self.ConString}' from Qis within specified time")
+                raise timeout_exception("Could not find module " + self.ConString + " from Qis within specified time")
 
             self.connectionObj.qis.sendAndReceiveCmd(cmd="$default " + self.ConString)
 

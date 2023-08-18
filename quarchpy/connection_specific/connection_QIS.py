@@ -504,7 +504,7 @@ class QisInterface:
                         x = newStripes[:removeChar]
                         y = x.decode("utf-8")
 
-                        print(f"decoded stripe : {y}")
+                        print("decoded stripe : " + y)
 
                         # Writing multiple stripes
                         if "\r\n" in y:
@@ -582,7 +582,7 @@ class QisInterface:
             if index == 0:
                 continue
             with open(os.path.join(self.qps_record_dir_path, "data000",
-                                   f"data000_00{index - 1}_000000000"),
+                                   "data000_00" + index - 1 + "_000000000"),
                       "ab") as file1:
 
                 x = struct.pack(">d", int(item))
@@ -605,7 +605,7 @@ class QisInterface:
                 if group.group_id == 0:
 
                     with open(os.path.join(self.qps_record_dir_path, "data000",
-                                           f"data000_{x}_000000000"),
+                                           "data000_"+x+"_000000000"),
                               "ab") as file1:
                         x = struct.pack(">d", int(stripe[counter]))
                         # logging.debug(item, x)
@@ -613,7 +613,7 @@ class QisInterface:
                 else:
                     # Write all in group 1 to digital
                     with open(os.path.join(self.qps_record_dir_path, "data101",
-                                           f"data101_{x}_000000000"),
+                                           "data101_"+x+"_000000000"),
                               "ab") as file1:
                         x = struct.pack(">d", int(stripe[counter]))
                         # logging.debug(item, x)
@@ -1420,7 +1420,7 @@ class QisInterface:
             inner_path_analogues = os.path.join(directory, in_folder_analogue)
             os.mkdir(inner_path_analogues)
         except:
-            logging.warning(f"Failed to make inner directory for analogue signals {inner_path_analogues}")
+            logging.warning("Failed to make inner directory for analogue signals " + inner_path_analogues)
             return False
 
         in_folder_digitals = "data101"
@@ -1429,26 +1429,26 @@ class QisInterface:
                 inner_path_digitals = os.path.join(directory, in_folder_digitals)
                 os.mkdir(inner_path_digitals)
             except:
-                logging.warning(f"Failed to make inner directory for digital signals {inner_path_digitals}")
+                logging.warning("Failed to make inner directory for digital signals "+ inner_path_digitals)
                 return False
 
-        logging.debug(f"Steaming to : {self.qps_record_dir_path}")
+        logging.debug("Steaming to : " + self.qps_record_dir_path)
 
         logging.debug("Creating qps data files")
         try:
             for i in range(non_dig_counter):
-                file_name = f"data000_00{i}_000000000"
+                file_name = "data000_00"+i+"_000000000"
                 f = open(os.path.join(inner_path_analogues, file_name), "w")
                 f.close()
             for i in range(digital_count):
                 x = i
                 while len(str(x)) < 3:
                     x = "0" + str(x)
-                file_name = f"data101_{x}_000000000"
+                file_name = "data101_"+x+"_000000000"
                 f = open(os.path.join(inner_path_digitals, file_name), "w")
                 f.close()
         except:
-            logging.warning(f"failed to create qps data files for analogue signals")
+            logging.warning("failed to create qps data files for analogue signals")
             return False
 
         logging.debug("Finished creating qps data files")
@@ -1460,7 +1460,7 @@ class QisInterface:
                 f = open(os.path.join(self.qps_record_dir_path, file_nome), "w")
                 f.close()
         except Exception as err:
-            logging.warning(f"failed to create qps upper level files, {err}")
+            logging.warning("failed to create qps upper level files, "+err)
             return False
 
         try:
@@ -1471,7 +1471,7 @@ class QisInterface:
                 f = open(os.path.join(self.qps_record_dir_path, "data101.idx"), "wb")
                 f.close()
         except Exception as err:
-            logging.warning(f"failed to create data000.idx file, {err}")
+            logging.warning("failed to create data000.idx file, "+err)
             return False
 
         logging.debug("Finished creating QPS dir structure")
@@ -1486,7 +1486,7 @@ class QisInterface:
             logging.debug("No directory specified")
         elif not os.path.isdir(directory):
             new_dir = os.path.join(str(Path.home()), "AppData", "Local", "Quarch", "QPS", "Recordings")
-            logging.warning(f"{directory} was not a valid directory, streaming to default location: \n{new_dir}")
+            logging.warning(directory+" was not a valid directory, streaming to default location: \n"+new_dir)
             directory = new_dir
         else:
             # Split the directory into a path of folders
@@ -1499,7 +1499,7 @@ class QisInterface:
         # If no folder name for the stream was passed, then default to 'quarchpy_recording' and a timestamp
         if not folder_name:
             folder_name = "quarchpy_recording"
-            folder_name = f"{folder_name}-{time.time()}"
+            folder_name = folder_name + "-" + time.time()
             path = os.path.join(directory, self.qps_stream_folder_name)
             os.mkdir(path)
             self.qps_record_dir_path = path
@@ -1547,15 +1547,15 @@ class QisInterface:
             raise "No data written to file"
 
         num_records = len(data) / 8
-        logging.debug(f"num_record = {num_records}")
+        logging.debug("num_record = " + num_records)
         return_b_array.append(int(num_records).to_bytes(4, byteorder='big'))
 
         start_number = 0
-        logging.debug(f"start_record = {start_number}")
+        logging.debug("start_record = " + start_number)
         return_b_array.append(start_number.to_bytes(8, byteorder='big'))
 
         num_records = num_records - 1
-        logging.debug(f"last_Record_number = {num_records}")
+        logging.debug("last_Record_number = "+num_records)
         return_b_array.append(int(num_records).to_bytes(8, byteorder='big'))
 
         # Add names of every file in data000 dir here.
@@ -1611,15 +1611,15 @@ class QisInterface:
             raise "No data written to file"
 
         num_records = len(data) / 8
-        logging.debug(f"num_record = {num_records}")
+        logging.debug("num_record = "+ num_records)
         return_b_array.append(int(num_records).to_bytes(4, byteorder='big'))
 
         start_number = 0
-        logging.debug(f"start_record = {start_number}")
+        logging.debug("start_record = "+start_number)
         return_b_array.append(start_number.to_bytes(8, byteorder='big'))
 
         num_records = num_records - 1
-        logging.debug(f"last_Record_number = {num_records}")
+        logging.debug("last_Record_number = "+ num_records)
         return_b_array.append(int(num_records).to_bytes(8, byteorder='big'))
 
         # Add names of every file in data000 dir here.
@@ -1735,30 +1735,30 @@ class QisInterface:
     def add_header_to_buffer(self, outBuffer, return_b_array, stream_header_size, temp_dict):
         number = 2
         outBuffer.append(number.to_bytes(4, byteorder='big'))
-        logging.debug(f"indexVersion : {number}")
+        logging.debug("indexVersion : "+ number)
 
         number = 1 if self.has_digitals else 0
         outBuffer.append(number.to_bytes(4, byteorder='big'))
-        logging.debug(f"value0 : {number}")
+        logging.debug("value0 : "+ number)
         number = stream_header_size
         outBuffer.append(number.to_bytes(4, byteorder='big'))
-        logging.debug(f"header_size : {number}")
-        logging.debug(f"legacyVersion : {temp_dict['legacyVersion']}")
+        logging.debug("header_size : "+number)
+        logging.debug("legacyVersion : "+ temp_dict['legacyVersion'])
         outBuffer.append(int(temp_dict["legacyVersion"]).to_bytes(4, byteorder='big'))
-        logging.debug(f"legacyAverage : {temp_dict['legacyAverage']}")
+        logging.debug("legacyAverage : " + temp_dict['legacyAverage'])
         outBuffer.append(int(temp_dict["legacyAverage"]).to_bytes(4, byteorder='big'))
-        logging.debug(f"legacyFormat : {temp_dict['legacyFormat']}")
+        logging.debug("legacyFormat : "+temp_dict['legacyFormat'])
         outBuffer.append(int(temp_dict["legacyFormat"]).to_bytes(4, byteorder='big'))
-        logging.debug(f"mainPeriod : {temp_dict['mainPeriod']}")
+        logging.debug("mainPeriod : "+temp_dict['mainPeriod'])
         outBuffer.append(int(temp_dict["mainPeriod"]).to_bytes(4, byteorder='big'))
-        logging.debug(f"channels : {temp_dict['channels']}")
+        logging.debug("channels : "+temp_dict['channels'])
         outBuffer.append(int(temp_dict["channels"]).to_bytes(4, byteorder='big'))
         return_b_array.append(int(self.qps_record_start_time).to_bytes(8, byteorder='big'))
         index_record_state = True
         logging.debug(int(1))
         return_b_array.append(int(1).to_bytes(1, byteorder='big'))
         record_type = 1
-        logging.debug(f"record type : {int(index_record_state)}")
+        logging.debug("record type : "+int(index_record_state))
         return_b_array.append(int(record_type).to_bytes(1, byteorder='big'))
 
     def write_b_array_to_idx_file(self, f, return_b_array):
@@ -1799,15 +1799,15 @@ class QisInterface:
             x = str(x).split(".")
             x = x[0]
             x = x.replace("-", " ")
-            f.write(f"Started: {x}\n")
-            f.write(f"Device: {module}\n")
+            f.write("Started: "+x+"\n")
+            f.write("Device: " + module + "\n")
             f.write("Fixture: \n")
 
             x = datetime.datetime.now()
             x = str(x).split(".")
             x = x[0]
             x = x.replace("-", " ")
-            f.write(f"Saved: {x}\n")
+            f.write("Saved: "+x+ "\n")
 
 
 def strToBb(string_in, add_length=True):

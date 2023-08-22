@@ -1,4 +1,4 @@
-#!/usr/bin/python
+	#!/usr/bin/python
 """
 Implements the standard TestCenter API for Python, allowing a Python script to execute all TestCenter functions.
 This is Quarch internal use only.  Each function uses the stdin/stdout to communicate with the TestCenter process
@@ -9,7 +9,7 @@ as such, communication is based on simple strings
 from inspect import getframeinfo, stack
 import sys
 
-def setup (interface_name, *command_params):	
+def setup (interface_name, *command_params, stack_level=1):
     """
     Sets up a test interface, passing the interface parameters onto TestCenter to process
     
@@ -28,7 +28,7 @@ def setup (interface_name, *command_params):
     """    
     
     # Get stack info so we can track the calling function for reporting and debug
-    caller = getframeinfo(stack()[1][0])
+    caller = getframeinfo(stack()[stack_level][0])
 
     # Write the command and params to STDOUT
     sys.stdout.write ("SETUP," + str(caller.filename) + "," + str(caller.lineno) + "," + interface_name + ",")
@@ -45,7 +45,7 @@ def setup (interface_name, *command_params):
     return sys.stdin.readline().strip();
 	
 # Runs an interface setup function
-def testPoint (command_name, *command_params):
+def testPoint (command_name, *command_params, stack_level=1):
     """
     Runs a test point from the testcenter library functions
     
@@ -63,13 +63,8 @@ def testPoint (command_name, *command_params):
 
     """  
 
-    # user_interface adds an extra level to the stack.
-    # TODO: This is non-optimal, perhaps some parameter or targetted test could be used instead
-    # to avoid failing a try/except on every test point? Why is this the only TestCenter function that has this check?
-    try:
-        caller = getframeinfo(stack()[2][0]) 
-    except:
-        caller = getframeinfo(stack()[1][0])
+    caller = getframeinfo(stack()[stack_level][0])
+
 
     # Write the command and params to STDOUT
     sys.stdout.write ("TEST," + str(caller.filename) + "," + str(caller.lineno) + "," + command_name + ",")
@@ -83,14 +78,14 @@ def testPoint (command_name, *command_params):
     return sys.stdin.readline().strip();
 	
 
-def endTest():
+def endTest(stack_level=1):
     """
     Orders the end of the test.  This will terminate the test parser and disponse of any resources
     held by the test libraries (including quarch module connections)      
 
     """  
 
-    caller = getframeinfo(stack()[1][0])
+    caller = getframeinfo(stack()[stack_level][0])
 
     sys.stdout.write ("ENDTEST," + str(caller.filename) + "," + str(caller.lineno));
     sys.stdout.write ("\n");
@@ -98,7 +93,7 @@ def endTest():
 	
     
 
-def beginTestBlock (message_text):
+def beginTestBlock (message_text, stack_level=1):
     """
     Notes the start of a block of tests.  This allows multiple nested layers of related tests
     to improve readability of the results.  This has no effect on the test execution, only
@@ -116,7 +111,7 @@ def beginTestBlock (message_text):
             
     """  
 
-    caller = getframeinfo(stack()[2][0])
+    caller = getframeinfo(stack()[stack_level][0])
 
     # Write the command and params to STDOUT
     sys.stdout.write ("BLOCK_START," + str(caller.filename) + "," + str(caller.lineno) + "," + "\"" + message_text + "\"")
@@ -128,7 +123,7 @@ def beginTestBlock (message_text):
 	
 
 
-def endTestBlock ():
+def endTestBlock (stack_level=1):
     """
     Notes the end of a block of tests.  This allows multiple nested layers of related tests
     to improve readability of the results.  This has no effect on the test execution, only
@@ -141,7 +136,7 @@ def endTestBlock ():
             
     """  
 
-    caller = getframeinfo(stack()[1][0])
+    caller = getframeinfo(stack()[stack_level][0])
 
     # Write the command and params to STDOUT
     sys.stdout.write ("BLOCK_END," + str(caller.filename) + "," + str(caller.lineno) + "," + "\"")

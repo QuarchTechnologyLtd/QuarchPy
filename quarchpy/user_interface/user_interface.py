@@ -82,7 +82,7 @@ def listSelection(title="",message="",selectionList=[], additionalOptions = [], 
         retVal = TestCenter.testPoint("Quarch_Host.ShowGenericDialog", "Title=" + __formatForTestcenter(title),
                                 "Message=" + __formatForTestcenter(message),
                                 "ItemListString=" + __formatForTestcenter(itemListString),
-                                "OptionListString=" + __formatForTestcenter(str(additionalOptions)));
+                                "OptionListString=" + __formatForTestcenter(str(additionalOptions)), stack_level=2);
         if converted:
             i=0
             for row in selectionList:
@@ -202,7 +202,7 @@ def printText(text, fillLine=False, terminalWidth=100, fill=" ",**kwargs):
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
             # if line is not empty
             if text.strip()!="":
-                TestCenter.testPoint ("Quarch_Host.LogComment","Message=" + __formatForTestcenter(text))
+                TestCenter.testPoint ("Quarch_Host.LogComment","Message=" + __formatForTestcenter(text),stack_level=2)
 
         else:
             if fillLine:
@@ -221,7 +221,7 @@ def showDialog(message="",title=""):
 
 
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
-            TestCenter.testPoint ("Quarch_Host.ShowDialog","Title=" + __formatForTestcenter(title),"Message=" + __formatForTestcenter(message))
+            TestCenter.testPoint ("Quarch_Host.ShowDialog","Title=" + __formatForTestcenter(title),"Message=" + __formatForTestcenter(message), stack_level=2)
 
         else:
             print(message)
@@ -235,7 +235,7 @@ def showImage(title="", message="", imagePath=""):
     if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
         TestCenter.testPoint("Quarch_Host.ShowImageDialog", "Title=" + __formatForTestcenter(title),
                              "Message=" + __formatForTestcenter(message),
-                             "ImagePath=" + __formatForTestcenter(imagePath))
+                             "ImagePath=" + __formatForTestcenter(imagePath), stack_level=2)
 
     else:
         print("show image at " + str(imagePath))
@@ -259,7 +259,7 @@ def progressBar (iteration, total,prefix = '', suffix = '', decimals = 1, fill =
     if iteration >=0 and total >0:
 
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
-            TestCenter.testPoint ("Quarch_Host.ShowTaskProgress","Title=Task Progress", "Iteration="+str(int(iteration)), "Total="+str(int(total)));
+            TestCenter.testPoint ("Quarch_Host.ShowTaskProgress","Title=Task Progress", "Iteration="+str(int(iteration)), "Total="+str(int(total)), stack_level=2);
 
         else:
             percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -283,7 +283,7 @@ startTestBlock(text)
 def startTestBlock(text):
 
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
-            return TestCenter.beginTestBlock(__formatForTestcenter(text))
+            return TestCenter.beginTestBlock(__formatForTestcenter(text), stack_level=2)
 
         else:
             print("")
@@ -297,7 +297,7 @@ endTestBlock()
 def endTestBlock(message="End test block"):
 
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
-            return TestCenter.endTestBlock()
+            return TestCenter.endTestBlock(stack_level=2)
         else:            
             print("*** "+message+" *** \r\n")
             return
@@ -312,20 +312,20 @@ def logCalibrationResult(title,report):
         if report["result"]:
             TestCenter.testPoint("Quarch_Host.LogTestPoint", "Test=" + __formatForTestcenter(title), "Result=True",
                                  "Message=" + __formatForTestcenter(
-                                     title) + " Passed, worst case: " + __formatForTestcenter(report["worst case"]))
+                                     title) + " Passed, worst case: " + __formatForTestcenter(report["worst case"]), stack_level=2)
             # add the report as comments
             for line in report["report"].splitlines():
-                TestCenter.testPoint("Quarch_Host.LogComment", "Message=" + __formatForTestcenter(line))
-            TestCenter.endTestBlock()
+                TestCenter.testPoint("Quarch_Host.LogComment", "Message=" + __formatForTestcenter(line), stack_level=2)
+            TestCenter.endTestBlock(stack_level=2)
         else:
 
             TestCenter.testPoint("Quarch_Host.LogTestPoint", "Test=" + __formatForTestcenter(title), "Result=False",
                                  "Message=" + __formatForTestcenter(
-                                     title) + " Failed, worst case: " + __formatForTestcenter(report["worst case"]))
+                                     title) + " Failed, worst case: " + __formatForTestcenter(report["worst case"]), stack_level=2)
             # add the report as comments
             for line in report["report"].splitlines():
-                TestCenter.testPoint("Quarch_Host.LogComment", "Message=" + __formatForTestcenter(line))
-            TestCenter.endTestBlock()
+                TestCenter.testPoint("Quarch_Host.LogComment", "Message=" + __formatForTestcenter(line), stack_level=2)
+            TestCenter.endTestBlock(stack_level=2)
 
     else:
         if report["result"]:
@@ -342,7 +342,7 @@ storeResult(string)
 '''
 def storeResult(message):
     if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
-        TestCenter.testPoint("Quarch_Internal.storeMessage", "Message=" + message)
+        TestCenter.testPoint("Quarch_Internal.storeMessage", "Message=" + message, stack_level=2)
     else:
         print(message)
 
@@ -362,15 +362,15 @@ def logSimpleResult(title,result):
     if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
         if result==True:
             TestCenter.testPoint("Quarch_Host.LogTestPoint", "Test=" + __formatForTestcenter(title), "Result=True",
-                                 "Message=" + __formatForTestcenter(title))
+                                 "Message=" + __formatForTestcenter(title), stack_level=2)
         elif result==False:
 
             TestCenter.testPoint("Quarch_Host.LogTestPoint", "Test=" + __formatForTestcenter(title), "Result=False",
-                                 "Message=" + __formatForTestcenter(title))
+                                 "Message=" + __formatForTestcenter(title), stack_level=2)
         else:
             title = "Result is bad format!  Title:" + str(title)+ " result: " +str(result)
             TestCenter.testPoint("Quarch_Host.LogTestPoint", "Test=" + __formatForTestcenter(title), "Result=False",
-                                 "Message=" + __formatForTestcenter(title))
+                                 "Message=" + __formatForTestcenter(title), stack_level=2)
     else:
 
         if result==True:
@@ -387,7 +387,7 @@ logResults(test,notes)
 def logResults(test,notes):
 
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
-            TestCenter.testPoint ("Quarch_Internal.ResultDialog","Test="+ __formatForTestcenter(test),"Notes=" + __formatForTestcenter(notes))
+            TestCenter.testPoint ("Quarch_Internal.ResultDialog","Test="+ __formatForTestcenter(test),"Notes=" + __formatForTestcenter(notes), stack_level=2)
 
         else:
             print("\t" +test+": "+notes)
@@ -398,7 +398,7 @@ def logResults(test,notes):
 def showYesNoDialog(title, message):
     if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
         response = TestCenter.testPoint("Quarch_Host.ShowYesNoDialog", "Title=" + title,
-                             "Message=" + message)
+                             "Message=" + message, stack_level=2)
     else:
         response = listSelection(title, message, "Yes,No", nice=True)
     return response
@@ -414,7 +414,7 @@ def requestDialog( title="", message = "", desiredType = None, minRange=None, ma
     while validValue == False:
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
 
-            userStr = TestCenter.testPoint("Quarch_Host.ShowRequestDialog","Title= " + __formatForTestcenter(title), "Message=" + __formatForTestcenter(message));
+            userStr = TestCenter.testPoint("Quarch_Host.ShowRequestDialog","Title= " + __formatForTestcenter(title), "Message=" + __formatForTestcenter(message), stack_level=2);
 
         else:  # default mode console output
             # Request user selection

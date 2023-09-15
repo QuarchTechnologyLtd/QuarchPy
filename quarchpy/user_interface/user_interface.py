@@ -682,10 +682,14 @@ def get_check_valid_calPath(calPath, message="Enter the desired save path for th
 def check_path_write_permissions(path, message="Please enter a valid path with write permissions: "):
     import tempfile, errno
     valid_path=False
+    calPath = os.path.expanduser("~")
     while valid_path==False:
         try:
             if path==None:
-                path=""
+                # provide a path if no path was provided
+                path = requestDialog("No path was provided. ",
+                                     message + " Leave blank to default to [" + calPath + "] :", desiredType="path",
+                                     defaultUserInput=calPath)
             f = open(path+"\\tempFile.txt", "w")
             f.write("some text")
             f.flush()
@@ -694,8 +698,10 @@ def check_path_write_permissions(path, message="Please enter a valid path with w
             valid_path=True
         except OSError as e:
             if e.errno == errno.EACCES or e.errno == errno.EEXIST:  # 13 or 17
-                path= requestDialog("No write permissions at path: \""+path+"\".   ",
-                                    message,desiredType="path")
+                # provide a path if write permissions are encountered
+                path = requestDialog("No write permissions at path: \"" + path + "\".   ",
+                                     message + " Leave blank to default to [" + calPath + "] :", desiredType="path",
+                                     defaultUserInput=calPath)
             else:
                 e.filename = path
                 raise e

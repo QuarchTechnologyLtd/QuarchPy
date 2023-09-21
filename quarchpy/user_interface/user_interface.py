@@ -24,16 +24,18 @@ class User_interface:
     instance = None
 
     class __user_interface:
-        def __init__(self,ui):
-            if ui in ["console","testcenter"]:
+        def __init__(self, ui):
+            if ui in ["console", "testcenter"]:
                 self.selectedInterface = ui
+                if "console" in ui:
+                    import logging
             else:
                 raise ValueError("requested ui type not valid")
 
-    def __init__(self,ui):
+    def __init__(self, ui):
         """
         """
-    
+
         # if we haven't create a user_interface object before
         if not User_interface.instance:
             # create a user interface object with our selected interface type
@@ -59,7 +61,7 @@ def listSelection(title,message,selectionList)
     if nice = True:
         selectionList format is a list of lists containing each column value [["NAME1","DESCRIPTION1"],[["NAME2","DESCRIPTION2"]]]
         the function will return the selected list with the index in position 0 ["1","NAME1","DESCRIPTION1"]
-    
+
 
     THIS IS MORE LIKE A DICTIONARY SELECTION FUNC THAT RETURNS THE KEY
 
@@ -74,7 +76,7 @@ def listSelection(title="",message="",selectionList=[], additionalOptions = [], 
             converted = True
             tempSelectionListStringDict = ""
             for row in selectionList:
-                tempSelectionListStringDict += str(row[0])+"="+str(row[1])+","
+                tempSelectionListStringDict += str(row[0]) + "=" + str(row[1]) + ","
             itemListString = tempSelectionListStringDict[0:-1]
         else:
             itemListString = selectionList
@@ -84,17 +86,17 @@ def listSelection(title="",message="",selectionList=[], additionalOptions = [], 
                                 "ItemListString=" + __formatForTestcenter(itemListString),
                                 "OptionListString=" + __formatForTestcenter(str(additionalOptions)), stack_level=2);
         if converted:
-            i=0
+            i = 0
             for row in selectionList:
-                i+=1
+                i += 1
                 if retVal == row[0] or retVal == row[1]:
                     retVal = [str(i)] + row
 
         return retVal
 
-    else: #default mode console output
+    else:  # default mode console output
 
-        #print message
+        # print message
         if message not in "":
             print(message)
         if nice is True:
@@ -102,16 +104,16 @@ def listSelection(title="",message="",selectionList=[], additionalOptions = [], 
             return retVal
 
 
-        #split selection list into key=value pairs and print each value
+        # split selection list into key=value pairs and print each value
         # first split on ','s into list of key=value pairs
         selectionList = selectionList.split(',')
         # then split each list item on '=' into a [key,value] list
         selectionList = [str(x).split("=") for x in selectionList]
 
-        count=1
+        count = 1
         for item in selectionList:
             # if list item has index and value print them
-            if len(item)>1:
+            if len(item) > 1:
                 print(str(count) + " - " + item[1])
             else:
                 print(item[0])
@@ -131,10 +133,10 @@ def listSelection(title="",message="",selectionList=[], additionalOptions = [], 
                 if (userNumber <= len(selectionList) and userNumber >= 1):
                     break
             except:
-                print ("INVALID SELECTION!")
+                print("INVALID SELECTION!")
 
         # return the key associated with this entry
-        return selectionList[userNumber-1][0]
+        return selectionList[userNumber - 1][0]
 
 '''
 niceListSelection
@@ -147,7 +149,7 @@ def niceListSelection(selectionList,title="",message="", tableHeaders=None, inde
     # return 2d[selection]
     try:
         selectionList = selectionList.copy()
-        additionalOptions =additionalOptions.copy()
+        additionalOptions = additionalOptions.copy()
         tableHeaders = tableHeaders.copy()
     except:
         pass
@@ -158,7 +160,7 @@ def niceListSelection(selectionList,title="",message="", tableHeaders=None, inde
         selectionList += additionalOptions
 
 
-    if isinstance(selectionList,str):
+    if isinstance(selectionList, str):
         selectionList = selectionList.split(',')
     elif isinstance(selectionList, dict):
         selectionList = dictToList(selectionList)
@@ -194,24 +196,41 @@ printText(text)
         fillLine - If true print will cover the width of the screen (useful when using "\r" to write on the same line)
         terminalWidth - Width of terminal writing to
         fill - The character that will be used to fill the remaining space 
-    
+
 
 '''
-def printText(text, fillLine=False, terminalWidth=100, fill=" ",**kwargs):
+def printText(text, fillLine=False, terminalWidth=100, fill=" ", **kwargs):
 
-        if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
-            # if line is not empty
-            if text.strip()!="":
+    if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
+        # if line is not empty
+        if text.strip() != "":
                 TestCenter.testPoint ("Quarch_Host.LogComment","Message=" + __formatForTestcenter(text),stack_level=2)
 
-        else:
-            if fillLine:
+    else:
+        if fillLine:
                 text +=fill*(terminalWidth-len(text)) #TODO Split string at \n or \r\n make a list, add the line fill for each item,then add back the \n and \r\n and combine together again.
-            if kwargs!= {}:
-                print(text,**kwargs)
-            else:
-                print(text)
-        return
+        if kwargs != {}:
+            print(text, **kwargs)
+        else:
+            print(text)
+    return
+
+def logWarning(text, fillLine=False):
+    '''
+    logWarning(text)
+    Processes a warning message and diaplays it using python standar logging or a warning message in test centre.
+        arguments:
+            text - a string of text, or a list of strings
+    '''
+    if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
+        # if line is not empty
+        if text.strip() != "":
+            TestCenter.testPoint("Quarch_Host.LogWarning", "Message=" + __formatForTestcenter(text))
+
+    else:
+         logging.warning(text)
+    return
+
 
 '''
 showDialog(title,message)
@@ -223,12 +242,12 @@ def showDialog(message="",title=""):
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
             TestCenter.testPoint ("Quarch_Host.ShowDialog","Title=" + __formatForTestcenter(title),"Message=" + __formatForTestcenter(message), stack_level=2)
 
+    else:
+        print(message)
+        if sys.version_info.major >= 3:
+            userStr = input("Press enter to continue\n>")
         else:
-            print(message)
-            if sys.version_info.major >= 3:
-                userStr = input("Press enter to continue\n>")
-            else:
-                userStr = raw_input("Press enter to continue\n>")
+            userStr = raw_input("Press enter to continue\n>")
 
 
 def showImage(title="", message="", imagePath=""):
@@ -255,8 +274,8 @@ printProgressBar (iteration,total,prefix='',suffix='',decimals=1,length=100,fill
         fill        - Optional  : bar fill character (Str)
 
 '''
-def progressBar (iteration, total,prefix = '', suffix = '', decimals = 1, fill = '█', fullWidth = 100):
-    if iteration >=0 and total >0:
+def progressBar(iteration, total, prefix='', suffix='', decimals=1, fill='█', fullWidth=100):
+    if iteration >= 0 and total > 0:
 
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
             TestCenter.testPoint ("Quarch_Host.ShowTaskProgress","Title=Task Progress", "Iteration="+str(int(iteration)), "Total="+str(int(total)), stack_level=2);
@@ -267,7 +286,7 @@ def progressBar (iteration, total,prefix = '', suffix = '', decimals = 1, fill =
 
             filledLength = int(length * iteration // total)
             bar = fill * filledLength + '-' * (length - filledLength)
-            print('%s|%s|%s%%%s' % (prefix, bar, percent, suffix), end = '\r')
+            print('%s|%s|%s%%%s' % (prefix, bar, percent, suffix), end='\r')
 
             # Print New Line on Complete
             if iteration >= total:
@@ -282,13 +301,13 @@ startTestBlock(text)
 '''
 def startTestBlock(text):
 
-        if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
+    if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
             return TestCenter.beginTestBlock(__formatForTestcenter(text), stack_level=2)
 
-        else:
-            print("")
-            print("*** "+text+" ***")
-            return True
+    else:
+        print("")
+        print("*** " + text + " ***")
+        return True
 
 '''
 endTestBlock()
@@ -306,7 +325,7 @@ def endTestBlock(message="End test block"):
 logCalibrationResult(title,result)
 This was a little naughty as its callibration specific. If you are looking for something without the report obj look at logSimpleResult() func.
 '''
-def logCalibrationResult(title,report):
+def logCalibrationResult(title, report):
 
     if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
         if report["result"]:
@@ -334,7 +353,7 @@ def logCalibrationResult(title,report):
         else:
             print("\t" + title + " Failed")
             print("")
-            data =report["report"]
+            data = report["report"]
             print(data)
 
 '''
@@ -350,49 +369,49 @@ def storeResult(message):
 logsSimpleCalibrationResult(title,result)
 PASS/FAIL ONLY
 '''
-def logSimpleResult(title,result):
-    #printText("Result = "+str(result))
-    if type(result)==str:
+def logSimpleResult(title, result):
+    # printText("Result = "+str(result))
+    if type(result) == str:
         if result.lower() in ['true', '1', 't', 'y', 'yes', 'pass']:
-            result=True
-        elif result.lower() in ['false','0','f','n','no','fail']:
-            result=False
+            result = True
+        elif result.lower() in ['false', '0', 'f', 'n', 'no', 'fail']:
+            result = False
         else:
-            raise ValueError("Result = "+result+" is not valid.")
+            raise ValueError("Result = " + result + " is not valid.")
     if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
-        if result==True:
+        if result == True:
             TestCenter.testPoint("Quarch_Host.LogTestPoint", "Test=" + __formatForTestcenter(title), "Result=True",
                                  "Message=" + __formatForTestcenter(title), stack_level=2)
-        elif result==False:
+        elif result == False:
 
             TestCenter.testPoint("Quarch_Host.LogTestPoint", "Test=" + __formatForTestcenter(title), "Result=False",
                                  "Message=" + __formatForTestcenter(title), stack_level=2)
         else:
-            title = "Result is bad format!  Title:" + str(title)+ " result: " +str(result)
+            title = "Result is bad format!  Title:" + str(title) + " result: " + str(result)
             TestCenter.testPoint("Quarch_Host.LogTestPoint", "Test=" + __formatForTestcenter(title), "Result=False",
                                  "Message=" + __formatForTestcenter(title), stack_level=2)
     else:
 
-        if result==True:
+        if result == True:
             print("\t" + title + " Passed")
         elif result == False:
             print("\t" + title + " Failed")
         else:
-            title = "Result is bad format!  Title:" + str(title)+ " result: " +str(result)
+            title = "Result is bad format!  Title:" + str(title) + " result: " + str(result)
             print("\t" + title)
 
 '''
 logResults(test,notes)
 '''
-def logResults(test,notes):
+def logResults(test, notes):
 
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
             TestCenter.testPoint ("Quarch_Internal.ResultDialog","Test="+ __formatForTestcenter(test),"Notes=" + __formatForTestcenter(notes), stack_level=2)
 
-        else:
-            print("\t" +test+": "+notes)
+    else:
+        print("\t" + test + ": " + notes)
 
-        return
+    return
 
 
 def showYesNoDialog(title, message):
@@ -407,9 +426,9 @@ def showYesNoDialog(title, message):
 '''
 requestDialog(title, message)
 '''
-def requestDialog( title="", message = "", desiredType = None, minRange=None, maxRange=None, defaultUserInput=""):
+def requestDialog(title="", message="", desiredType=None, minRange=None, maxRange=None, defaultUserInput=""):
     validValue = False
-    if desiredType != None and desiredType.lower() == "string": #If "string" or None do the same thing. Default is string type.
+    if desiredType != None and desiredType.lower() == "string":  # If "string" or None do the same thing. Default is string type.
         desiredType = None
     while validValue == False:
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
@@ -418,12 +437,12 @@ def requestDialog( title="", message = "", desiredType = None, minRange=None, ma
 
         else:  # default mode console output
             # Request user selection
-            if message =="" and title!="":
-                message=title
+            if message == "" and title != "":
+                message = title
             if sys.version_info.major >= 3:
-                userStr = input(message+"\n>")
+                userStr = input(message + "\n>")
             else:
-                userStr = raw_input(message+"\n>")
+                userStr = raw_input(message + "\n>")
         if userStr == "":
             userStr = defaultUserInput
         validValue = validateUserInput(userStr, desiredType, minRange, maxRange)
@@ -432,7 +451,7 @@ def requestDialog( title="", message = "", desiredType = None, minRange=None, ma
 '''
 Takes string checks if can cast to desired type and returns it as that type, can check if within range for ints and floats.
 '''
-def validateUserInput ( userStr, desiredType, minRange, maxRange):
+def validateUserInput(userStr, desiredType, minRange, maxRange):
     validValue = False
     if desiredType == None:
         validValue = True
@@ -449,7 +468,7 @@ def validateUserInput ( userStr, desiredType, minRange, maxRange):
     elif desiredType == "int":
         try:
             userStr = int(userStr)
-            if ((minRange != None and maxRange != None) and (userStr< minRange or userStr > maxRange)):
+            if ((minRange != None and maxRange != None) and (userStr < minRange or userStr > maxRange)):
                 validValue = False
             else:
                 validValue = True
@@ -461,11 +480,11 @@ def validateUserInput ( userStr, desiredType, minRange, maxRange):
         else:
             validValue = True
     if validValue == False:
-            printText ( str(userStr)+ " is not a valid " + str(desiredType))
-            if minRange != None and maxRange != None:
-                printText("Please enter a " + str(desiredType) + " between " + str(minRange) + " and " + str(maxRange))
-            else:
-                printText("Please enter a valid " + str(desiredType))
+        printText(str(userStr) + " is not a valid " + str(desiredType))
+        if minRange != None and maxRange != None:
+            printText("Please enter a " + str(desiredType) + " between " + str(minRange) + " and " + str(maxRange))
+        else:
+            printText("Please enter a valid " + str(desiredType))
     return validValue
 
 '''
@@ -473,16 +492,16 @@ Takes a string input of comma seperated ints or range of ints and converts it to
  2-5, 9,11,31-35  ->  002,003,004,005,009,011,031,032,033,034,035
 intLength tells the function to zeo pad the int before returning it.
 '''
-def userRangeIntSelection(inputString, intLength=3 ):
+def userRangeIntSelection(inputString, intLength=3):
     inputList = inputString.split(",")
-    returnList=[]
+    returnList = []
     for item in inputList:
         if "-" in item:
             myRange = item.split("-")
-            myRange = range(int(myRange[0]),int(myRange[1])+1)
+            myRange = range(int(myRange[0]), int(myRange[1]) + 1)
             returnList.extend(myRange)
         else:
-            if validateUserInput(item,"int",0,999):
+            if validateUserInput(item, "int", 0, 999):
                 returnList.append(item)
 
     for i, item in enumerate(returnList):
@@ -496,23 +515,23 @@ def userRangeIntSelection(inputString, intLength=3 ):
 Takes in a 2D List and displays a table.
 Will take 2DList/Tuple. Will Process a Dictionary, 1DList/Tuple, CSV String
 '''
-def displayTable(tableData=[[""]], message="", tableHeaders=None, indexReq=False, printToConsole = True, align = "l"):
-    retVal =""
+def displayTable(tableData=[[""]], message="", tableHeaders=None, indexReq=False, printToConsole=True, align="l"):
+    retVal = ""
     try:
-        tableData=tableData.copy()
-        if tableHeaders is not None: tableHeaders=tableHeaders.copy()
+        tableData = tableData.copy()
+        if tableHeaders is not None: tableHeaders = tableHeaders.copy()
     except:
         pass
-    if tableHeaders ==[]:
-        tableHeaders =None
+    if tableHeaders == []:
+        tableHeaders = None
     if isinstance(tableData, str):
         tableData = tableData.split(',')
     elif isinstance(tableData, dict):
         tableData = dictToList(tableData)
-    #Process list to make it into 2d list to display.
+    # Process list to make it into 2d list to display.
     try:
         if not isinstance(tableData[0], tuple) and not isinstance(tableData[0], list) and not isinstance(tableData[0], dict):
-            tempList=list()
+            tempList = list()
             for item in tableData:
                 tempList.append(list([item]))
             tableData = tempList
@@ -524,23 +543,23 @@ def displayTable(tableData=[[""]], message="", tableHeaders=None, indexReq=False
 
     if indexReq:
         if tableHeaders is not None:
-            tableHeaders.insert(0,"#")
-        counter =1
+            tableHeaders.insert(0, "#")
+        counter = 1
         for rows in tableData:
-            rows.insert(0,counter)
-            counter+=1
+            rows.insert(0, counter)
+            counter += 1
 
-    #calculate required column width for each column
+    # calculate required column width for each column
     columnWidths = []
     itemLegnth = 0
     for row in range(len(tableData)):
         for column in range(len(tableData[row])):
             item = str(tableData[row][column])
             if item == None:
-                item="NoneType"
+                item = "NoneType"
                 tableData[row][column] = item
             if item.__contains__("\r") or item.__contains__("\n"):
-                item = item.replace("\r", "\\r").replace("\n","\\n")
+                item = item.replace("\r", "\\r").replace("\n", "\\n")
                 tableData[row][column] = item
             itemLegnth = len(str(item))
             try:
@@ -559,7 +578,7 @@ def displayTable(tableData=[[""]], message="", tableHeaders=None, indexReq=False
                 columnWidths.append(itemLegnth)
             index += 1
 
-    #Calculate the edge to be displayed at the top and bottom
+    # Calculate the edge to be displayed at the top and bottom
     topEdge = "+"
     middleEdge = "+"
     bottomEdge = "+"
@@ -579,9 +598,9 @@ def displayTable(tableData=[[""]], message="", tableHeaders=None, indexReq=False
     middleEdge = middleEdge + "+"
     bottomEdge = bottomEdge + "+"
 
-    #Always add the top reguardless of table headers or not.
+    # Always add the top reguardless of table headers or not.
     retVal += topEdge + "\n"
-    #Add table headers section
+    # Add table headers section
     if tableHeaders is not None:
         rowString = "|"
         index = 0
@@ -590,15 +609,15 @@ def displayTable(tableData=[[""]], message="", tableHeaders=None, indexReq=False
             if align.lower() in "l":
                 rowString += str(item) + " " * spaces + "|"
             elif align.lower() in "c":
-                prefix =  " " * math.floor(spaces/2)
-                suffix =  " " * math.ceil(spaces/2)
+                prefix = " " * math.floor(spaces / 2)
+                suffix = " " * math.ceil(spaces / 2)
                 rowString += prefix + str(item) + suffix + "|"
             elif align.lower() in "r":
                 rowString += " " * spaces + str(item) + "|"
             index += 1
         retVal += rowString + "\n"
         retVal += middleEdge + "\n"
-    #Add table data section
+    # Add table data section
     for rowData in tableData:
         index = 0
         rowString = "|"
@@ -607,11 +626,11 @@ def displayTable(tableData=[[""]], message="", tableHeaders=None, indexReq=False
             if align.lower() in "l":
                 rowString += str(item) + " " * spaces + "|"
             elif align.lower() in "c":
-                prefix =  " " * math.floor(spaces/2)
-                suffix =  " " * math.ceil(spaces/2)
+                prefix = " " * math.floor(spaces / 2)
+                suffix = " " * math.ceil(spaces / 2)
                 rowString += prefix + str(item) + suffix + "|"
             elif align.lower() in "r":
-                rowString += " " * spaces + str(item) +  "|"
+                rowString += " " * spaces + str(item) + "|"
 
             index += 1
         retVal += rowString + "\n"
@@ -655,20 +674,20 @@ def is_user_admin():
 def __formatForTestcenter(text):
     # escape special characters
     # turn \' to \\'s
-    text = text.replace('\\','\\\\')
-    #get rid of any alarms that may be included in console mode
+    text = text.replace('\\', '\\\\')
+    # get rid of any alarms that may be included in console mode
     text = text.replace('\a', '')
     # replace line endings
     text = '|'.join(text.splitlines())
     return text
-    
+
 def get_check_valid_calPath(calPath, message="Enter the desired save path for the calibration report."):
     inputOK = False
     while inputOK is False:
         if (calPath is None):
             calPath = os.path.expanduser("~")
             calPath = requestDialog("Enter Report Path",
-                                    message+" Leave blank to default to [" + calPath + "] :",
+                                    message + " Leave blank to default to [" + calPath + "] :",
                                     desiredType="path", defaultUserInput=os.path.expanduser("~"))
 
         if (os.path.isdir(calPath) == False):
@@ -678,7 +697,7 @@ def get_check_valid_calPath(calPath, message="Enter the desired save path for th
         else:
             inputOK = True
     return calPath
-    
+
 def check_path_write_permissions(path, message="Please enter a valid path with write permissions: "):
     import tempfile, errno
     valid_path=False
@@ -694,8 +713,8 @@ def check_path_write_permissions(path, message="Please enter a valid path with w
             f.write("some text")
             f.flush()
             f.close()
-            os.remove(path+"\\tempFile.txt")
-            valid_path=True
+            os.remove(path + "\\tempFile.txt")
+            valid_path = True
         except OSError as e:
             if e.errno == errno.EACCES or e.errno == errno.EEXIST:  # 13 or 17
                 # provide a path if write permissions are encountered
@@ -710,19 +729,19 @@ def check_path_write_permissions(path, message="Please enter a valid path with w
 
 # Deprecated version of the function, here for compatability only
 # calls into the visual_sleep() function
-def quarchSleep (sleepLength,updatePeriod=1,title=""):
-    visual_sleep (sleepLength, updatePeriod, title)
+def quarchSleep(sleepLength, updatePeriod=1, title=""):
+    visual_sleep(sleepLength, updatePeriod, title)
 
-def visual_sleep (sleepLength,updatePeriod=1,title=""):
+def visual_sleep(sleepLength, updatePeriod=1, title=""):
     """
     Wrapper for sleep function that gives a visual indicator of the sleep time
     """
-    if title !="":
+    if title != "":
         printText(title)
     startTime = time.time()
     currentTime = time.time()
-    while(currentTime-startTime<sleepLength):
-        progressBar(iteration=currentTime-startTime,total=sleepLength)
+    while (currentTime - startTime < sleepLength):
+        progressBar(iteration=currentTime - startTime, total=sleepLength)
         time.sleep(updatePeriod)
         currentTime = time.time()
-    progressBar(iteration=1,total=1) #show 100%
+    progressBar(iteration=1, total=1)  # show 100%

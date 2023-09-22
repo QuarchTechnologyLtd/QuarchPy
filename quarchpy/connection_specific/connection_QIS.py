@@ -263,12 +263,11 @@ class QisInterface:
 
         baseSamplePeriodS = int(re.search('^\d*\.?\d*', baseSamplePeriod).group())*(10**baseSampleUnitExponent)        
 
-        # TODO: MD Thinks this implements software averaging, is unused and now performed in QIS
-        if streamAverage != None:
-            #Matt converting streamAveraging into number
-            streamAverage = self.convertStreamAverage(streamAverage)
-
-            stripesPerAverage = float(streamAverage) / (float(baseSamplePeriod) * 4e-6)
+        # # TODO: MD Thinks this implements software averaging, is unused and now performed in QIS
+        # if streamAverage != None:
+        #     #Matt converting streamAveraging into number
+        #     streamAverage = self.convertStreamAverage(streamAverage)
+        #     stripesPerAverage = float(streamAverage) / (float(baseSamplePeriodS) * 4e-6)
         isRun = True
         while isRun:
             try:
@@ -466,11 +465,10 @@ class QisInterface:
         leftover = 0
         remainingStripes = []
         streamOverrun = False
-        if streamAverage != None:
-            # Matt converting streamAveraging into number
-            streamAverage = self.convertStreamAverage(streamAverage)
-
-            stripesPerAverage = float(streamAverage) / (float(baseSamplePeriod) * 4e-6)
+        # if streamAverage != None:
+        #     # Matt converting streamAveraging into number
+        #     streamAverage = self.convertStreamAverage(streamAverage)
+        #     stripesPerAverage = float(streamAverage) / (float(baseSamplePeriodS) * 4e-6)
 
         isRun = True
 

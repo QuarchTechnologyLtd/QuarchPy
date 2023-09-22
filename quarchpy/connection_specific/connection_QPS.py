@@ -53,7 +53,7 @@ class QpsInterface:
             self.client.send( data )
 
 
-    def sendCmdVerbose(self, cmd, timeout=300):
+    def sendCmdVerbose(self, cmd, timeout=20):
         cmd = cmd + "\r\n"
 
         self.send(cmd)

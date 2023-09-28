@@ -479,11 +479,13 @@ def checkModuleFormat(ConString):
 
     if not correctConType:
         logging.warning("Invalid connection type specified in Module string, use one of [USB|SERIAL|TELNET|REST|TCP]")
+        logging.warning("Invalid connection string: " + ConString)
         return False
 
     numb_colons = ConString.count(":")
     if numb_colons > 2 or numb_colons <= 0:
         logging.warning("Invalid number of colons in module string")
+        logging.warning("Invalid connection string: " + ConString)
         return False
 
     return True

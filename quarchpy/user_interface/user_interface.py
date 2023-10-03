@@ -239,7 +239,7 @@ prints a message to the user and waits for acknowledgement
 def showDialog(message="",title=""):
 
 
-        if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
+    if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
             TestCenter.testPoint ("Quarch_Host.ShowDialog","Title=" + __formatForTestcenter(title),"Message=" + __formatForTestcenter(message), stack_level=2)
 
     else:
@@ -405,7 +405,7 @@ logResults(test,notes)
 '''
 def logResults(test, notes):
 
-        if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
+    if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
             TestCenter.testPoint ("Quarch_Internal.ResultDialog","Test="+ __formatForTestcenter(test),"Notes=" + __formatForTestcenter(notes), stack_level=2)
 
     else:

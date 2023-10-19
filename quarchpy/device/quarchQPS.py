@@ -60,6 +60,8 @@ class quarchStream:
     def startQPSStream(self, newDirectory):
         '''STARTS the stream '''
         response = self.connectionObj.qps.sendCmdVerbose("$start stream \"" + str(newDirectory)+"\"")
+        if "Error" in response:
+            response = self.connectionObj.qps.sendCmdVerbose("$start stream " + str(newDirectory))
         return response
 
     def failCheck(self, response):
@@ -93,18 +95,13 @@ class quarchStream:
         if format == "df":
             try:
                 import warnings
+                import pandas as pd
                 warnings.simplefilter(action='ignore', category=FutureWarning)
-                if 'pandas' in sys.modules or 'pd' in sys.modules:
-                    logging.debug("Pandas already imported.")
-                else:
-                    import pandas as pd
-                pd.set_option('display.max_columns', None)
-                pd.set_option('display.width', 1024)
             except Exception as e:
                 logging.error(e)
                 logging.warning("pandas not imported correctly. Continuing")
-                pass
-            test_data = StringIO(command_response)
+            pd.set_option('display.max_columns', None)
+            pd.set_option('display.width', 1024)
             retVal = pd.read_csv(test_data, sep=",", header=[0, 1], error_bad_lines=False)
         elif format == "list":
             retVal = []
@@ -158,22 +155,18 @@ class quarchStream:
         """
         try:
             import warnings
+            import pandas as pd
             warnings.simplefilter(action='ignore', category=FutureWarning)
-            if 'pandas' in sys.modules or 'pd' in sys.modules:
-                logging.debug("Pandas already imported.")
-            else:
-                import pandas as pd
-            pd.set_option('max_columns', None)
-            pd.set_option('display.width', 1024)
         except:
             logging.warning("pandas not imported correctly")
-            pass
         command_response = self.connectionObj.qps.sendCmdVerbose("$get custom stats range " + str(start_time)+ " " + str(end_time), timeout=60)
         if command_response.startswith("Fail"):
             raise Exception(command_response)
         test_data = StringIO(command_response)
         try:
-            df = pd.read_csv(test_data, sep=",", header=[0,1])
+           pd.set_option('display.max_columns', None)
+           pd.set_option('display.width', 1024)
+           df = pd.read_csv(test_data, sep=",", header=[0,1])
         except Exception as e:
             logging.error("Unable to create pandas data frame from command response :" + str(command_response))
             raise e

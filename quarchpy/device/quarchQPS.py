@@ -102,6 +102,7 @@ class quarchStream:
                 logging.warning("pandas not imported correctly. Continuing")
             pd.set_option('display.max_columns', None)
             pd.set_option('display.width', 1024)
+            test_data = StringIO(command_response)
             retVal = pd.read_csv(test_data, sep=",", header=[0, 1], error_bad_lines=False)
         elif format == "list":
             retVal = []

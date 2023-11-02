@@ -14,7 +14,7 @@ class TCPConn:
         self.Connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #Sets buffer size
         self.BufferSize = 4096
-        #Opens the ocnnection
+        #Opens the connection
         self.Connection.connect((self.ConnTarget, TCP_PORT))
 
     def close(self):

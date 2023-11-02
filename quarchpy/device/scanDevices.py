@@ -20,6 +20,9 @@ from quarchpy.connection_specific.connection_Serial import serialList, serial
 from quarchpy.device.quarchArray import isThisAnArrayController
 from quarchpy.connection_specific.connection_USB import TQuarchUSB_IF
 from quarchpy.connection_specific import connection_ReST
+from quarchpy.connection_specific.connection_mDNS import MyListener
+
+from zeroconf import ServiceBrowser, Zeroconf
 
 # TODO: bodge bodge bodge
 from quarchpy.utilities import TestCenter
@@ -455,6 +458,11 @@ def filter_module_type(module_type_filter, found_devices):
                 filtered_devices.update({key: value})
     return filtered_devices
 
+def scan_mDNS(mdnsListener):
+    zeroconf = Zeroconf()
+    listener = mdnsListener
+    browser = ServiceBrowser(zeroconf, "_http._tcp.local.", listener)
+
 
 '''
 Scans for Quarch modules across the given interface(s). Returns a dictionary of module addresses and serial numbers
@@ -463,6 +471,9 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
                 module_type_filter=None, ipAddressLookup=None):
     foundDevices = dict()
     scannedArrays = list()
+    mdnsListener = MyListener()
+
+    scan_mDNS(mdnsListener)
 
     if target_conn.lower() == "all":
         foundDevices = list_USB()
@@ -470,6 +481,7 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         try:
             #This will fail if the test machine is not connected to a network
             foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
+            foundDevices = mergeDict(foundDevices, mdnsListener.found_devices)
         except Exception as e:
             logging.error(e)
             logging.warning("Network scan failed, check network connection")

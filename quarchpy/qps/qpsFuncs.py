@@ -85,16 +85,19 @@ def startLocalQps(keepQisRunning=False, args=[]):
 
     currentOs = platform.system()
 
-    if (currentOs in "Windows"):
-        command = "start /high /b javaw -Djava.awt.headless=true " + command +" " + str(args)
+    if currentOs in "Windows":
+        command = "start /high /b javaw -Djava.awt.headless=true " + command + " " + str(args)
+        command = command + "-ccs=HIDE"  # note: multiple -ccs options ignored
         os.system(command)
-    elif (currentOs in "Linux"):
+    elif currentOs in "Linux":
+        command = command + "-ccs=HIDE"
         if sys.version_info[0] < 3:
             os.popen2("java " + command + " 2>&1")
         else:
             os.popen("java " + command + " 2>&1")
-    else:
+    else:  # default to Windows
         command = "start /high /b javaw -Djava.awt.headless=true " + command + " " + str(args)
+        command = command + "-ccs=HIDE"
         os.system(command)
 
     while not isQpsRunning():

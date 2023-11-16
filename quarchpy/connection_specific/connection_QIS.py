@@ -10,7 +10,7 @@ import threading
 import math
 import logging
 import struct
-import io
+from io import StringIO
 from pathlib import Path
 from quarchpy.user_interface import *
 import xml.etree.ElementTree as ET
@@ -33,7 +33,6 @@ class QisInterface:
         self.dictSemaphore = threading.Semaphore()
         self.connect(connectionMessage = connectionMessage)
         self.stripesEvent = threading.Event()
-        self.inMemoryData = None
 
         self.qps_stream_header = None
         self.qps_record_dir_path = None
@@ -126,7 +125,7 @@ class QisInterface:
             response = self.sendAndReceiveText(sock, cmd)
         return response
 
-    def startStream(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration = None, inMemory = False):
+    def startStream(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration = None, inMemoryData = None):
         self.StreamRunSentSemaphore.acquire()
         self.deviceDictSetup('QIS')
         i = self.deviceMulti(module)
@@ -136,7 +135,7 @@ class QisInterface:
 
         # Create the thread
         t1 = threading.Thread(target=self.startStreamThread, name=module,
-                              args=(module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration, inMemory))
+                              args=(module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration, inMemoryData))
         # Start the thread
         t1.start()
 
@@ -201,10 +200,12 @@ class QisInterface:
     # and 'communicate'  with anything from other threads. If you do, you MUST use a thread safe 
     # way of communicating. The thread creates it's own socket and should use that, NOT the objects socket
     # (which some of the comms with module functions will use by default).
-    def startStreamThread(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration = None, inMemory = False):
+    def startStreamThread(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration = None, inMemoryData = None):
         #Start module streaming and then read stream data
-        if inMemory:
-            self.inMemoryData = io.StringIO()
+        if inMemoryData is not None:
+            if not isinstance(inMemoryData, StringIO):
+                print("Error! The parameter 'inMemoryData' is NOT of type StringIO")
+                exit()
 
         stripes = ['Empty Header']
         #Send stream command so module starts streaming data into the backends buffer
@@ -239,7 +240,7 @@ class QisInterface:
                 formatHeader = self.streamHeaderFormat(device=module, sock=self.streamSock)
                 formatHeader = formatHeader.replace(", ", separator)
                 f.write(formatHeader + '\n')
-                self.inMemoryData.write(formatHeader + '\n')
+                inMemoryData.write(formatHeader + '\n')
 
         numStripesPerRead = 4096
         maxFileExceeded = False
@@ -321,7 +322,7 @@ class QisInterface:
                                         if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)): # < rather than <= because we start at 0
                                             f.write(newStripes[:removeChar])
                                             decoded_newStripes = newStripes.decode('utf-8')
-                                            self.inMemoryData.write(decoded_newStripes[:removeChar])
+                                            inMemoryData.write(decoded_newStripes[:removeChar])
 
                                         # else write each line individually until we have reached the desired endpoint
                                         else:
@@ -329,14 +330,14 @@ class QisInterface:
                                                 lastTime = thisLine.decode().split(separator)[0]
                                                 if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)):
                                                     f.write(thisLine + b'\r' + b'\n')  # Put the CR back on the end
-                                                    self.inMemoryData.write(thisLine + b'\r' + b'\n')
+                                                    inMemoryData.write(thisLine + b'\r' + b'\n')
                                                 else:
                                                     streamComplete = True
                                                     break
                                     else:
                                         f.write(newStripes[:removeChar])
                                         decoded_newStripes = newStripes.decode('utf-8')
-                                        self.inMemoryData.write(decoded_newStripes[:removeChar])
+                                        inMemoryData.write(decoded_newStripes[:removeChar])
 
                             else:
                                 maxFileExceeded = True
@@ -344,8 +345,8 @@ class QisInterface:
                                 maxFileStatus = self.streamBufferStatus(device=module, sock=self.streamSock)
                                 f.write('Warning: Max file size exceeded before end of stream.\n')
                                 f.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
-                                self.inMemoryData.write('Warning: Max file size exceeded before end of stream.\n')
-                                self.inMemoryData.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
+                                inMemoryData.write('Warning: Max file size exceeded before end of stream.\n')
+                                inMemoryData.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
                                 self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
                                 break
                         else:
@@ -396,7 +397,7 @@ class QisInterface:
                                         newStripes = newStripes.replace(b' ', str.encode(separator))
                                         f.write(newStripes[:removeChar])
                                         decoded_newStripes = newStripes.decode('utf-8')
-                                        self.inMemoryData.write(decoded_newStripes[:removeChar])
+                                        inMemoryData.write(decoded_newStripes[:removeChar])
                             else:
                                 if not maxFileExceeded:
                                     maxFileStatus = self.streamBufferStatus(device=module,  sock=self.streamSock)
@@ -411,8 +412,8 @@ class QisInterface:
                         if maxFileExceeded:
                             f.write(b'Warning: Max file size exceeded before end of stream.\n')
                             f.write(b'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
-                            self.inMemoryData.write(b'Warning: Max file size exceeded before end of stream.\n')
-                            self.inMemoryData.write(b'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
+                            inMemoryData.write(b'Warning: Max file size exceeded before end of stream.\n')
+                            inMemoryData.write(b'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
                             logging.warning('Max file size exceeded. Some data has not been saved to file: ' + maxFileStatus + '.')
 
                     #printText('Stripes in buffer now: ' + self.streamBufferStatus(device=module, sock=self.streamSock))
@@ -1304,12 +1305,6 @@ class QisInterface:
             self.stopFlagList.append(True)
             self.listSemaphore.release()
             return self.deviceList.index(device)
-
-    def getInMemoryData(self):
-        if self.inMemoryData is None:
-            return None
-        else:
-            return self.inMemoryData.getvalue()
     
     def deviceDictSetup(self, module):
         if module in self.deviceDict.keys():

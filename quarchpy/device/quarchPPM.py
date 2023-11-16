@@ -12,8 +12,8 @@ class quarchPPM(quarchDevice):
         if numb_colons == 1:
             self.ConString = self.ConString.replace(':', '::')
  
-    def startStream(self, fileName='streamData.txt', fileMaxMB=200000, streamName ='Stream With No Name', streamDuration = None, streamAverage = None, releaseOnData = False, separator=",", inMemory = False):
-        return self.connectionObj.qis.startStream(self.ConString, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration, inMemory)
+    def startStream(self, fileName='streamData.txt', fileMaxMB=200000, streamName ='Stream With No Name', streamDuration = None, streamAverage = None, releaseOnData = False, separator=",", inMemoryData = None):
+        return self.connectionObj.qis.startStream(self.ConString, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration, inMemoryData)
 
     def streamRunningStatus(self):
         return self.connectionObj.qis.streamRunningStatus(self.ConString)
@@ -26,9 +26,6 @@ class quarchPPM(quarchDevice):
 
     def waitStop(self):
         return self.connectionObj.qis.waitStop()
-
-    def getInMemoryData(self):
-        return self.connectionObj.qis.getInMemoryData()
 
     def streamResampleMode(self, streamCom):
         if streamCom.lower() == "off" or streamCom[0:-2].isdigit():

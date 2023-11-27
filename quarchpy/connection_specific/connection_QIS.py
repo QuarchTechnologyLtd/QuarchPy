@@ -11,7 +11,6 @@ import math
 import logging
 import struct
 from io import StringIO
-from pathlib import Path
 from quarchpy.user_interface import *
 import xml.etree.ElementTree as ET
 from connection_specific.StreamChannels import StreamGroups
@@ -48,13 +47,7 @@ class QisInterface:
         self.streamSock.settimeout(5)
         self.streamSock.connect((self.host, self.port))
         self.pythonVersion = sys.version[0]
-        #self.sendText(self.streamSock, '$scan')
-        #time.sleep(3)
-        if self.pythonVersion == '3':
-            temp = '>'
-            self.cursor = temp.encode()
-        else:
-            self.cursor = '>'
+        self.cursor = '>'
         #clear packets
         welcomeString = self.streamSock.recv(self.maxRxBytes).rstrip()
 
@@ -113,16 +106,12 @@ class QisInterface:
     def closeConnection(self, sock=None, conString=None):
         if sock == None:
             sock = self.sock
-
         if conString is None:
            cmd="close"
         else:
             cmd =conString+" close"
 
-        if self.pythonVersion == '3':
-            response = self.sendAndReceiveText(sock, cmd).decode()
-        else:
-            response = self.sendAndReceiveText(sock, cmd)
+        response = self.sendAndReceiveText(sock, cmd)
         return response
 
     def startStream(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration = None, inMemoryData = None):
@@ -165,7 +154,6 @@ class QisInterface:
             pass
             # just wait until event is cleared
 
-
     def stopStream(self, module, blocking = True):
         moduleName=module.ConString
         i = self.deviceMulti(moduleName)
@@ -193,14 +181,15 @@ class QisInterface:
                 else:
                     running = False
         time.sleep(0.1)
-    
-    # This is the function that is run when t1 is created. It is run in a seperate thread from 
-    # the main application so streaming can happen without blocking the main application from 
-    # doing other things. Within this function/thread you have to be very careful not to try 
-    # and 'communicate'  with anything from other threads. If you do, you MUST use a thread safe 
-    # way of communicating. The thread creates it's own socket and should use that, NOT the objects socket
-    # (which some of the comms with module functions will use by default).
+
     def startStreamThread(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration = None, inMemoryData = None):
+        # This is the function that is run when t1 is created. It is run in a seperate thread from
+        # the main application so streaming can happen without blocking the main application from
+        # doing other things. Within this function/thread you have to be very careful not to try
+        # and 'communicate'  with anything from other threads. If you do, you MUST use a thread safe
+        # way of communicating. The thread creates it's own socket and should use that, NOT the objects socket
+        # (which some of the comms with module functions will use by default).
+
         #Start module streaming and then read stream data
         if inMemoryData is not None:
             if not isinstance(inMemoryData, StringIO):
@@ -286,7 +275,7 @@ class QisInterface:
                     while self.stopFlagList[i] and (not streamOverrun) and (not streamComplete):
                         #now = time.time()
                         streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module, numStripesPerRead)
-                        newStripes = newStripes.replace(b' ', str.encode(separator))
+                        newStripes = newStripes.replace(' ', separator)
                         #print (time.time() - now)
                         if streamOverrun:
                             self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun']
@@ -316,18 +305,17 @@ class QisInterface:
                                     if streamDuration != None:
                                         # Get the last data line in the file
                                         lastLine = newStripes.splitlines()[-3]    # the last data line is followed by 'eof' and '>'
-                                        lastTime = lastLine.decode().split(separator)[0] # get the first (time) entry
+                                        lastTime = lastLine.split(separator)[0] # get the first (time) entry
 
                                         # if the last entry is still within the required stream length, write the whole lot
                                         if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)): # < rather than <= because we start at 0
                                             f.write(newStripes[:removeChar])
-                                            decoded_newStripes = newStripes.decode('utf-8')
-                                            inMemoryData.write(decoded_newStripes[:removeChar])
+                                            inMemoryData.write(newStripes[:removeChar])
 
                                         # else write each line individually until we have reached the desired endpoint
                                         else:
                                             for thisLine in newStripes.splitlines()[:-2]:
-                                                lastTime = thisLine.decode().split(separator)[0]
+                                                lastTime = thisLine.split(separator)[0]
                                                 if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)):
                                                     f.write(thisLine + b'\r' + b'\n')  # Put the CR back on the end
                                                     inMemoryData.write(thisLine + b'\r' + b'\n')
@@ -336,8 +324,7 @@ class QisInterface:
                                                     break
                                     else:
                                         f.write(newStripes[:removeChar])
-                                        decoded_newStripes = newStripes.decode('utf-8')
-                                        inMemoryData.write(decoded_newStripes[:removeChar])
+                                        inMemoryData.write(newStripes[:removeChar])
 
                             else:
                                 maxFileExceeded = True
@@ -394,10 +381,9 @@ class QisInterface:
                                     if(streamAverage != None):
                                         leftover, remainingStripes = self.averageStripes(leftover, stripesPerAverage, newStripes[:removeChar], f, remainingStripes)
                                     else:
-                                        newStripes = newStripes.replace(b' ', str.encode(separator))
+                                        newStripes = newStripes.replace(' ',separator)
                                         f.write(newStripes[:removeChar])
-                                        decoded_newStripes = newStripes.decode('utf-8')
-                                        inMemoryData.write(decoded_newStripes[:removeChar])
+                                        inMemoryData.write(newStripes[:removeChar])
                             else:
                                 if not maxFileExceeded:
                                     maxFileStatus = self.streamBufferStatus(device=module,  sock=self.streamSock)
@@ -504,7 +490,7 @@ class QisInterface:
                     # now = time.time()
                     streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module,
                                                                                       numStripesPerRead)
-                    newStripes = newStripes.replace(b' ', str.encode(separator))
+                    newStripes = newStripes.replace(' ',separator)
                     # print(newStripes)
                     # print(len(newStripes))
 
@@ -518,11 +504,7 @@ class QisInterface:
                     if isEmpty == False:
                         # Writes in file if not too big else stops streaming
                         # print(newStripes)
-
-                        x = newStripes[:removeChar]
-                        y = x.decode("utf-8")
-
-                        print("decoded stripe : " + y)
+                        print("decoded stripe : " + newStripes[:removeChar])
 
                         # Writing multiple stripes
                         if "\r\n" in y:
@@ -636,191 +618,6 @@ class QisInterface:
                         x = struct.pack(">d", int(stripe[counter]))
                         # logging.debug(item, x)
                         file1.write(x)
-
-
-    # Send text and get the backends response. - acts as wrapper to the sendAndReceiveText, intended to provide some extra convenience
-    # when sending commands to module (as opposed to back end)
-    # If read until cursor is set to True (which is default) then keep reading response until a cursor is returned as the last character of result string
-    # After command is sent wait for betweenCommandDelay which defaults to 0 but can be specified to add a delay between commands
-    # The objects connection needs to be opened (connect()) before this is used
-    def sendCmd(self, device='', cmd='$help', sock=None, readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse = True):
-        if sock==None:
-            sock = self.sock
-        if not (device == ''):
-            self.deviceDictSetup(device)
-
-        if expectedResponse is False:
-            self.sendText(sock, cmd, device)
-            return
-
-        res =  self.sendAndReceiveText(sock, cmd, device, readUntilCursor)
-        if (betweenCommandDelay > 0):
-            time.sleep(betweenCommandDelay)
-        #If ends with cursor get rid of it
-        if res[-1:] == self.cursor:
-            res = res[:-3] #remove last three chars - hopefully '\r\n>'
-#        time.sleep(0.1)
-        return res.decode()
-     
-
-    def sendAndReceiveCmd(self, sock=None, cmd='$help', device='', readUntilCursor=True, betweenCommandDelay=0.0):
-        if sock==None:
-            sock = self.sock
-        if not (device == ''):
-            self.deviceDictSetup(device)
-        if self.pythonVersion == '3':
-            res =  self.sendAndReceiveText(sock, cmd, device, readUntilCursor).decode()
-        else:
-            res =  self.sendAndReceiveText(sock, cmd, device, readUntilCursor)
-        if (betweenCommandDelay > 0):
-            time.sleep(betweenCommandDelay)
-        #If ends with cursor get rid of it
-        if res[-1:] == '>':
-            res = res[:-3] #remove last three chars - hopefully '\r\n>'
-        return cmd + ' : ' + res
-    
-    # Send text to the back end then read it's response
-    # The objects connection needs to be opened (connect()) before this is used
-    # If read until cursor is set to True (which is default) then keep reading response until a cursor is returned as the last character of result string
-    def sendAndReceiveText(self, sock, sentText='$help', device='', readUntilCursor=True):
-        self.sockSemaphore.acquire()
-        try:
-            self.sendText(sock, sentText, device)
-            if self.pythonVersion == '3':
-                res = bytearray()
-                res.extend(self.rxBytes(sock))
-                #Somtimes we just get one cursor back of currently unknown origins
-                #If that happens discard it and read again
-                if len(res)==0:
-                    logging.warning("empty response from QIS. Retrying.")
-                    streamResp=self.sendAndReceiveText(sock, "stream?",device,readUntilCursor).lower()
-                    if len(streamResp)==0:
-                        raise("Empty response from QIS twice in a row")
-                    else:
-                        logging.warning("Response recovered Successfully. Continuing.")
-                        res = bytearray()
-                        res.extend(self.rxBytes(sock))
-                        if len(res) == 0:
-                            raise ("empty response from QIS after second ")
-                if res[0] == self.cursor:
-                    #res[0] = self.rxBytes(sock)
-                    logging.warning('Only Returned Cursor!!!!!')
-                #If create socked fail (between backend and tcp/ip module)
-                cba = 'Create Socket Fail'
-                if cba.encode() == res[0]:
-                    logging.warning(res[0].decode())
-                cba = 'Connection Timeout'
-                if cba.encode() == res[0]:
-                    logging.warning(res[0].decode())
-                #If reading until  a cursor comes back then keep reading until a cursor appears or max tries exceeded
-                if readUntilCursor:
-                    maxReads = 1000
-                    count = 1
-                    #check for cursor at end of read and if not there read again
-                    while res[-1:] != self.cursor:
-                        res.extend(self.rxBytes(sock))
-                        count += 1
-                        if count >= maxReads:
-                            raise Exception(' Count = Error: max reads exceeded before cursor returned')
-                return res
-            else:
-                res = self.rxBytes(sock)
-                #Somtimes we just get one cursor back of currently unknown origins
-                #If that happens discard it and read again
-                if res == self.cursor:
-                    #printText(" CURSOR ONLY")
-                    res = self.rxBytes(sock)
-                #If create socked fail (between backend and tcp/ip module)
-                if 'Create Socket Fail' in res:
-                    raise Exception(res)
-                if 'Connection Timeout' in res:
-                    raise Exception(res)
-                #If reading until  a cursor comes back then keep reading until a cursor appears or max tries exceeded
-                if readUntilCursor:
-                    maxReads = 1000
-                    count = 1
-                    #check for cursor at end of read and if not there read again
-                    while res[-1:] != self.cursor:
-                        res += self.rxBytes(sock)
-                        count += 1
-                        if count >= maxReads:
-                            raise Exception(' Count = Error: max reads exceeded before cursor returned')
-                return res
-                
-        except Exception as e:
-            raise e
-        finally:
-            self.sockSemaphore.release()
-
-    def rxBytes(self,sock):
-        #sock.setblocking(0) #make socket non-blocking
-        #printText('rxBytes')
-        maxExceptions=10
-        exceptions=0
-        maxReadRepeats=50
-        readRepeats=0
-        timeout_in_seconds = 10
-        #Keep trying to read bytes until we get some, unless number of read repeads or exceptions is exceeded
-        while True: 
-            try:
-                #select.select returns a list of waitable objects which are ready. On windows it has to be sockets.
-                #The first arguement is a list of objects to wait for reading, second writing, third 'exceptional condition'
-                #We only use the read list and our socket to check if it is readable. if no timeout is specified then it blocks until it becomes readable.
-                ready = select.select([sock], [], [], timeout_in_seconds)
-                #time.sleep(0.1)
-                #ready = [1,2]
-                if ready[0]:
-                    ret = sock.recv(self.maxRxBytes)
-                    #time.sleep(0.1)
-                    return ret
-                else:
-                    #printText('rxBytes - readRepeats + 1')
-                    
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.connect((self.host, self.port))
-                    sock.settimeout(5)
-
-                    try:
-                        welcomeString = self.sock.recv(self.maxRxBytes).rstrip()
-                        welcomeString = 'Connected@' + self.host + ':' + str(self.port) + ' ' + '\n    ' + welcomeString
-                        printText('New Welcome:' + welcomeString)
-                    except Exception as e:
-                        logging.error('tried and failed to get new welcome')
-                        raise e
-                        
-                    readRepeats=readRepeats+1
-                    time.sleep(0.5)
-
-            except Exception as e:
-                #printText('rxBytes - exceptions + 1')
-                exceptions=exceptions+1
-                time.sleep(0.5)
-                raise e
-            
-            #If read repeats has been exceeded we failed to get any data on this read.
-            #   !!! This is likely to break whatever called us !!!
-            if readRepeats >= maxReadRepeats:
-                logging.error('Max read repeats exceeded - returning.')
-                return 'No data received from QIS'
-            #If number of exceptions exceeded then give up by exiting
-            if exceptions >= maxExceptions:
-                logging.error('Max exceptions exceeded - exiting') #exceptions are probably 10035 non-blocking socket could not complete immediatley
-                exit()
-    
-    # Send text to the back end don't read it's response
-    # The objects connection needs to be opened (connect()) before this is used
-    def sendText(self, sock, message='$help', device=''):
-        if device != '':
-            specialTimeout =  '%500000'
-            message = device + specialTimeout +  ' ' + message
-            #printText('Sending: "' + message + '" ' + self.host + ':' + str(self.port))
-
-        if self.pythonVersion == 2:
-            sock.sendall(message + '\r\n')
-        else:
-            convM = message + '\r\n'
-            sock.sendall(convM.encode('utf-8'))
-        return 'Sent:' + message
     
     # Query the backend for a list of connected modules. A $scan command is sent to refresh the list of devices,
     # Then a wait occurs while the backend discovers devices (network ones can take a while) and then a list of device name strings is returned
@@ -829,21 +626,9 @@ class QisInterface:
 
         if sock == None:
             sock = self.sock
-        scanWait = 2
-        #printText('Scanning for devices and waiting ' + str(scanWait) + ' seconds.')
-        if self.pythonVersion == '3':
-            #devString = self.sendAndReceiveText(sock, '$scan').decode
-            #time.sleep(scanWait)
-            devString = self.sendAndReceiveText(sock, '$list').decode()
-        else:
-            #devString = self.sendAndReceiveText(sock, '$scan')
-            #time.sleep(scanWait)
-            devString = self.sendAndReceiveText(sock, '$list')
-   
+        devString = self.sendAndReceiveText(sock, '$list')
         devString = devString.replace('>', '')            
-        devString = devString.replace(r'\d+\) ', '')   
-
-        #printText('"' + devString + '"')
+        devString = devString.replace(r'\d+\) ', '')
         devString = devString.split('\r\n')
         devString = filter(None, devString) #remove empty elements
         return devString
@@ -851,21 +636,10 @@ class QisInterface:
     def get_list_details(self, sock=None):
         if sock == None:
             sock = self.sock
-        scanWait = 2
-        # printText('Scanning for devices and waiting ' + str(scanWait) + ' seconds.')
-        if self.pythonVersion == '3':
-            # devString = self.sendAndReceiveText(sock, '$scan').decode
-            # time.sleep(scanWait)
-            devString = self.sendAndReceiveText(sock, '$list details').decode()
-        else:
-            # devString = self.sendAndReceiveText(sock, '$scan')
-            # time.sleep(scanWait)
-            devString = self.sendAndReceiveText(sock, '$list details')
 
+        devString = self.sendAndReceiveText(sock, '$list details')
         devString = devString.replace('>', '')
         devString = devString.replace(r'\d+\) ', '')
-
-        # printText('"' + devString + '"')
         devString = devString.split('\r\n')
         devString = [x for x in devString if x]  # remove empty elements
         return devString
@@ -904,9 +678,6 @@ class QisInterface:
             logging.warning(e)
             logging.warning("No module found at " + ipAddress)
 
-
-
-
     def GetQisModuleSelection(self, favouriteOnly=True , additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
         tableHeaders =["Modules"]
         ip_address = None
@@ -942,33 +713,19 @@ class QisInterface:
         foundDevices = "1"
         foundDevices2 = "2"  # this is used to check if new modules are being discovered or if all have been found.
         scanWait = 2  # The number of seconds waited between the two scans.
-        if self.pythonVersion == '3':
-            if scan:
-                if ipAddress == None:
-                    devString = self.sendAndReceiveText(self.sock, '$scan').decode
-                else:
-                    devString = self.sendAndReceiveText(self.sock, '$scan TCP::' + ipAddress).decode
-                time.sleep(scanWait)
-                while foundDevices not in foundDevices2:
-                    foundDevices = self.sendAndReceiveText(self.sock, '$list').decode()
-                    time.sleep(scanWait)
-                    foundDevices2 = self.sendAndReceiveText(self.sock, '$list').decode()
-            else:
-                foundDevices = self.sendAndReceiveText(self.sock, '$list').decode()
 
-        else:
-            if scan:
-                if ipAddress == None:
-                    devString = self.sendAndReceiveText(self.sock, '$scan').decode
-                else:
-                    devString = self.sendAndReceiveText(self.sock, '$scan TCP::' + ipAddress).decode
-                time.sleep(scanWait)
-                while foundDevices not in foundDevices2:
-                    foundDevices = self.sendAndReceiveText(self.sock, '$list')
-                    time.sleep(scanWait)
-                    foundDevices2 = self.sendAndReceiveText(self.sock, '$list')
+        if scan:
+            if ipAddress == None:
+                devString = self.sendAndReceiveText(self.sock, '$scan')
             else:
+                devString = self.sendAndReceiveText(self.sock, '$scan TCP::' + ipAddress)
+            time.sleep(scanWait)
+            while foundDevices not in foundDevices2:
                 foundDevices = self.sendAndReceiveText(self.sock, '$list')
+                time.sleep(scanWait)
+                foundDevices2 = self.sendAndReceiveText(self.sock, '$list')
+        else:
+            foundDevices = self.sendAndReceiveText(self.sock, '$list')
 
         if not "no devices found" in foundDevices.lower():
             foundDevices = foundDevices.replace('>', '')
@@ -1018,10 +775,7 @@ class QisInterface:
         if sock == None:
             sock = self.sock
         index = 0 # index of relevant line in split string
-        if self.pythonVersion == '3':
-            streamStatus = self.sendAndReceiveText(sock, 'stream?', device).decode()
-        else:
-            streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
+        streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
         streamStatus = streamStatus.split('\r\n')
         streamStatus[index] = re.sub(r':', '', streamStatus[index]) #remove :
         return streamStatus[index]
@@ -1032,10 +786,7 @@ class QisInterface:
         if sock == None:
             sock = self.sock
         index = 1 # index of relevant line in split string
-        if self.pythonVersion == '3':
-            streamStatus = self.sendAndReceiveText(sock, 'stream?', device).decode()
-        else:
-            streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
+        streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
         streamStatus = streamStatus.split('\r\n')
         streamStatus[index] = re.sub(r'^Stripes Buffered: ', '', streamStatus[index])
         return streamStatus[index]
@@ -1050,10 +801,7 @@ class QisInterface:
             if sock == None:
                 sock = self.sock
             index = 2 # index of relevant line in split string
-            if self.pythonVersion == '3':
-                streamStatus = self.sendAndReceiveText(sock, sentText='stream text header', device=device).decode()
-            else:
-                streamStatus = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
+            streamStatus = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
 
             self.qps_stream_header = streamStatus
 
@@ -1094,10 +842,7 @@ class QisInterface:
             if sock == None:
                 sock = self.sock
             index = 0 # index of relevant line in split string
-            if self.pythonVersion == '3':
-                streamStatus = self.sendAndReceiveText(sock,'stream text header', device).decode()
-            else:
-                streamStatus = self.sendAndReceiveText(sock,'stream text header', device)
+            streamStatus = self.sendAndReceiveText(sock,'stream text header', device)
             streamStatus = streamStatus.split('\r\n')
             if 'Header Not Available' in streamStatus[0]:
                 str = streamStatus[0] + '. Check stream has been ran on device.'
@@ -1124,10 +869,7 @@ class QisInterface:
             if sock == None:
                 sock = self.sock
             index = 1 # index of relevant line in split string STREAM MODE HEADER [?|V1,V2,V3]
-            if self.pythonVersion == '3':
-                streamStatus = self.sendAndReceiveText(sock,'stream text header', device).decode()
-            else:
-                streamStatus = self.sendAndReceiveText(sock,'stream text header', device)
+            streamStatus = self.sendAndReceiveText(sock,'stream text header', device)
             # Check if this is a new XML form header
             if (self.isXmlHeader (streamStatus)):
                # Get the basic averaging rate (V3 header)
@@ -1162,12 +904,8 @@ class QisInterface:
                     str = streamStatus[0] + '. Check stream has been ran on device.'
                     logging.error(str)
                     return str
-                if self.pythonVersion == '3':
-                    outputMode = self.sendAndReceiveText(sock,'Config Output Mode?', device).decode()
-                    powerMode = self.sendAndReceiveText(sock,'stream mode power?', device).decode()
-                else:
-                    outputMode = self.sendAndReceiveText(sock,'Config Output Mode?', device)
-                    powerMode = self.sendAndReceiveText(sock,'stream mode power?', device)
+                outputMode = self.sendAndReceiveText(sock,'Config Output Mode?', device)
+                powerMode = self.sendAndReceiveText(sock,'stream mode power?', device)
                 format = int(re.sub(r'^Format: ', '', streamStatus[index]))
                 b0 = 1              #12V_I
                 b1 = 1 << 1         #12V_V
@@ -1208,10 +946,7 @@ class QisInterface:
         bufferStatus = False
         # Allows the status check to be skipped when emptying the buffer after streaming has stopped (saving time)
         if (skipStatusCheck == False):
-            if self.pythonVersion == '3':
-                streamStatus = self.sendAndReceiveText(sock, 'stream?', device).decode()
-            else:
-                streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
+            streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
             if ('Overrun' in streamStatus) or ('8388608 of 8388608' in streamStatus):
                 bufferStatus = True
         stripes = self.sendAndReceiveText(sock, 'stream text all', device, readUntilCursor=True)
@@ -1219,11 +954,7 @@ class QisInterface:
         if stripes[-1:] != self.cursor:
             return "Error no cursor returned."
         else:
-            if self.pythonVersion == '3':
-                endOfFile = 'eof\r\n>'
-                genEndOfFile = endOfFile.encode()
-            else:
-                genEndOfFile = 'eof\r\n>'
+            genEndOfFile = 'eof\r\n>'
             if stripes[-6:] == genEndOfFile:
                 removeChar = -6
             else:
@@ -1284,8 +1015,6 @@ class QisInterface:
                 finalAverage = splitList[0:2] + [str(round(x / streamAverage)) for x in runningAverage]
                 for counter in xrange(len(finalAverage)-1):
                     finalAverage[counter] = finalAverage[counter] + ' '
-                if self.pythonVersion == '3':
-                    finalAverage = finalAverage.encode
                 for x in finalAverage:
                     f.write(x)
                 f.write('\r\n')
@@ -1370,10 +1099,7 @@ class QisInterface:
                 sock = self.sock
             
             # Get the raw data
-            if self.pythonVersion == '3':
-                headerData = self.sendAndReceiveText(sock, sentText='stream text header', device=device).decode()
-            else:
-                headerData = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
+            headerData = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
 
             # The XML can contain the cursor on the end!  Trap and remove it here TODO: Needs fixed in the command layer above
             if ('\r\n>' in headerData):
@@ -1500,10 +1226,10 @@ class QisInterface:
         folder_name = None
         # Checking if there was a directory passed; and if it's a valid directory
         if not directory:
-            directory = os.path.join(str(Path.home()), "AppData", "Local", "Quarch", "QPS", "Recordings")
+            directory = os.path.join(os.path.expanduser("~"), "AppData", "Local", "Quarch", "QPS", "Recordings")
             logging.debug("No directory specified")
         elif not os.path.isdir(directory):
-            new_dir = os.path.join(str(Path.home()), "AppData", "Local", "Quarch", "QPS", "Recordings")
+            new_dir = os.path.join(str(os.path.expanduser("~"), "AppData", "Local", "Quarch", "QPS", "Recordings"))
             logging.warning(directory+" was not a valid directory, streaming to default location: \n"+new_dir)
             directory = new_dir
         else:
@@ -1826,6 +1552,158 @@ class QisInterface:
             x = x[0]
             x = x.replace("-", " ")
             f.write("Saved: "+x+ "\n")
+
+
+    # when sending commands to module (as opposed to back end)
+    # If read until cursor is set to True (which is default) then keep reading response until a cursor is returned as the last character of result string
+    # After command is sent wait for betweenCommandDelay which defaults to 0 but can be specified to add a delay between commands
+    # The objects connection needs to be opened (connect()) before this is used
+    def sendCmd(self, device='', cmd='$help', sock=None, readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse = True):
+        '''Send command is used to send a command to QIS and as far as I can see it has no difference than sendAndReceiveCmd'''
+        if expectedResponse is True:
+            res = self.sendAndReceiveCmd(device=device, cmd=cmd, sock=sock, readUntilCursor=readUntilCursor, betweenCommandDelay=betweenCommandDelay)
+            #If ends with cursor get rid of it
+            if res[-1:] == self.cursor:
+                res = res[:-3] #remove last three chars - hopefully '\r\n>'
+            return res
+        else :
+            self.sendText(sock, cmd, device)
+            return
+
+    def sendAndReceiveCmd(self, sock=None, cmd='$help', device='', readUntilCursor=True, betweenCommandDelay=0.0):
+        if sock==None:
+            sock = self.sock
+        if not (device == ''):
+            self.deviceDictSetup(device)
+        res =  self.sendAndReceiveText(sock, cmd, device, readUntilCursor)
+        if (betweenCommandDelay > 0):
+            time.sleep(betweenCommandDelay)
+        #If ends with cursor get rid of it
+        if res[-1:] == '>':
+            res = res[:-3] #remove last three chars - hopefully '\r\n>'
+        return cmd + ' : ' + res
+
+    def sendAndReceiveText(self, sock, sentText='$help', device='', readUntilCursor=True):
+        # Send text to QIS
+        # The objects connection needs to be opened (connect()) before this is used
+        # If read until cursor is set to True (which is default) then keep reading response until a cursor is returned as the last character of result string
+
+        # do sendText
+        self.sockSemaphore.acquire()
+        try:
+            #Send Text
+            self.sendText(sock, sentText, device)
+            #Receive Response
+            res = self.receiveText(sock)
+            # Error Check / validate response
+            if len(res) == 0:
+                #logging.error("Empty response from QIS.")
+                raise (Exception("Empty response from QIS. Sent: " +sentText))
+            if res[0] == self.cursor:
+                logging.warning('Only Returned Cursor!!!!!')
+            if 'Create Socket Fail' == res[0]: # If create socked fail (between QIS and tcp/ip module)
+                logging.warning(res[0])
+            if 'Connection Timeout' == res[0]:
+                logging.warning(res[0])
+            # If reading until a cursor comes back then keep reading until a cursor appears or max tries exceeded
+            if readUntilCursor:
+                maxReads = 1000
+                count = 1
+                # check for cursor at end of read and if not there read again
+                while res[-1:] != self.cursor:
+                    res+= self.receiveText(sock) #TODO Confirm this works with multi response CMD Like a $get stats on a large stream with many annos. test with py2 and py3
+                    #res.extend(self.rxBytes(sock))
+                    count += 1
+                    if count >= maxReads:
+                        raise Exception(' Count = Error: max reads exceeded before cursor returned')
+            return res
+
+        except Exception as e:
+            #something went wrong during send qis cmd
+            logging.error(e)
+            raise e
+        finally:
+            self.sockSemaphore.release()
+
+
+    def receiveText(self, sock):
+        if self.pythonVersion == '3':
+            res = bytearray()
+            res.extend(self.rxBytes(sock))
+            res = res.decode()
+        else:
+            res = self.rxBytes(sock)
+        return res
+
+    def sendText(self, sock, message='$help', device=''):
+    # Send text to QIS, don't read it's response
+    # The objects connection needs to be opened (connect()) before this is used
+        if device != '':
+            specialTimeout =  '%500000'
+            message = device + specialTimeout +  ' ' + message
+            #printText('Sending: "' + message + '" ' + self.host + ':' + str(self.port))
+
+        if self.pythonVersion == 2:
+            sock.sendall(message + '\r\n')
+        else:
+            convM = message + '\r\n'
+            sock.sendall(convM.encode('utf-8'))
+        return 'Sent:' + message
+
+    def rxBytes(self,sock):
+        #sock.setblocking(0) #make socket non-blocking
+        #printText('rxBytes')
+        maxExceptions=10
+        exceptions=0
+        maxReadRepeats=50
+        readRepeats=0
+        timeout_in_seconds = 10
+        #Keep trying to read bytes until we get some, unless number of read repeads or exceptions is exceeded
+        while True:
+            try:
+                #select.select returns a list of waitable objects which are ready. On windows it has to be sockets.
+                #The first arguement is a list of objects to wait for reading, second writing, third 'exceptional condition'
+                #We only use the read list and our socket to check if it is readable. if no timeout is specified then it blocks until it becomes readable.
+                ready = select.select([sock], [], [], timeout_in_seconds)
+                #time.sleep(0.1)
+                #ready = [1,2]
+                if ready[0]:
+                    ret = sock.recv(self.maxRxBytes)
+                    #time.sleep(0.1)
+                    return ret
+                else:
+                    #printText('rxBytes - readRepeats + 1')
+
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.connect((self.host, self.port))
+                    sock.settimeout(5)
+
+                    try:
+                        welcomeString = self.sock.recv(self.maxRxBytes).rstrip()
+                        welcomeString = 'Connected@' + self.host + ':' + str(self.port) + ' ' + '\n    ' + welcomeString
+                        printText('New Welcome:' + welcomeString)
+                    except Exception as e:
+                        logging.error('tried and failed to get new welcome')
+                        raise e
+
+                    readRepeats=readRepeats+1
+                    time.sleep(0.5)
+
+            except Exception as e:
+                #printText('rxBytes - exceptions + 1')
+                exceptions=exceptions+1
+                time.sleep(0.5)
+                raise e
+
+            #If read repeats has been exceeded we failed to get any data on this read.
+            #   !!! This is likely to break whatever called us !!!
+            if readRepeats >= maxReadRepeats:
+                logging.error('Max read repeats exceeded - returning.')
+                return 'No data received from QIS'
+            #If number of exceptions exceeded then give up by exiting
+            if exceptions >= maxExceptions:
+                logging.error('Max exceptions exceeded - exiting') #exceptions are probably 10035 non-blocking socket could not complete immediatley
+                exit()
 
 
 def strToBb(string_in, add_length=True):

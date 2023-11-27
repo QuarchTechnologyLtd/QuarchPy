@@ -1,4 +1,4 @@
-	#!/usr/bin/python
+#!/usr/bin/python
 """
 Implements the standard TestCenter API for Python, allowing a Python script to execute all TestCenter functions.
 This is Quarch internal use only.  Each function uses the stdin/stdout to communicate with the TestCenter process

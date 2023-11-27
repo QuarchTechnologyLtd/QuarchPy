@@ -229,7 +229,8 @@ class QisInterface:
                 formatHeader = self.streamHeaderFormat(device=module, sock=self.streamSock)
                 formatHeader = formatHeader.replace(", ", separator)
                 f.write(formatHeader + '\n')
-                inMemoryData.write(formatHeader + '\n')
+                if inMemoryData is not None:
+                    inMemoryData.write(formatHeader + '\n')
 
         numStripesPerRead = 4096
         maxFileExceeded = False
@@ -310,7 +311,8 @@ class QisInterface:
                                         # if the last entry is still within the required stream length, write the whole lot
                                         if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)): # < rather than <= because we start at 0
                                             f.write(newStripes[:removeChar])
-                                            inMemoryData.write(newStripes[:removeChar])
+                                            if inMemoryData is not None:
+                                                inMemoryData.write(newStripes[:removeChar])
 
                                         # else write each line individually until we have reached the desired endpoint
                                         else:
@@ -318,13 +320,15 @@ class QisInterface:
                                                 lastTime = thisLine.split(separator)[0]
                                                 if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)):
                                                     f.write(thisLine + b'\r' + b'\n')  # Put the CR back on the end
-                                                    inMemoryData.write(thisLine + b'\r' + b'\n')
+                                                    if inMemoryData is not None:
+                                                        inMemoryData.write(thisLine + b'\r' + b'\n')
                                                 else:
                                                     streamComplete = True
                                                     break
                                     else:
                                         f.write(newStripes[:removeChar])
-                                        inMemoryData.write(newStripes[:removeChar])
+                                        if inMemoryData is not None:
+                                            inMemoryData.write(newStripes[:removeChar])
 
                             else:
                                 maxFileExceeded = True
@@ -332,8 +336,9 @@ class QisInterface:
                                 maxFileStatus = self.streamBufferStatus(device=module, sock=self.streamSock)
                                 f.write('Warning: Max file size exceeded before end of stream.\n')
                                 f.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
-                                inMemoryData.write('Warning: Max file size exceeded before end of stream.\n')
-                                inMemoryData.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
+                                if inMemoryData is not None:
+                                    inMemoryData.write('Warning: Max file size exceeded before end of stream.\n')
+                                    inMemoryData.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
                                 self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
                                 break
                         else:
@@ -383,7 +388,8 @@ class QisInterface:
                                     else:
                                         newStripes = newStripes.replace(' ',separator)
                                         f.write(newStripes[:removeChar])
-                                        inMemoryData.write(newStripes[:removeChar])
+                                        if inMemoryData is not None:
+                                            inMemoryData.write(newStripes[:removeChar])
                             else:
                                 if not maxFileExceeded:
                                     maxFileStatus = self.streamBufferStatus(device=module,  sock=self.streamSock)
@@ -398,8 +404,9 @@ class QisInterface:
                         if maxFileExceeded:
                             f.write(b'Warning: Max file size exceeded before end of stream.\n')
                             f.write(b'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
-                            inMemoryData.write(b'Warning: Max file size exceeded before end of stream.\n')
-                            inMemoryData.write(b'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
+                            if inMemoryData is not None:
+                                inMemoryData.write(b'Warning: Max file size exceeded before end of stream.\n')
+                                inMemoryData.write(b'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
                             logging.warning('Max file size exceeded. Some data has not been saved to file: ' + maxFileStatus + '.')
 
                     #printText('Stripes in buffer now: ' + self.streamBufferStatus(device=module, sock=self.streamSock))

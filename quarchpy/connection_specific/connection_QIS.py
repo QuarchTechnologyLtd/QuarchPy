@@ -269,7 +269,7 @@ class QisInterface:
         isRun = True
         while isRun:
             try:
-                with open(fileName, 'ab') as f:
+                with open(fileName, 'a') as f: #changed from ab to a as all data should be in string format now regardless of py2 or py3
                     # Until the event threadRunEvent is set externally to this thread,
                     # loop and read from the stream
                     i = self.deviceMulti(module)
@@ -326,6 +326,7 @@ class QisInterface:
                                                     streamComplete = True
                                                     break
                                     else:
+                                        #print("TEMP DEBUG: "+newStripes[:removeChar])
                                         f.write(newStripes[:removeChar])
                                         if inMemoryData is not None:
                                             inMemoryData.write(newStripes[:removeChar])
@@ -590,7 +591,7 @@ class QisInterface:
                 continue
             with open(os.path.join(self.qps_record_dir_path, "data000",
                                    "data000_00" + index - 1 + "_000000000"),
-                      "ab") as file1:
+                      "a") as file1:#changed from ab to a as all data should be in string format now regardless of py2 or py3
 
                 x = struct.pack(">d", int(item))
                 # logging.debug(item, x)
@@ -613,7 +614,7 @@ class QisInterface:
 
                     with open(os.path.join(self.qps_record_dir_path, "data000",
                                            "data000_"+x+"_000000000"),
-                              "ab") as file1:
+                              "a") as file1:#changed from ab to a as all data should be in string format now regardless of py2 or py3
                         x = struct.pack(">d", int(stripe[counter]))
                         # logging.debug(item, x)
                         file1.write(x)
@@ -621,7 +622,7 @@ class QisInterface:
                     # Write all in group 1 to digital
                     with open(os.path.join(self.qps_record_dir_path, "data101",
                                            "data101_"+x+"_000000000"),
-                              "ab") as file1:
+                              "a") as file1:#changed from ab to a as all data should be in string format now regardless of py2 or py3
                         x = struct.pack(">d", int(stripe[counter]))
                         # logging.debug(item, x)
                         file1.write(x)
@@ -1605,7 +1606,16 @@ class QisInterface:
             # Error Check / validate response
             if len(res) == 0:
                 #logging.error("Empty response from QIS.")
-                raise (Exception("Empty response from QIS. Sent: " +sentText))
+                self.sendText(sock, "stream?", device)
+                res = self.receiveText(sock)
+                if len(res) != 0:
+                    self.sendText(sock, sentText, device)
+                    res = self.receiveText(sock)
+                    if len(res) == 0:
+                        raise (Exception("Empty response from QIS. Sent: " + sentText))
+                else:
+                    raise (Exception("Empty response from QIS. Sent: " + sentText))
+
             if res[0] == self.cursor:
                 logging.warning('Only Returned Cursor!!!!!')
             if 'Create Socket Fail' == res[0]: # If create socked fail (between QIS and tcp/ip module)
@@ -1646,8 +1656,9 @@ class QisInterface:
     # Send text to QIS, don't read it's response
     # The objects connection needs to be opened (connect()) before this is used
         if device != '':
-            specialTimeout =  '%500000'
-            message = device + specialTimeout +  ' ' + message
+            #specialTimeout =  '%500000'
+            #message = device +  ' ' + specialTimeout +  ' ' + message
+            message = device + ' ' + message
             #printText('Sending: "' + message + '" ' + self.host + ':' + str(self.port))
 
         if self.pythonVersion == 2:

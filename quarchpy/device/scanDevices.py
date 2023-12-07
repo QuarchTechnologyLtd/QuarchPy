@@ -508,8 +508,8 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
                         foundDevices = mergeDict(foundDevices, scanDevices)
                         myArrayControler.closeConnection()
                     except Exception as e:
-                        logging.error(e, exc_info=True)
-                        logging.warning("Cannot get serial number. Quarch device may be in use by another program.")
+                        logging.debug(e, exc_info=True)
+                        logging.debug("Cannot get serial number. Quarch device may be in use by another program.")
                         foundDevices[k] = "DEVICE IN USE"
 
     if (favouriteOnly):

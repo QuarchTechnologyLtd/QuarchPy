@@ -319,9 +319,9 @@ class QisInterface:
                                             for thisLine in newStripes.splitlines()[:-2]:
                                                 lastTime = thisLine.split(separator)[0]
                                                 if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)):
-                                                    f.write(thisLine + b'\r' + b'\n')  # Put the CR back on the end
+                                                    f.write(thisLine + '\r\n')  # Put the CR back on the end
                                                     if inMemoryData is not None:
-                                                        inMemoryData.write(thisLine + b'\r' + b'\n')
+                                                        inMemoryData.write(thisLine + '\r\n')
                                                 else:
                                                     streamComplete = True
                                                     break

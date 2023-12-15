@@ -80,21 +80,21 @@ def startLocalQps(keepQisRunning=False, args=[]):
     os.chdir(os.path.dirname(QpsPath))
 
     command = "java -jar \"" + QpsPath + "\"" + " " + str(args)
-    #currentOs = platform.system() #cmd used to be platform specific but is nolonger
-    if sys.version_info[0] < 3:
-        os.popen2(command + " 2>&1")
+    if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
+        os.system(command)
     else:
-        sp=os.popen(command + " 2>&1")
-
-
-    while not isQpsRunning():
-        retval=str(sp.read())
-        if str(retval)!="":
-            print(retval)
-            if "fail" or "error" in retval.lower():
-                raise Exception(retval)
-        time.sleep(0.3)
-        pass
+        if sys.version_info[0] < 3:
+            os.popen2(command + " 2>&1")
+        else:
+            sp=os.popen(command + " 2>&1")
+        while not isQpsRunning():
+            retval=str(sp.read())
+            if str(retval)!="":
+                print(retval)
+                if "fail" or "error" in retval.lower():
+                    raise Exception(retval)
+            time.sleep(0.3)
+            pass
 
     os.chdir(current_direc)
 

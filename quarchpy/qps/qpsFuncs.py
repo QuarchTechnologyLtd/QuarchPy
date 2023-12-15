@@ -217,5 +217,3 @@ def toQpsTimeStamp(timestamp):
         except:
             newTime = time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S:%f").timetuple())
             return int(newTime * 1000)
-
-startLocalQps()

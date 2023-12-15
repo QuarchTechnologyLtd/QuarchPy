@@ -76,34 +76,23 @@ def startLocalQps(keepQisRunning=False, args=[]):
     QpsPath = os.path.dirname(os.path.abspath(__file__))
     QpsPath, junk = os.path.split(QpsPath)
     QpsPath = os.path.join(QpsPath, "connection_specific", "QPS", "qps.jar")
-
     current_direc = os.getcwd()
-
     os.chdir(os.path.dirname(QpsPath))
 
-    command = "-jar \"" + QpsPath + "\""
+    command = "java -jar \"" + QpsPath + "\"" + " " + str(args)
+    #currentOs = platform.system() #cmd used to be platform specific but is nolonger
+    if sys.version_info[0] < 3:
+        os.popen2(command + " 2>&1")
+    else:
+        sp=os.popen(command + " 2>&1")
 
-    currentOs = platform.system()
-
-    if currentOs in "Windows":
-        if "-logging=ON" in str(args):
-            command = "java " + command + " " + str(args)
-        else:
-            command = "start /high /b javaw -Djava.awt.headless=true " + command + " " + str(args)
-        # command = command + " -ccs=HIDE"  # note: multiple -ccs options ignored
-        os.system(command)
-    elif currentOs in "Linux":
-        command = command + "-ccs=HIDE"
-        if sys.version_info[0] < 3:
-            os.popen2("java " + command + " 2>&1")
-        else:
-            os.popen("java " + command + " 2>&1")
-    else:  # default to Windows
-        command = "start /high /b javaw -Djava.awt.headless=true " + command + " " + str(args)
-        command = command + " -ccs=HIDE"
-        os.system(command)
 
     while not isQpsRunning():
+        retval=str(sp.read())
+        if str(retval)!="":
+            print(retval)
+            if "fail" or "error" in retval.lower():
+                raise Exception(retval)
         time.sleep(0.3)
         pass
 
@@ -228,3 +217,5 @@ def toQpsTimeStamp(timestamp):
         except:
             newTime = time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S:%f").timetuple())
             return int(newTime * 1000)
+
+startLocalQps()

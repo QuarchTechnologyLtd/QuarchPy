@@ -1,3 +1,5 @@
+import socket
+
 try:
     import httplib as httplib
 except ImportError:
@@ -13,20 +15,28 @@ class ReSTConn:
     def close(self):
         return True
 
-    def sendCommand(self, Command, expectedResponse = True):
+    def sendCommand(self, Command, expectedResponse = True, max_retries=1):
         Command = "/" + Command.replace(" ", "%20")
-        self.Connection.request("GET", Command)
-        if expectedResponse == True:
-            R2 = self.Connection.getresponse()
-            if R2.status == 200:
-                Result = R2.read()
-                Result = Result.decode()
-                Result = Result.strip('> \t\n\r')
-                self.Connection.close()
-                return Result
-            else:
-                print ("FAIL - Please power cycle the module!")
-                self.Connection.close()
-                return "FAIL: ", R1.status, R1.reason
-        else:
-            return None
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.Connection.request("GET", Command)
+                if expectedResponse == True:
+                    R2 = self.Connection.getresponse()
+                    if R2.status == 200:
+                        Result = R2.read()
+                        Result = Result.decode()
+                        Result = Result.strip('> \t\n\r')
+                        self.Connection.close()
+                        return Result
+                    else:
+                        print ("FAIL - Please power cycle the module!")
+                        self.Connection.close()
+                        return "FAIL: ", R1.status, R1.reason
+                else:
+                    return None
+            except socket.timeout as e:
+                if attempt < max_retries:
+                    print("Socket timed out, retrying command...")
+                else:
+                    print("Maximum number of retries reached. Exiting.")
+                    raise e

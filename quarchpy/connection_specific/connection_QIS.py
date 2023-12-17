@@ -269,7 +269,7 @@ class QisInterface:
         isRun = True
         while isRun:
             try:
-                with open(fileName, 'a') as f: #changed from ab to a as all data should be in string format now regardless of py2 or py3
+                with open(fileName, 'a', newline='') as f: #changed from ab to a as all data should be in string format now regardless of py2 or py3
                     # Until the event threadRunEvent is set externally to this thread,
                     # loop and read from the stream
                     i = self.deviceMulti(module)
@@ -310,6 +310,7 @@ class QisInterface:
 
                                         # if the last entry is still within the required stream length, write the whole lot
                                         if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)): # < rather than <= because we start at 0
+                                            newStripes = newStripes.replace(' ', separator)
                                             f.write(newStripes[:removeChar])
                                             if inMemoryData is not None:
                                                 inMemoryData.write(newStripes[:removeChar])
@@ -327,6 +328,8 @@ class QisInterface:
                                                     break
                                     else:
                                         #print("TEMP DEBUG: "+newStripes[:removeChar])
+                                        newStripes = newStripes.replace(' ', separator)
+                                        print("TEMP DEBUG2: " + newStripes[:removeChar])
                                         f.write(newStripes[:removeChar])
                                         if inMemoryData is not None:
                                             inMemoryData.write(newStripes[:removeChar])

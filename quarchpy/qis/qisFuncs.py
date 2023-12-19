@@ -53,17 +53,17 @@ def startLocalQis(terminal=False, headless=False, args=None):
         List of additional parameters to be supplied to QIS on the command line
 
     """
-
+    # Gathering Vars needed to build the command
     QisPath =os.path.dirname(os.path.abspath(__file__))
     QisPath,junk = os.path.split (QisPath)
     QisPath = os.path.join(QisPath, "connection_specific","QPS", "qis", "qis.jar")
-    
-    # Process command prefix (needed for headless mode)
+
+    # Building the command
+    # Process command prefix. Needed for headless mode, to support OSs with no system tray.
     if (headless == True or (args is not None and "-headless" in args)):
         cmdPrefix = " -Djava.awt.headless=true "
     else:
-        cmdPrefix = ""
-        
+        cmdPrefix = "java"
     # Process command suffix (additional standard options for QIS).
     if (terminal == True):
         cmdSuffix = " -terminal"
@@ -77,52 +77,35 @@ def startLocalQis(terminal=False, headless=False, args=None):
             # Headless option is processed seperately as a java command
             if (option != "-headless"):
                 cmdSuffix = cmdSuffix + " " + option
-    
     # Find file path and change directory to Qis Location
     current_direc = os.getcwd() 
     os.chdir(os.path.dirname(QisPath))
-    command = cmdPrefix + "-jar qis.jar"+cmdSuffix
-    
-    #different start for different OS 
-    currentOs = platform.system()
-    if (currentOs == "Windows"): 
-        if(cmdSuffix == " -logging=ON"):
-            command = "java " + command
-        else: 
-            command = "start /high /b javaw " + command      
+    command = cmdPrefix+" -jar qis.jar"+cmdSuffix
+
+    # Use the command and check QIS has launched
+    if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to view logging.
         os.system(command)
-    elif (currentOs == "Linux"):
+    else:
         if sys.version_info[0] < 3:
-            os.popen2("java " + command)
+            sp=os.popen2(command + " 2>&1")
         else:
-            os.popen("java " + command)
-    else: 
-        command = "start /high /b javaw " + command 
-        os.system(command)
+            sp=os.popen(command + " 2>&1")
+        startTime = time.time() #Checks for Popen launch only
+        timeout = 10
+        while not isQisRunning():
+            retval=str(sp.read())
+            if str(retval)!="":
+                print(retval)
+                if "fail" or "error" in retval.lower():
+                    raise Exception(retval)
+                if time.time() - startTime > timeout:
+                    raise TimeoutError("QIS failed to launch within timelimit of " + str(timeout) + " sec.")
+            time.sleep(0.2)
+            pass
 
-    #Qis needs a small time for startup
-    time.sleep(2)
-
-    #see if new instance of qis has started
-    startTime = time.time()
-    currentTime = time.time()
-    timeout = 10
-    while not isQisRunning():
-        time.sleep(0.1)
-        currentTime = time.time()
-        if currentTime - startTime > timeout:
-            raise TimeoutError("QIS failed to launch within timelimit of " +str(timeout) +" sec." )
-            break
-        pass
-    
     #change directory back to start directory 
-    os.chdir(current_direc) 
+    os.chdir(current_direc)
 
-    #This prevents QIS being lanuched more that once by the same instance of quarchpy
-    # try:
-    #     startLocalQis.func_code = (lambda:None).func_code
-    # except:
-    #     startLocalQis.__code__ = (lambda:None).__code__
 
 def check_remote_qis(host='127.0.0.1', port=9722, timeout=0):
     """

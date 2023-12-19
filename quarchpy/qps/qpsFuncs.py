@@ -84,16 +84,20 @@ def startLocalQps(keepQisRunning=False, args=[]):
         os.system(command)
     else:
         if sys.version_info[0] < 3:
-            os.popen2(command + " 2>&1")
+            sp=os.popen2(command + " 2>&1")
         else:
             sp=os.popen(command + " 2>&1")
+        startTime = time.time() #Checks for Popen launch only
+        timeout = 10
         while not isQpsRunning():
             retval=str(sp.read())
             if str(retval)!="":
                 print(retval)
                 if "fail" or "error" in retval.lower():
                     raise Exception(retval)
-            time.sleep(0.3)
+            time.sleep(0.2)
+            if time.time() - startTime > timeout:
+                raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
             pass
 
     os.chdir(current_direc)
@@ -189,7 +193,7 @@ QPS requires time in mS with no decimal point, so this is converted here
 
 def toQpsTimeStamp(timestamp):
     """
-    DEPRICATED - QPS expects time passed as a sring and error hadling is done in QPS.
+    DEPRECATED - QPS expects time passed as a string and error handling is done in QPS.
     Returns the parameter passed as a valid qps timestamp
     Assumes
 

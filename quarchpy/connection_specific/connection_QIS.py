@@ -327,9 +327,7 @@ class QisInterface:
                                                     streamComplete = True
                                                     break
                                     else:
-                                        #print("TEMP DEBUG: "+newStripes[:removeChar])
                                         newStripes = newStripes.replace(' ', separator)
-                                        print("TEMP DEBUG2: " + newStripes[:removeChar])
                                         f.write(newStripes[:removeChar])
                                         if inMemoryData is not None:
                                             inMemoryData.write(newStripes[:removeChar])

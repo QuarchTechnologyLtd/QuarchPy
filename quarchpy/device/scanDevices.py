@@ -23,8 +23,6 @@ from quarchpy.connection_specific import connection_ReST
 from quarchpy.connection_specific.connection_mDNS import MyListener
 
 from zeroconf import ServiceBrowser, Zeroconf
-
-# TODO: bodge bodge bodge
 from quarchpy.utilities import TestCenter
 
 

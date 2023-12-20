@@ -13,6 +13,10 @@ Quarchpy
 Change Log
 ----------
 
+2.1.14
+------
+- minor bug fixes and logging improvements.
+
 2.1.13
 ------
 - New QPS v1.36

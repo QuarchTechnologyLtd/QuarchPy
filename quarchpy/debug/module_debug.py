@@ -161,7 +161,7 @@ def main(filepath=None):
         logText(source.name, "end")
         for key, value in source.parameters.items():
             sourcename = source.name[7:]
-            if key == "Type" and value == "Timed":
+            if key == "Type" and value == "TIMED":
                 logText(", Delay: " + my_device.sendCommand("sour:" + sourcename + ":delay?"), "end")
             if key == "SourceEnable_Present" and value == "true":
                 logText(", Source: " + my_device.sendCommand("sour:" + sourcename + ":state?"), "end")

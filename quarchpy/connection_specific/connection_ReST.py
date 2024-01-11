@@ -1,4 +1,4 @@
-import socket
+import socket, logging
 
 try:
     import httplib as httplib
@@ -29,14 +29,14 @@ class ReSTConn:
                         self.Connection.close()
                         return Result
                     else:
-                        print ("FAIL - Please power cycle the module!")
+                        logging.error("FAIL - Please power cycle the module!")
                         self.Connection.close()
                         return "FAIL: ", R1.status, R1.reason
                 else:
                     return None
             except socket.timeout as e:
                 if attempt < max_retries:
-                    print("Socket timed out, retrying command...")
+                    logging.warning("Socket timed out, retrying command...")
                 else:
-                    print("Maximum number of retries reached. Exiting.")
+                    logging.error("Maximum number of retries reached on module at: "+self.ConnTarget+". Exiting.")
                     raise e

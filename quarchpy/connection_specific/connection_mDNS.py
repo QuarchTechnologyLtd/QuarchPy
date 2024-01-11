@@ -9,7 +9,6 @@ class MyListener:
         return None
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        print("hello")
         info = zc.get_service_info(type_, name)
         if "Quarch:" in str(info):
             decoded_properties = {key.decode('utf-8'): value.decode('utf-8') for key, value in info.properties.items()}

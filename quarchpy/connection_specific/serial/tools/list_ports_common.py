@@ -103,7 +103,4 @@ def list_links(devices):
             links.append(device)
     return links
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# test
-if __name__ == '__main__':
-    print(ListPortInfo('dummy'))
+

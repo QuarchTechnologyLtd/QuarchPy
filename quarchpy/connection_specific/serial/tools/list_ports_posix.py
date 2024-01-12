@@ -110,8 +110,3 @@ also add the naming scheme of the serial ports and with a bit luck you can get
 this module running...
 """.format(sys.platform, os.name, serial.VERSION))
     raise ImportError("Sorry: no implementation for your platform ('{}') available".format(os.name))
-
-# test
-if __name__ == '__main__':
-    for port, desc, hwid in sorted(comports()):
-        print("{}: {} [{}]".format(port, desc, hwid))

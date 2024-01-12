@@ -16,12 +16,12 @@ from quarchpy.device import *
 from quarchpy.user_interface import*
 from quarchpy._version import __version__ as quarchpyVersion
 def main():
-    print(quarchpyVersion)
+    printText(quarchpyVersion)
     moduleStr = userSelectDevice(nice=True, additionalOptions=["Rescan","All Conn Types", "Specify IP Address", "Quit"])
     #moduleStr = "TCP:1999-05-005"
     if moduleStr == "quit":
         return 0
-    print("Selected module is: " + moduleStr)
+    printText("Selected module is: " + moduleStr)
     # Create a device using the module connection string
     #moduleStr = "REST:1995-05-005"
     myDevice = getQuarchDevice(moduleStr)
@@ -31,7 +31,7 @@ def main():
         #Dollar commands are to be handled by the terminal
         if user_input.startswith("$"):
             if "$shutdown" in user_input.lower().replace(" ",""):
-                print("Have a nice day!")
+                printText("Have a nice day!")
                 break
             elif "$close connection" in user_input.lower():
                 myDevice.closeConnection()
@@ -39,7 +39,7 @@ def main():
             pass
         #All other commands are passed to the module
         else:
-            print(myDevice.sendCommand(user_input))
+            printText(myDevice.sendCommand(user_input))
 
 
 

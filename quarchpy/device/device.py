@@ -10,9 +10,9 @@ if sys.version_info.major == 2:
     try:
         import socket
         timeout_exception = socket.timeout
-    except AttributeError:
+    except AttributeError as e:
         timeout_exception = None
-        print("Socket timeout is not available in this Python version.")
+        logging.error("Socket timeout is not available in this Python version. "+str(e))
 else:
     # Python 3: Use built-in TimeoutError
     timeout_exception = TimeoutError

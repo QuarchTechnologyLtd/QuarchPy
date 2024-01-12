@@ -279,8 +279,3 @@ class Serial(serial.Serial):
         self.formatter.control('CD', 'active' if level else 'inactive')
         return level
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-if __name__ == '__main__':
-    ser = Serial(None)
-    ser.port = 'spy:///dev/ttyS0'
-    print(ser)

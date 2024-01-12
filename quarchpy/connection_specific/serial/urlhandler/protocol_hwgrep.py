@@ -82,8 +82,3 @@ class Serial(serial.Serial):
         else:
             raise serial.SerialException('no ports found matching regexp {!r}'.format(url))
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-if __name__ == '__main__':
-    s = Serial(None)
-    s.port = 'hwgrep://ttyS0'
-    print(s)

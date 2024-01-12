@@ -1,6 +1,7 @@
 from quarchpy.device import quarchDevice
 from quarchpy.qps import toQpsTimeStamp
 from quarchpy.utilities.Version import Version
+from quarchpy.user_interface.user_interface import requestDialog
 import os, time, datetime, sys, logging
 
 if sys.version_info[0] < 3:
@@ -66,12 +67,7 @@ class quarchStream:
         ''' handles failed starting of stream that requires input from user to fix.'''
         while "fail:" in response.lower():
             if "Fail: Directory already exists" in response:
-                print(response)
-                print("Please enter a new file name:")
-                if sys.version_info.major == 3:
-                    newDir = input()
-                else:
-                    newDir = raw_input()
+                newDir = requestDialog(message=response+"  Please enter a new file name:")
                 response = self.startQPSStream(newDir)
             else:  # If its a failure we don't know how to handle.
                 raise Exception(response)

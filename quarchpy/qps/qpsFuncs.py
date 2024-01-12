@@ -90,11 +90,6 @@ def startLocalQps(keepQisRunning=False, args=[]):
         startTime = time.time() #Checks for Popen launch only
         timeout = 10
         while not isQpsRunning():
-            retval=str(sp.read())
-            if str(retval)!="":
-                print(retval)
-                if "fail" or "error" in retval.lower():
-                    raise Exception(retval)
             time.sleep(0.2)
             if time.time() - startTime > timeout:
                 raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")

@@ -297,9 +297,3 @@ def iterate_comports():
 def comports(include_links=False):
     """Return a list of info objects about serial ports"""
     return list(iterate_comports())
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# test
-if __name__ == '__main__':
-    for port, desc, hwid in sorted(comports()):
-        print("{}: {} [{}]".format(port, desc, hwid))

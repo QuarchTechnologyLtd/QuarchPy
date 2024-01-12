@@ -253,8 +253,3 @@ def comports(include_links=False):
                 info.apply_usb_info()
             ports.append(info)
     return ports
-
-# test
-if __name__ == '__main__':
-    for port, desc, hwid in sorted(comports()):
-        print("{}: {} [{}]".format(port, desc, hwid))

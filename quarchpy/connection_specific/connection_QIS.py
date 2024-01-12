@@ -193,8 +193,7 @@ class QisInterface:
         #Start module streaming and then read stream data
         if inMemoryData is not None:
             if not isinstance(inMemoryData, StringIO):
-                print("Error! The parameter 'inMemoryData' is NOT of type StringIO")
-                exit()
+                raise Exception ("Error! The parameter 'inMemoryData' is NOT of type StringIO")
 
         stripes = ['Empty Header']
         #Send stream command so module starts streaming data into the backends buffer
@@ -512,9 +511,6 @@ class QisInterface:
                         isEmpty = False
                     if isEmpty == False:
                         # Writes in file if not too big else stops streaming
-                        # print(newStripes)
-                        print("decoded stripe : " + newStripes[:removeChar])
-
                         # Writing multiple stripes
                         if "\r\n" in y:
                             y = y.split("\r\n")

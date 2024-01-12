@@ -15,8 +15,6 @@ class MyListener:
             qtl_num = "QTL" + decoded_properties['86'] if '86' in decoded_properties else None
             for key, value in self.found_devices:
                 if value == qtl_num:
-                    print("item deleted")
-                    print(self.found_devices)
                     del self.found_devices[key]
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:

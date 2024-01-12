@@ -4,7 +4,8 @@ Contains general functions for starting and stopping QIS processes
 
 import os, sys 
 import time, platform 
-from quarchpy.connection_specific.connection_QIS import QisInterface 
+from quarchpy.connection_specific.connection_QIS import QisInterface
+from quarchpy.user_interface.user_interface import printText
 import subprocess
 import logging
 
@@ -61,7 +62,7 @@ def startLocalQis(terminal=False, headless=False, args=None):
     # Building the command
     # Process command prefix. Needed for headless mode, to support OSs with no system tray.
     if (headless == True or (args is not None and "-headless" in args)):
-        cmdPrefix = " -Djava.awt.headless=true "
+        cmdPrefix = "java -Djava.awt.headless=true"
     else:
         cmdPrefix = "java"
     # Process command suffix (additional standard options for QIS).
@@ -95,7 +96,6 @@ def startLocalQis(terminal=False, headless=False, args=None):
         while not isQisRunning():
             retval=str(sp.read())
             if str(retval)!="":
-                print(retval)
                 if "fail" or "error" in retval.lower():
                     raise Exception(retval)
                 if time.time() - startTime > timeout:
@@ -184,19 +184,19 @@ def GetQisModuleSelection (QisConnection):
     devList = [ x for x in devList if "rest" not in x ]
 
     # Print the devices, so the user can choose one to connect to
-    print ("\n ########## STEP 1 - Select a Quarch Module. ########## \n")
-    print (' --------------------------------------------')
-    print (' |  {:^5}  |  {:^30}|'.format("INDEX", "MODULE"))
-    print (' --------------------------------------------')
+    printText ("\n ########## STEP 1 - Select a Quarch Module. ########## \n")
+    printText (' --------------------------------------------')
+    printText (' |  {:^5}  |  {:^30}|'.format("INDEX", "MODULE"))
+    printText (' --------------------------------------------')
         
     try:
         for idx in xrange(len(devList)):
-            print (' |  {:^5}  |  {:^30}|'.format(str(idx+1), devList[idx]))
-            print(' --------------------------------------------')
+            printText (' |  {:^5}  |  {:^30}|'.format(str(idx+1), devList[idx]))
+            printText(' --------------------------------------------')
     except:
         for idx in range(len(devList)):
-            print (' |  {:^5}  |  {:^30}|'.format(str(idx+1), devList[idx]))
-            print(' --------------------------------------------')
+            printText (' |  {:^5}  |  {:^30}|'.format(str(idx+1), devList[idx]))
+            printText(' --------------------------------------------')
 
     # Get the user to select the device to control
     try:

@@ -98,9 +98,3 @@ def comports(include_links=False):
     return [info
             for info in [SysFS(d) for d in devices]
             if info.subsystem != "platform"]    # hide non-present internal serial ports
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# test
-if __name__ == '__main__':
-    for port, desc, hwid in sorted(comports()):
-        print("{}: {} [{}]".format(port, desc, hwid))

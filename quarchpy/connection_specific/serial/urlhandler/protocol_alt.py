@@ -49,7 +49,3 @@ def serial_class_for_url(url):
         raise ValueError('class {!r} is not an instance of Serial'.format(class_name))
     return (''.join([parts.netloc, parts.path]), cls)
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-if __name__ == '__main__':
-    s = serial.serial_for_url('alt:///dev/ttyS0?class=PosixPollSerial')
-    print(s)

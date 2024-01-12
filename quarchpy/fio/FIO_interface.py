@@ -232,8 +232,9 @@ def return_data(output_file, p, fioCallbacks, myStream, user_data, arguments):
                 #pass specific data
                 readDataValue = jsonobject['jobs'][0]['read']['iops']
                 writeDataValue = jsonobject['jobs'][0]['write']['iops']
+                blockSize=jsonobject['global options']['bs']
                 #converted to ditionary - easy script use
-                dataValues = {"read_iops" : readDataValue, "write_iops" : writeDataValue}
+                dataValues = {"read_iops" : readDataValue, "write_iops" : writeDataValue, "block_size":blockSize}
                 jobEndTime = str(jsonobject['timestamp_ms'])
                 fioCallbacks["TEST_RESULT"](myStream, jobEndTime, dataValues)
 

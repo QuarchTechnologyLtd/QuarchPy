@@ -88,19 +88,27 @@ def startLocalQis(terminal=False, headless=False, args=None):
         os.system(command)
     else:
         if sys.version_info[0] < 3:
-            sp=os.popen2(command + " 2>&1")
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         else:
-            sp=os.popen(command + " 2>&1")
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+
         startTime = time.time() #Checks for Popen launch only
         timeout = 10
+        last_error = ""
+        last_out = ""
         while not isQisRunning():
-            retval=str(sp.read())
-            if str(retval)!="":
-                if "fail" or "error" in retval.lower():
-                    raise Exception(retval)
-                if time.time() - startTime > timeout:
-                    raise TimeoutError("QIS failed to launch within timelimit of " + str(timeout) + " sec.")
             time.sleep(0.2)
+            stdout, stderr = process.communicate()
+            if stderr is not None and stderr != last_error:
+                logging.error(str(stderr))
+                last_error = stderr
+
+            if stdout is not None and stdout != last_out:
+                printText(str(stdout))
+                last_out = stdout
+
+            if time.time() - startTime > timeout:
+                raise TimeoutError("QIS failed to launch within timelimit of " + str(timeout) + " sec.")
             pass
 
     #change directory back to start directory 

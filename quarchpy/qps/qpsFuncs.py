@@ -65,7 +65,6 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
         logging.debug("$list: " + str(answer))
         return False
 
-
 def startLocalQps(keepQisRunning=False, args=[]):
     if keepQisRunning:
         if not isQisRunning():
@@ -76,7 +75,7 @@ def startLocalQps(keepQisRunning=False, args=[]):
     QpsPath = os.path.dirname(os.path.abspath(__file__))
     QpsPath, junk = os.path.split(QpsPath)
     QpsPath = os.path.join(QpsPath, "connection_specific", "QPS", "qps.jar")
-    current_direc = os.getcwd()
+    current_dir = os.getcwd()
     os.chdir(os.path.dirname(QpsPath))
 
     command = "java -jar \"" + QpsPath + "\"" + " " + str(args)
@@ -84,18 +83,31 @@ def startLocalQps(keepQisRunning=False, args=[]):
         os.system(command)
     else:
         if sys.version_info[0] < 3:
-            sp=os.popen2(command + " 2>&1")
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         else:
-            sp=os.popen(command + " 2>&1")
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+
         startTime = time.time() #Checks for Popen launch only
         timeout = 10
+        last_error = ""
+        last_out = ""
         while not isQpsRunning():
             time.sleep(0.2)
+            stdout, stderr = process.communicate()
+            if stderr is not None and stderr != last_error:
+                logging.error(str(stderr))
+                last_error = stderr
+
+            if stdout is not None and stdout != last_out:
+                printText(str(stdout))
+                last_out = stdout
+
             if time.time() - startTime > timeout:
                 raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
             pass
 
-    os.chdir(current_direc)
+    # return current working directory
+    os.chdir(current_dir)
 
 
 def closeQps(host='127.0.0.1', port=9822):

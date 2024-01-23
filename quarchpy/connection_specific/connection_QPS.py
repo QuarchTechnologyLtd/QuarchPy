@@ -55,7 +55,7 @@ class QpsInterface:
 
     def sendCmdVerbose(self, cmd, timeout=20):
         cmd = cmd + "\r\n"
-
+        logging.debug("Sending cmd to QPS: "+str(cmd))
         self.send(cmd)
 
         start = time.time()

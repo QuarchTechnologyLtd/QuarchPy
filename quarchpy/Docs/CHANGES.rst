@@ -13,6 +13,15 @@ Quarchpy
 Change Log
 ----------
 
+2.1.16
+------
+- FIO mb/s parsing
+- Improved QIS QPS launching
+
+2.1.15
+------
+- minor bug fix
+
 2.1.14
 ------
 - minor bug fixes and logging improvements.

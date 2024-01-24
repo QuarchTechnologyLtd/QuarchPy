@@ -33,8 +33,13 @@ def test_system_info():
     print("OS Name: " + os.name)
     print("Platform System: " + platform.system())
     print("Platform: " + platform.platform())
-    if "nt" in os.name: print("Platform Architecture: " + platform.architecture()[0])
+
+    if "nt" in os.name:
+        print("Platform Architecture: " + platform.architecture()[0])
+    else:
+        print(str(bytes(subprocess.check_output(['cat', '/etc/os-release'], stderr=subprocess.STDOUT)).decode()))
     print("Platform Release:  " + platform.release())
+
     try:
         print("Quarchpy Version: " + get_quarchpy_version())
     except:

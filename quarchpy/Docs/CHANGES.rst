@@ -15,6 +15,11 @@ Change Log
 
 2.1.16
 ------
+- Improved QIS QPS launching on Linux sytems
+- System debug for linux systems
+
+2.1.16
+------
 - FIO mb/s parsing
 - Improved QIS QPS launching
 

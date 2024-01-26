@@ -60,8 +60,20 @@
 <dd></dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qps.qpsFuncs.reader">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qps.qpsFuncs.</span></span><span class="sig-name descname"><span class="pre">reader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_flag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qps.qpsFuncs.reader" title="Link to this definition">¶</a></dt>
+<dd><p>Used to read output and place it in a queue for multithreaded reading
+:param stream:
+:param q:
+:param source:
+:param lock: The lock for the queue
+:param stop_flag: Flag to exit the loop and close the thread
+:return: None</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="quarchpy.qps.qpsFuncs.startLocalQps">
-<span class="sig-prename descclassname"><span class="pre">quarchpy.qps.qpsFuncs.</span></span><span class="sig-name descname"><span class="pre">startLocalQps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keepQisRunning</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qps.qpsFuncs.startLocalQps" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qps.qpsFuncs.</span></span><span class="sig-name descname"><span class="pre">startLocalQps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keepQisRunning</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qps.qpsFuncs.startLocalQps" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -109,7 +121,7 @@ Assumes</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="quarchpy.qps.startLocalQps">
-<span class="sig-prename descclassname"><span class="pre">quarchpy.qps.</span></span><span class="sig-name descname"><span class="pre">startLocalQps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keepQisRunning</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qps.startLocalQps" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qps.</span></span><span class="sig-name descname"><span class="pre">startLocalQps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keepQisRunning</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qps.startLocalQps" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">

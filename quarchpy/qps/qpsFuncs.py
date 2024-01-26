@@ -1,6 +1,9 @@
+from threading import Thread, Lock, Event, active_count
+from queue import Queue, Empty
+import time
 import os, sys
 import datetime
-import time, platform
+import platform
 from quarchpy.qis import isQisRunning, startLocalQis
 from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy.connection_specific.connection_QPS import QpsInterface
@@ -65,7 +68,8 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
         logging.debug("$list: " + str(answer))
         return False
 
-def startLocalQps(keepQisRunning=False, args=[]):
+
+def startLocalQps(keepQisRunning=False, args=[], timeout=30):
     if keepQisRunning:
         if not isQisRunning():
             startLocalQis()
@@ -87,27 +91,64 @@ def startLocalQps(keepQisRunning=False, args=[]):
         else:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
 
-        startTime = time.time() #Checks for Popen launch only
-        timeout = 10
-        last_error = ""
-        last_out = ""
-        while not isQpsRunning():
-            time.sleep(0.2)
-            stdout, stderr = process.communicate()
-            if stderr is not None and stderr != last_error:
-                logging.error(str(stderr))
-                last_error = stderr
+    startTime = time.time()
+    while not isQpsRunning():
+        time.sleep(0.2)
+        _get_std_msg_and_err_from_QPS_process(process)
 
-            if stdout is not None and stdout != last_out:
-                printText(str(stdout))
-                last_out = stdout
-
-            if time.time() - startTime > timeout:
-                raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
-            pass
-
+        if time.time() - startTime > timeout:
+            os.chdir(current_dir)
+            raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
     # return current working directory
     os.chdir(current_dir)
+
+def reader(stream, q, source, lock,stop_flag):
+    '''
+    Used to read output and place it in a queue for multithreaded reading
+    :param stream:
+    :param q:
+    :param source:
+    :param lock: The lock for the queue
+    :param stop_flag: Flag to exit the loop and close the thread
+    :return: None
+    '''
+    while not stop_flag.is_set():
+        line = stream.readline()
+        if not line:
+            break
+        with lock:
+            q.put((source, line.strip()))
+
+def _get_std_msg_and_err_from_QPS_process(process):
+    '''
+    Uses multithreading to check for stderr and stdmsg passed by the process that launches QPS
+    This allows the user to understand why QPS might not have appeared.
+    :param process: The Process Used to launch QPS
+    :return: None
+    '''
+    # Read back stdmsg and stderr in seperate threads so they are non blocking
+    q = Queue()
+    lock = Lock()
+    stop_flag = Event()
+
+    t1 = Thread(target=reader, args=[process.stdout, q, 'stdout', lock, stop_flag])
+    t2 = Thread(target=reader, args=[process.stderr, q, 'stderr', lock, stop_flag])
+    t1.start()
+    t2.start()
+    counter = 0
+    # check for stderr or stdmsg from the queue
+    while counter <= 3: # If 3 empty reads from the queue then move on to see if QPS is running.
+        try:
+            source, line = q.get(timeout=1)  # Wait for 1 second for new lines
+            counter = 0
+            if source == "stderr":
+                logging.error(f"{source}: {line}")
+            else:
+                printText(f"{source}: {line}")
+        except Empty:
+            counter += 1
+    time.sleep(3)
+    stop_flag.set() #Close the threads and return to the main loop where QPS is check to see if its started yet
 
 
 def closeQps(host='127.0.0.1', port=9822):

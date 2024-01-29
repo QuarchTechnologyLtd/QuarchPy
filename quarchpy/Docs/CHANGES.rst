@@ -13,7 +13,7 @@ Quarchpy
 Change Log
 ----------
 
-2.1.16
+2.1.17
 ------
 - Improved QIS QPS launching on Linux sytems
 - System debug for linux systems

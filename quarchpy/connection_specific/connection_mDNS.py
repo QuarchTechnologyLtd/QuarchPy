@@ -1,14 +1,13 @@
-from zeroconf import Zeroconf
-
+import logging
 
 class MyListener:
     def __init__(self):
         self.found_devices = {}
 
-    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+    def update_service(self, zc, type_, name):
         return None
 
-    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+    def remove_service(self, zc, type_, name):
         info = zc.get_service_info(type_, name)
         if "Quarch:" in str(info):
             decoded_properties = {key.decode('utf-8'): value.decode('utf-8') for key, value in info.properties.items()}
@@ -17,7 +16,7 @@ class MyListener:
                 if value == qtl_num:
                     del self.found_devices[key]
 
-    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+    def add_service(self, zc, type_, name):
         info = zc.get_service_info(type_, name)
         if "Quarch:" in str(info):
             # decode the incoming properties from mdns
@@ -39,5 +38,3 @@ class MyListener:
     def update_device_dict(self, device_dict):
         self.found_devices.update(device_dict)
 
-
-listener = MyListener()

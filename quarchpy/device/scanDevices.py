@@ -21,8 +21,6 @@ from quarchpy.device.quarchArray import isThisAnArrayController
 from quarchpy.connection_specific.connection_USB import TQuarchUSB_IF
 from quarchpy.connection_specific import connection_ReST
 from quarchpy.connection_specific.connection_mDNS import MyListener
-
-from zeroconf import ServiceBrowser, Zeroconf
 from quarchpy.utilities import TestCenter
 
 
@@ -462,6 +460,7 @@ def filter_module_type(module_type_filter, found_devices):
     return filtered_devices
 
 def scan_mDNS(mdnsListener):
+    from zeroconf import ServiceBrowser, Zeroconf
     zeroconf = Zeroconf()
     listener = mdnsListener
     browser = ServiceBrowser(zeroconf, "_http._tcp.local.", listener)
@@ -474,9 +473,7 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
                 module_type_filter=None, ipAddressLookup=None):
     foundDevices = dict()
     scannedArrays = list()
-    mdnsListener = MyListener()
 
-    scan_mDNS(mdnsListener)
 
     if target_conn.lower() == "all":
         foundDevices = list_USB()
@@ -484,7 +481,12 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         try:
             #This will fail if the test machine is not connected to a network
             foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
-            foundDevices = mergeDict(foundDevices, mdnsListener.found_devices)
+            try:
+                mdnsListener = MyListener()
+                scan_mDNS(mdnsListener)
+                foundDevices = mergeDict(foundDevices, mdnsListener.found_devices)
+            except Exception as mdnsExcept:
+                logging.debug("An error occurred while trying to use the mdns listner to scan\n" +str(mdnsExcept))
         except Exception as e:
             logging.error(e)
             logging.warning("Network scan failed, check network connection")
@@ -637,24 +639,3 @@ def userSelectDevice(scanDictionary=None, scanFilterStr=None,favouriteOnly=True,
             # Return the address string of the selected module
             return userStr
 
-
-#Not used but could come in usefull in near future.
-# def userSelectAndReturnDevice(scanDictionary=None, scanFilterStr=None,favouriteOnly=True, message=None, title=None, nice=True, additionalOptions =["rescan","all conn types", "quit"], target_conn="all"):
-#     scanDictionary = scanDevices()
-#     connectionTarget = userSelectDevice(scanDictionary, scanFilterStr, favouriteOnly, message, title, nice,
-#                      additionalOptions, target_conn)
-#     serialNumber = getSerialNumberFromConnectionTarget(connectionTarget)
-#
-#     if connectionTarget.__contains__("<") and connectionTarget.__contains__(">"):
-#         connectionTarget, portNumber = connectionTarget.split("<")
-#         portNumber = portNumber[:-1]
-#         myDevice = quarchDevice(connectionTarget)
-#         myArrayController = quarchArray(myDevice)
-#         mySubDevice = myArrayController.getSubDevice(portNumber)
-#         myDevice = mySubDevice
-#     elif(serialNumber.lower().__contains__("qtl1999") or serialNumber.lower().__contains__("qtl1995") or serialNumber.lower().__contains__("qtl2312")):
-#         myDevice = quarchPPM(quarchDevice(connectionTarget))
-#
-#     else:
-#         myDevice = quarchDevice(connectionTarget)
-#     return myDevice

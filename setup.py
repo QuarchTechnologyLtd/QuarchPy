@@ -58,5 +58,10 @@ setup(name='quarchpy',
       'Topic :: System',
       'Topic :: System :: Power (UPS)'
       ],
+
+      install_requires=[
+            'zeroconf>=0.23.0',
+            'numpy',
+            'pandas'],
       include_package_data=True,
       zip_safe=False)

@@ -147,7 +147,6 @@ def _get_std_msg_and_err_from_QPS_process(process):
                 printText(f"{source}: {line}")
         except Empty:
             counter += 1
-    time.sleep(3)
     stop_flag.set() #Close the threads and return to the main loop where QPS is check to see if its started yet
 
 

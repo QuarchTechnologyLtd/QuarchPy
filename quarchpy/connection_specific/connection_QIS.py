@@ -190,10 +190,14 @@ class QisInterface:
         # way of communicating. The thread creates it's own socket and should use that, NOT the objects socket
         # (which some of the comms with module functions will use by default).
 
+        f = None
         #Start module streaming and then read stream data
         if inMemoryData is not None:
             if not isinstance(inMemoryData, StringIO):
                 raise Exception ("Error! The parameter 'inMemoryData' is NOT of type StringIO")
+            f = inMemoryData
+        else:
+            f = open(fileName, 'w')
 
         stripes = ['Empty Header']
         #Send stream command so module starts streaming data into the backends buffer
@@ -209,27 +213,22 @@ class QisInterface:
             self.stripesEvent.clear()
             self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start because " + streamRes]
             return
-        #If recording to file then get header for file
-        if(fileName is not None):
 
+        baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
+        count=0
+        maxTries=10
+        while 'Header Not Available' in baseSamplePeriod:
             baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
-            count=0
-            maxTries=10
-            while 'Header Not Available' in baseSamplePeriod:
-                baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
-                time.sleep(0.1)
-                count += 1
-                if count > maxTries:
-                    self.deviceDict[module][0:3] = [True, 'Stopped', 'Header not available']
-                    exit()
-            version =  self.streamHeaderVersion(device=module, sock=self.streamSock)
-            with open(fileName, 'w') as f:
-                timeStampHeader = datetime.datetime.now().strftime("%H:%M:%S:%f %d/%m/%y")
-                formatHeader = self.streamHeaderFormat(device=module, sock=self.streamSock)
-                formatHeader = formatHeader.replace(", ", separator)
-                f.write(formatHeader + '\n')
-                if inMemoryData is not None:
-                    inMemoryData.write(formatHeader + '\n')
+            time.sleep(0.1)
+            count += 1
+            if count > maxTries:
+                self.deviceDict[module][0:3] = [True, 'Stopped', 'Header not available']
+                exit()
+        version =  self.streamHeaderVersion(device=module, sock=self.streamSock)
+        timeStampHeader = datetime.datetime.now().strftime("%H:%M:%S:%f %d/%m/%y")
+        formatHeader = self.streamHeaderFormat(device=module, sock=self.streamSock)
+        formatHeader = formatHeader.replace(", ", separator)
+        f.write(formatHeader + '\n')
 
         numStripesPerRead = 4096
         maxFileExceeded = False
@@ -265,166 +264,166 @@ class QisInterface:
         #     #Matt converting streamAveraging into number
         #     streamAverage = self.convertStreamAverage(streamAverage)
         #     stripesPerAverage = float(streamAverage) / (float(baseSamplePeriodS) * 4e-6)
+        if inMemoryData is None:
+            f = open(fileName, 'a', newline='') #changed from ab to a as all data should be in string format now regardless of py2 or py3
         isRun = True
         while isRun:
             try:
-                with open(fileName, 'a', newline='') as f: #changed from ab to a as all data should be in string format now regardless of py2 or py3
-                    # Until the event threadRunEvent is set externally to this thread,
-                    # loop and read from the stream
-                    i = self.deviceMulti(module)
-                    while self.stopFlagList[i] and (not streamOverrun) and (not streamComplete):
-                        #now = time.time()
-                        streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module, numStripesPerRead)
-                        newStripes = newStripes.replace(' ', separator)
-                        #print (time.time() - now)
-                        if streamOverrun:
-                            self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun']
-                        # TODO: MD Why don't we return isEmpty in the tuple, instead of having this confusing test?
-                        if (removeChar == -6 and len(newStripes) == 6):
-                            isEmpty = True
-                        else:
-                            isEmpty = False
-                        if isEmpty == False:
-                            #Writes in file if not too big else stops streaming
+                # Until the event threadRunEvent is set externally to this thread,
+                # loop and read from the stream
+                i = self.deviceMulti(module)
+                while self.stopFlagList[i] and (not streamOverrun) and (not streamComplete):
+                    #now = time.time()
+                    streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module, numStripesPerRead)
+                    newStripes = newStripes.replace(' ', separator)
+                    #print (time.time() - now)
+                    if streamOverrun:
+                        self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun']
+                    # TODO: MD Why don't we return isEmpty in the tuple, instead of having this confusing test?
+                    if (removeChar == -6 and len(newStripes) == 6):
+                        isEmpty = True
+                    else:
+                        isEmpty = False
+                    if isEmpty == False:
+                        #Writes in file if not too big else stops streaming
+                        if fileName is not None:
                             statInfo = os.stat(fileName)
                             fileMB = statInfo.st_size / 1048576
-                            try:
-                                int(fileMaxMB)
-                            except:
-                                continue
-                            if int(fileMB) < int(fileMaxMB):
-                                if (releaseOnData == True):
-                                    self.StreamRunSentSemaphore.release()
-                                    self.stripesEvent.clear()
-                                    releaseOnData = False
-                                # TODO: MD Thinks this implements software averaging, is unused and now performed in QIS where required
+                        else:
+                            fileMB = 1
+                        try:
+                            int(fileMaxMB)
+                        except:
+                            continue
+                        if int(fileMB) < int(fileMaxMB):
+                            if (releaseOnData == True):
+                                self.StreamRunSentSemaphore.release()
+                                self.stripesEvent.clear()
+                                releaseOnData = False
+                            # TODO: MD Thinks this implements software averaging, is unused and now performed in QIS where required
+                            if(streamAverage != None):
+                                leftover, remainingStripes = self.averageStripes(leftover, stripesPerAverage, newStripes[:removeChar], f, remainingStripes)
+                            else:
+                                # if we have a fixed streamDuration
+                                if streamDuration != None:
+                                    # Get the last data line in the file
+                                    lastLine = newStripes.splitlines()[-3]    # the last data line is followed by 'eof' and '>'
+                                    lastTime = lastLine.split(separator)[0] # get the first (time) entry
+
+                                    # if the last entry is still within the required stream length, write the whole lot
+                                    if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)): # < rather than <= because we start at 0
+                                        newStripes = newStripes.replace(' ', separator)
+                                        f.write(newStripes[:removeChar])
+
+                                    # else write each line individually until we have reached the desired endpoint
+                                    else:
+                                        for thisLine in newStripes.splitlines()[:-2]:
+                                            lastTime = thisLine.split(separator)[0]
+                                            if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)):
+                                                f.write(thisLine + '\r\n')  # Put the CR back on the end
+                                            else:
+                                                streamComplete = True
+                                                break
+                                else:
+                                    newStripes = newStripes.replace(' ', separator)
+                                    f.write(newStripes[:removeChar])
+
+                        else:
+                            maxFileExceeded = True
+                            #printText('QisInterface file size exceeded  in loop 1- breaking')
+                            maxFileStatus = self.streamBufferStatus(device=module, sock=self.streamSock)
+                            f.write('Warning: Max file size exceeded before end of stream.\n')
+                            f.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
+                            self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
+                            break
+                    else:
+                        # there's no stripes in the buffer - it's not filling up fast -
+                        # sleeps so we don't spam qis with requests (seems to make QIS crash)
+                        # it might be clever to change the sleep time accoring to the situation
+                        # e.g. wait longer with higher averaging or lots of no stripes in a row
+                        time.sleep(0.1)
+                        streamStatus = self.streamRunningStatus(device=module, sock=self.streamSock)
+                        if streamOverrun:
+                            #printText('QisInterface overrun - breaking')
+                            break
+                        elif "Stopped" in streamStatus:
+                            self.deviceDict[module][0:3] = [True, 'Stopped', 'User halted stream']
+                            break
+                #printText('Left while 1')
+                self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay = 0)
+                streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
+                while "stopped" not in streamState.lower():
+                    logging.debug("waiting for stream? to return stopped")
+                    time.sleep(0.1)
+                    streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
+
+                if (not streamOverrun) and (not maxFileExceeded):
+                    self.deviceDict[module][0:3] = [False, 'Stopped', 'Stream stopped - emptying buffer']
+                # print self.streamBufferStatus(device=module, sock=self.streamSock)
+                if (not maxFileExceeded):
+                    #If the backend buffer still has data then keep reading it out
+                    #printText('Streaming stopped. Emptying data left in QIS buffer to file (' + self.streamBufferStatus(device=module, sock=self.streamSock) + ')')
+                    streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module, numStripesPerRead)
+                    # TODO: Why don't we return isEmpty in the tuple, instead of having this confusing test?
+                    if (removeChar == -6 and len(newStripes) == 6):
+                        isEmpty = True
+                    else:
+                        isEmpty = False
+                    while isEmpty == False: # if newStripes has length 6 then it only contains 'eof\r\n'
+                        if inMemoryData is None:
+                            statInfo = os.stat(fileName)
+                            fileMB = statInfo.st_size / 1048576
+                        else:
+                            fileMB = 1
+                        try:
+                            int(fileMaxMB)
+                        except:
+                            continue
+                        if int(fileMB) < int(fileMaxMB):
+                            if streamComplete != True:
                                 if(streamAverage != None):
                                     leftover, remainingStripes = self.averageStripes(leftover, stripesPerAverage, newStripes[:removeChar], f, remainingStripes)
                                 else:
-                                    # if we have a fixed streamDuration
-                                    if streamDuration != None:
-                                        # Get the last data line in the file
-                                        lastLine = newStripes.splitlines()[-3]    # the last data line is followed by 'eof' and '>'
-                                        lastTime = lastLine.split(separator)[0] # get the first (time) entry
-
-                                        # if the last entry is still within the required stream length, write the whole lot
-                                        if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)): # < rather than <= because we start at 0
-                                            newStripes = newStripes.replace(' ', separator)
-                                            f.write(newStripes[:removeChar])
-                                            if inMemoryData is not None:
-                                                inMemoryData.write(newStripes[:removeChar])
-
-                                        # else write each line individually until we have reached the desired endpoint
-                                        else:
-                                            for thisLine in newStripes.splitlines()[:-2]:
-                                                lastTime = thisLine.split(separator)[0]
-                                                if int(lastTime) < int(streamDuration/(10**baseSampleUnitExponent)):
-                                                    f.write(thisLine + '\r\n')  # Put the CR back on the end
-                                                    if inMemoryData is not None:
-                                                        inMemoryData.write(thisLine + '\r\n')
-                                                else:
-                                                    streamComplete = True
-                                                    break
-                                    else:
-                                        newStripes = newStripes.replace(' ', separator)
-                                        f.write(newStripes[:removeChar])
-                                        if inMemoryData is not None:
-                                            inMemoryData.write(newStripes[:removeChar])
-
-                            else:
+                                    newStripes = newStripes.replace(' ',separator)
+                                    f.write(newStripes[:removeChar])
+                        else:
+                            if not maxFileExceeded:
+                                maxFileStatus = self.streamBufferStatus(device=module,  sock=self.streamSock)
                                 maxFileExceeded = True
-                                #printText('QisInterface file size exceeded  in loop 1- breaking')
-                                maxFileStatus = self.streamBufferStatus(device=module, sock=self.streamSock)
-                                f.write('Warning: Max file size exceeded before end of stream.\n')
-                                f.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
-                                if inMemoryData is not None:
-                                    inMemoryData.write('Warning: Max file size exceeded before end of stream.\n')
-                                    inMemoryData.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
                                 self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
-                                break
-                        else:
-                            # there's no stripes in the buffer - it's not filling up fast -
-                            # sleeps so we don't spam qis with requests (seems to make QIS crash)
-                            # it might be clever to change the sleep time accoring to the situation
-                            # e.g. wait longer with higher averaging or lots of no stripes in a row
-                            time.sleep(0.1)
-                            streamStatus = self.streamRunningStatus(device=module, sock=self.streamSock)
-                            if streamOverrun:
-                                #printText('QisInterface overrun - breaking')
-                                break
-                            elif "Stopped" in streamStatus:
-                                self.deviceDict[module][0:3] = [True, 'Stopped', 'User halted stream']
-                                break
-                    #printText('Left while 1')
-                    self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay = 0)
-                    streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
-                    while "stopped" not in streamState.lower():
-                        logging.debug("waiting for stream? to return stopped")
-                        time.sleep(0.1)
-                        streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
+                            break
+                        #time.sleep(0.01) #reduce speed of loop to stop spamming qis
+                        streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module, numStripesPerRead, skipStatusCheck=True)
+                        if removeChar == -6:
+                            if len(newStripes) == 6:
+                                isEmpty = True
+                    if maxFileExceeded:
+                        f.write(b'Warning: Max file size exceeded before end of stream.\n')
+                        f.write(b'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
+                        logging.warning('Max file size exceeded. Some data has not been saved to file: ' + maxFileStatus + '.')
 
-                    if (not streamOverrun) and (not maxFileExceeded):
-                        self.deviceDict[module][0:3] = [False, 'Stopped', 'Stream stopped - emptying buffer']
-                    # print self.streamBufferStatus(device=module, sock=self.streamSock)
-                    if (not maxFileExceeded):
-                        #If the backend buffer still has data then keep reading it out
-                        #printText('Streaming stopped. Emptying data left in QIS buffer to file (' + self.streamBufferStatus(device=module, sock=self.streamSock) + ')')
-                        streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module, numStripesPerRead)
-                        # TODO: Why don't we return isEmpty in the tuple, instead of having this confusing test?
-                        if (removeChar == -6 and len(newStripes) == 6):
-                            isEmpty = True
-                        else:
-                            isEmpty = False
-                        while isEmpty == False: # if newStripes has length 6 then it only contains 'eof\r\n'
-                            statInfo = os.stat(fileName)
-                            fileMB = statInfo.st_size / 1048576
-                            try:
-                                int(fileMaxMB)
-                            except:
-                                continue
-                            if int(fileMB) < int(fileMaxMB):
-                                if streamComplete != True:
-                                    if(streamAverage != None):
-                                        leftover, remainingStripes = self.averageStripes(leftover, stripesPerAverage, newStripes[:removeChar], f, remainingStripes)
-                                    else:
-                                        newStripes = newStripes.replace(' ',separator)
-                                        f.write(newStripes[:removeChar])
-                                        if inMemoryData is not None:
-                                            inMemoryData.write(newStripes[:removeChar])
-                            else:
-                                if not maxFileExceeded:
-                                    maxFileStatus = self.streamBufferStatus(device=module,  sock=self.streamSock)
-                                    maxFileExceeded = True
-                                    self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
-                                break
-                            #time.sleep(0.01) #reduce speed of loop to stop spamming qis
-                            streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module, numStripesPerRead, skipStatusCheck=True)
-                            if removeChar == -6:
-                                if len(newStripes) == 6:
-                                    isEmpty = True
-                        if maxFileExceeded:
-                            f.write(b'Warning: Max file size exceeded before end of stream.\n')
-                            f.write(b'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
-                            if inMemoryData is not None:
-                                inMemoryData.write(b'Warning: Max file size exceeded before end of stream.\n')
-                                inMemoryData.write(b'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.')
-                            logging.warning('Max file size exceeded. Some data has not been saved to file: ' + maxFileStatus + '.')
+                #printText('Stripes in buffer now: ' + self.streamBufferStatus(device=module, sock=self.streamSock))
 
-                    #printText('Stripes in buffer now: ' + self.streamBufferStatus(device=module, sock=self.streamSock))
-
-                    if streamOverrun:
-                        self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun - QIS buffer empty']
-                    elif not maxFileExceeded:
-                        self.deviceDict[module][0:3] = [False, 'Stopped', 'Stream stopped']
-                    time.sleep(0.2)
-                    isRun = False
+                if streamOverrun:
+                    self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun - QIS buffer empty']
+                elif not maxFileExceeded:
+                    self.deviceDict[module][0:3] = [False, 'Stopped', 'Stream stopped']
+                time.sleep(0.2)
+                isRun = False
             except IOError as err:
                 #printText('\n\n!!!!!!!!!!!!!!!!!!!! IO Error in QisInterface !!!!!!!!!!!!!!!!!!!!\n\n')
+                if inMemoryData is None:
+                    f.close()
                 time.sleep(0.5)
                 openAttempts += 1
                 if openAttempts > 4:
                     logging.error('\n\n!!!!!!!!!!!!!!!!!!!! Too many IO Errors in QisInterface !!!!!!!!!!!!!!!!!!!!\n\n')
                     raise err
+            finally:
+                if inMemoryData is None:
+                    f.close()
+                else:
+                    inMemoryData = f
 
         # This is the function that is ran when t1 is created. It is ran in a seperate thread from
         # the main application so streaming can happen without blocking the main application from
@@ -1614,7 +1613,7 @@ class QisInterface:
                     raise (Exception("Empty response from QIS. Sent: " + sentText))
 
             if res[0] == self.cursor:
-                logging.warning('Only Returned Cursor!!!!!')
+                logging.warning('Only returned a cursor from QIS. Sent: ' + sentText)
             if 'Create Socket Fail' == res[0]: # If create socked fail (between QIS and tcp/ip module)
                 logging.warning(res[0])
             if 'Connection Timeout' == res[0]:

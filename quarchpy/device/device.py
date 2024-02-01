@@ -456,8 +456,10 @@ def _check_ip_in_qis_list(ip_address, detailed_device_list):
     # logging.debug(f"List details from Qis : \n{str(''.join(detailed_device_list))}")
 
     for module in detailed_device_list:
+        # Use generator expression to filter word starting with 'IP:' in the qis module string this is to prevent a similar ip from being selected e.g. 192.168.1.1 and 192.168.1.12
+        module_ip_address = next((word[3:] for word in module.split() if word.startswith('IP:')), "")
         # Note for future developers : Restricted this to only TCP modules, not RESt
-        if ip_address in module and "tcp" in module.lower():
+        if ip_address == module_ip_address and "tcp" in module.lower():
             # '1) REST::QTL2312-01-009 IP:192.168.1.5 Port:80 NBName:2312-01-009     Stream:No Name:Power Analysis Module'
             # Split on spaces and grab second element ("tcp::qtl2312-01-009")
             ret_string = module.split()[1]

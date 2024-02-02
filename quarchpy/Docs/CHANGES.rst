@@ -13,6 +13,16 @@ Quarchpy
 Change Log
 ----------
 
+2.1.19
+------
+- Imporoved QIS streaming 
+- Bug fixes
+- Added zeroconf, numpy and pandas as requirements
+
+2.1.18
+------
+- Bug fixes
+
 2.1.17
 ------
 - Improved QIS QPS launching on Linux sytems

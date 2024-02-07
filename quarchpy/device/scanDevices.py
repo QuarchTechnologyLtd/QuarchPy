@@ -183,10 +183,6 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
 
     specifiedDevice = None
 
-    if ipAddressLookup is not None:
-        # Attempts to find the device through UDP then REST
-        specifiedDevice = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules )
-
     # Broadcast the message.
     logging.debug("Broadcast LAN discovery message for UDP scan to all network interfaces")
     ipList = socket.gethostbyname_ex(socket.gethostname())
@@ -202,12 +198,14 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
             mySocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             mySocket.settimeout(lanTimeout)
             mySocket.bind((ip,56732))
-        
+
+            if ipAddressLookup is not None:
+                # Attempts to find the device through UDP then REST
+                specifiedDevice = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules)
+
         except Exception as err:
 
             logging.debug("Error while trying to bind to network interfaces: "+" Error: "+str(err))
-
-
 
         mySocket.sendto(b'Discovery: Who is out there?\0\n', ('255.255.255.255', 30303))
 

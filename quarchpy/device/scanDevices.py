@@ -178,39 +178,32 @@ List all Quarch devices found over LAN, using a UDP broadcast scan
 def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLookup=None):
 
     retVal={}
-
     lan_modules = dict()
-
     specifiedDevice = None
-
     # Broadcast the message.
     logging.debug("Broadcast LAN discovery message for UDP scan to all network interfaces")
     ipList = socket.gethostbyname_ex(socket.gethostname())
     logging.debug(os.path.basename(__file__) + ": Discovered the following interfaces: " + str(ipList))
 
-    for ip in ipList[2]:
-        
-        logging.debug(os.path.basename(__file__) + ": Broadcasting on : " + ip)
-        
-        try:
 
+
+    for ip in ipList[2]:
+        logging.debug(os.path.basename(__file__) + ": Broadcasting on : " + ip)
+        try:
             mySocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             mySocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             mySocket.settimeout(lanTimeout)
             mySocket.bind((ip,56732))
-
-            if ipAddressLookup is not None:
-                # Attempts to find the device through UDP then REST
-                specifiedDevice = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules)
-
         except Exception as err:
-
             logging.debug("Error while trying to bind to network interfaces: "+" Error: "+str(err))
 
+        if ipAddressLookup is not None:
+            # Attempts to find the device through UDP then REST
+            specifiedDevice = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules)
+
+
         mySocket.sendto(b'Discovery: Who is out there?\0\n', ('255.255.255.255', 30303))
-
         counter = 0
-
         # Receive messages until timeout.
         while True:
             network_modules = {}
@@ -218,7 +211,7 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
             # Receive raw message until timeout, then break.
             try:
                 msg_received = mySocket.recvfrom(256)
-            except:
+            except Exception as e:
                 # check if any a device was targeted directly and allow parse
                 if specifiedDevice is not None:
                     msg_received = specifiedDevice
@@ -240,14 +233,10 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
                 else:
                     index = repr(lines[0]).replace("'", "")
                     data = repr(lines[1:]).replace("'", "").replace("b", "")
-
                 network_modules[index] = data
-
             module_name = get_user_level_serial_number(network_modules)
             logging.debug("Found UDP response: " + module_name)
-
             ip_module = msg_received[1][0].strip()
-
             try:
                 # Add a QTL before modules without it.
                 if "QTL" not in module_name.decode("utf-8"):
@@ -277,15 +266,20 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
                     # Append the information to the list.
                     lan_modules["TCP:" + ip_module] = module_name
                     logging.debug("Found TCP module: " + module_name)
-
         mySocket.close()
+
     logging.debug("Finished UDP scan")
     retVal.update(lan_modules)
     return retVal
 
 
-''''''
+
 def get_user_level_serial_number(network_modules):
+    '''
+
+    :param network_modules:
+    :return:
+    '''
     list_of_multi_module_units = ["1995"]  # List of modules that require enclosure number + Port to be displayed.
 
     # Filter the raw message to get the module and ip address.
@@ -313,54 +307,53 @@ def get_user_level_serial_number(network_modules):
 ''''''
 def lookupDevice(ipAddressLookup, mySocket, lan_modules):
     try:
-        printText("Ipaddress lookup " + ipAddressLookup)
+        logging.debug("Ipaddress lookup " + ipAddressLookup)
         # For future reference, 0 is the C terminator for a string
         mySocket.sendto(b'Discovery: Who is out there?\0\n', (str(ipAddressLookup).strip(), 30303))
         specifiedDevice = mySocket.recvfrom(256)
         # Check to see if the response contains the connection protocol
-        if ("\\x8a") or ("138") or ("\\x84") or ("132") or ("\\x85") or ("133") not in specifiedDevice:
-            # If not allow it to fall-back to REST
-            specifiedDevice = None
-        else:
-            # Exit as device was found correctly
-            return specifiedDevice
+        return specifiedDevice
     except Exception as e:
-        printText("Error during UDP lookup " + str(e))
-        printText("Is the IP address correct?\r\n")
-        # Return if there's an error
-        return None
+        logging.warning("Error during UDP lookup of IP address "+ str(ipAddressLookup) +"  Error: " + str(e))
+        logging.warning("No Quarch module found at this address. Please check the IP address and that you can ping it.\r\n")
+    return None
+    #
+    # if specifiedDevice is None: #Only True if TCP not found or errored
+    #     try:
+    #         restCon = connection_ReST.ReSTConn(str(ipAddressLookup).replace("\r\n", ""))
+    #         restDevice = restCon.sendCommand("*enclosure?") #Try use enclosure for PPMs
+    #         if "fail" in restDevice.lower(): # This will fail nicely for other modules
+    #             restDevice = restCon.sendCommand("*serial?") # and serial number will be used in place.
+    #         if not str(restDevice).startswith("QTL"):
+    #             restDevice = "QTL" + restDevice
+    #         # Exit as device was found correctly
+    #         # Add the item to list
+    #         lan_modules["REST:" + str(ipAddressLookup).replace("\r\n", "")] = restDevice
+    #         specifiedDevice=None # Don't return rest connection, to bypass tcp parsing.
+    #     except Exception as e:
+    #         logging.warning("Error During REST scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
+    #         logging.warning("Please check the IP address and that you can ping it.\r\n")
+    #
+    #     # Needs to return None so previous method will not attempt another lookup.
+    #     return specifiedDevice
 
-    if specifiedDevice is None:
-        try:
-            restCon = connection_ReST.ReSTConn(str(ipAddressLookup).replace("\r\n", ""))
-            restDevice = restCon.sendCommand("*serial?")
-            if not str(restDevice).startswith("QTL"):
-                restDevice = "QTL" + restDevice
-            # Add the item to list
-            lan_modules["REST:" + str(ipAddressLookup).replace("\r\n", "")] = restDevice
-
-        except Exception as e:
-            printText("Error During REST scan " + str(e))
-
-        # Needs to return None so previous method will not attempt another lookup.
-        return None
 
 
-"""
-                    Takes in the connection target and returns the serial number of a module found on the standard scan.
-                    
-                    Parameters
-                    ----------
-                    connectionTarget= : str
-                        The connection target of the module you would like to know the serial number of.
-                        
-                    Returns
-                    -------
-                    ret_val : str
-                        The Serial number of the supplied device.
-
-"""
 def getSerialNumberFromConnectionTarget(connectionTarget):
+    """
+                        Takes in the connection target and returns the serial number of a module found on the standard scan.
+
+                        Parameters
+                        ----------
+                        connectionTarget= : str
+                            The connection target of the module you would like to know the serial number of.
+
+                        Returns
+                        -------
+                        ret_val : str
+                            The Serial number of the supplied device.
+
+    """
     myDict = scanDevices(favouriteOnly=False)
     for k,v in myDict.items():
         if k == connectionTarget:
@@ -368,32 +361,31 @@ def getSerialNumberFromConnectionTarget(connectionTarget):
     return None
 
 
-"""
-                    Takes in the connection type and serial number of a module and returns the connection target.
-                    
-                    Parameters
-                    ----------
-                    module_string= : str
-                        The connection type and serial number combination eg. TCP:QTL1999-05-005.
-                        
-                    scan_dictionary= :dict, optional
-                        A scan dictionary can be passed so that a scan does not need to take place on every call.
-                        This would be advised if calling this for every item in a list of serial numbers.
-                        
-                    connection_preference= : list str, optional
-                        The preference of which connection type to prioratise if none it given. 
-                        Defaults to "USB", "TCP", "SERIAL", "REST", "TELNET" in that order.
-                        
-                    include_conn_type = : boolean, optional
-                        Decided whether the connection type will appear in the return value eg. TCP:192.168.1.1 vs 192.168.1.1
-                    
-                    Returns
-                    -------
-                    ret_val : str
-                        The Connection target of the supplied device.
-
-"""
 def get_connection_target(module_string ,scan_dictionary=None, connection_preference= None, include_conn_type = True):
+    """
+                        Takes in the connection type and serial number of a module and returns the connection target.
+
+                        Parameters
+                        ----------
+                        module_string= : str
+                            The connection type and serial number combination eg. TCP:QTL1999-05-005.
+
+                        scan_dictionary= :dict, optional
+                            A scan dictionary can be passed so that a scan does not need to take place on every call.
+                            This would be advised if calling this for every item in a list of serial numbers.
+
+                        connection_preference= : list str, optional
+                            The preference of which connection type to prioratise if none it given.
+                            Defaults to "USB", "TCP", "SERIAL", "REST", "TELNET" in that order.
+
+                        include_conn_type = : boolean, optional
+                            Decided whether the connection type will appear in the return value eg. TCP:192.168.1.1 vs 192.168.1.1
+
+                        Returns
+                        -------
+                        ret_val : str
+                            The Connection target of the supplied device.
+    """
     logging.debug("Getting connection target for : "+ str(module_string))
     if connection_preference == None:
         connection_preference = ["USB", "TCP", "SERIAL", "REST", "TELNET"]

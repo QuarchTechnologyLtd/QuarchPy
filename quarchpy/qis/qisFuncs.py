@@ -11,38 +11,71 @@ from quarchpy.user_interface.user_interface import printText
 import subprocess
 import logging
 
-def isQisRunning(): 
+def isQisRunning():
     """
     Checks if a local instance of QIS is running and responding
-    
     Returns
     -------
     is_running : bool
         True if QIS is running and responding
-
     """
- 
+
     qisRunning = False
     myQis = None
-    
     #attempt to connect to Qis
     try:
         myQis = QisInterface(connectionMessage=False)
         if (myQis is not None):
             #if we can connect to qis, it's running
-            qisRunning = True 
+            qisRunning = True
     except:
         #if there's no connection to qis, an exception will be caught
-        pass    
-     
+        pass
     if (qisRunning is False):
         logging.debug("QIS is not running")
         return False 
     else:
         logging.debug("QIS is running")
         return True
- 
-def startLocalQis(terminal=False, headless=False, args=None):
+
+
+def isQisRunningAndResponding(timeout=2):
+    """
+    checks if qis is running and responding to a $version
+    """
+    qisRunning = isQisRunning()
+    if qisRunning ==False:
+        logging.debug("QIS is not running")
+        return False
+
+    logging.debug("Qis is running")
+    myQis = QisInterface(connectionMessage=False)
+    counter = 0
+    maxCounter = 20
+    while counter <= maxCounter:
+        print(str(counter))  # TODO Remove sb db
+        versionResponse = myQis.sendAndReceiveCmd(cmd="$version")
+        if ": v" in versionResponse.lower():
+            qisResponding = True
+            break
+        else:
+            logging.debug("Qis returned from $version: " + str(versionResponse) + "  Expected to contain ': v'")
+            print("Qis returned from $version: " + str(
+                versionResponse) + "  Expected to contain ': v'")  # TODO Remove sb db
+
+            time.sleep(timeout / maxCounter)  # We attempt to get QIS
+            counter += 1
+
+
+    if (qisRunning is False):
+        logging.debug("QIS is not running")
+        return False
+    else:
+        logging.debug("QIS is running")
+        return True
+
+
+def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     """
     Executes QIS on the local system, using the version contained within quarchpy
     
@@ -95,15 +128,16 @@ def startLocalQis(terminal=False, headless=False, args=None):
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
 
         startTime = time.time() #Checks for Popen launch only
-        timeout = 10
-        last_error = ""
-        last_out = ""
         while not isQisRunning():
             _get_std_msg_and_err_from_QIS_process(process)
-
             if time.time() - startTime > timeout:
                 raise TimeoutError("QIS failed to launch within timelimit of " + str(timeout) + " sec.")
             pass
+
+        if isQisRunningAndResponding(timeout=timeout):
+            logging.debug("QPS running and responding")
+        else:
+            logging.debug("QIS running but not responding")
 
     #change directory back to start directory 
     os.chdir(current_direc)

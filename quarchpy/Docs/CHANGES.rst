@@ -13,6 +13,10 @@ Quarchpy
 Change Log
 ----------
 
+2.1.20
+------
+- Improved direct IP scanning for quarch modules.
+
 2.1.19
 ------
 - Imporoved QIS streaming 
@@ -21,7 +25,7 @@ Change Log
 
 2.1.18
 ------
-- Bug fixes
+- Minor bug fix
 
 2.1.17
 ------

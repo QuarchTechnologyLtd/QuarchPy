@@ -561,7 +561,7 @@ The currently supported synthetic channel functions are:
 
 	rms
 		The effective value of a sinusoidal waveform which gives the same heating effect as an equivalent DC supply.
-	sinewave
+	sineWave
 		A test function generating a sine wave based on the supplied parameters.
 	frequency
 		The frequency of the signal specified by the source channel.
@@ -575,9 +575,11 @@ The currently supported synthetic channel functions are:
 		The actual power which is transferred to the load / dissipated in the circuit.
 	pReactive
 		Power absorbed by and returned from the load due to its reactive properties.
-	PowerFactor
+	powerFactor
 		The ratio of the real power absorbed by the load to the apparent power flowing in the circuit.
-	Sum
+	crestFactor
+		The ratio of peak value to RMS value over the specified time window.
+	sum
 		The sum of the specified channels.
 		
 Each of the above functions have differing arguments and return value and the best source of reference for each function's

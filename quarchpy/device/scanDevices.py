@@ -46,7 +46,7 @@ def list_serial(debuPrint=False):
     for i in serial_ports:
         logging.debug("Scanning for Quarch devices on: " + str(i))
         try:
-            ser = serial.Serial(i[0], 19200, timeout=0.5)
+            ser = serial.Serial(i[0], 19200, timeout=0.5, write_timeout=0.5)
             ser.write(b'*serial?\r\n')
             s = ser.read(size=64)
             serial_module = s.splitlines()[1]

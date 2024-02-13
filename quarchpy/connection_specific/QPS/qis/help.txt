@@ -1,4 +1,4 @@
-(C)Quarch Technology Ltd 2023, QIS v1.38
+(C)Quarch Technology Ltd 2023, QIS v1.39
 
 qis:
 
@@ -190,6 +190,12 @@ $ Commands internal to qis:
 		
 	$version
 		Returns QIS version number
+	
+	$get filters
+		Returns name and sample rate of the loaded filter sets.
+	
+	$load filter [directory path]
+		Loads all filter XML files found in the provided directory path - XML files must follow the standard layout.
 
 Non $ Commands internal to qis:
 

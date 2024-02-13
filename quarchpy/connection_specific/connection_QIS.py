@@ -674,13 +674,15 @@ class QisInterface:
                 # return the valid response
                 return response
             else:
-                logging.warning("No module found at " + ipAddress)
-                logging.warning(response)
+                if "startup" not in response.lower():
+                    logging.warning("No module found at " + ipAddress)
+                    logging.warning(response)
                 return response
 
         except Exception as e:
             logging.warning(e)
-            logging.warning("No module found at " + ipAddress)
+            if "startup" not in response.lower():
+                logging.warning("No module found at " + ipAddress)
 
     def GetQisModuleSelection(self, favouriteOnly=True , additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
         tableHeaders =["Modules"]

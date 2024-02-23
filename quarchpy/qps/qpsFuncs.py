@@ -69,10 +69,12 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
         return False
 
 
-def startLocalQps(keepQisRunning=False, args=[], timeout=30):
+def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=True):
     if keepQisRunning:
         if not isQisRunning():
             startLocalQis()
+    # if startQPSMinimised == True: #TODO add to release for QPS 1.38
+    #     args.append("CCS=MIN")
     temp =""
     args = temp.join(args)
 

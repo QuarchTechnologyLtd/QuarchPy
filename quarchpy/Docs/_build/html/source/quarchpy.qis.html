@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>quarchpy.qis package &#8212; quarchpy  documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=61cd365c" />
-    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b3523f8e" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=039e1c02" />
     <script src="../_static/documentation_options.js?v=5929fcd5"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
@@ -18,9 +18,8 @@
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
-
   
-  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head><body>
   
@@ -87,15 +86,15 @@ an address can be specified for remote systems.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.isQisRunning">
 <span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">isQisRunning</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.isQisRunning" title="Link to this definition">¶</a></dt>
-<dd><p>Checks if a local instance of QIS is running and responding</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>is_running</strong> – True if QIS is running and responding</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
+<dd><p>Checks if a local instance of QIS is running and responding
+:returns: <strong>is_running</strong> – True if QIS is running and responding
+:rtype: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.isQisRunningAndResponding">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">isQisRunningAndResponding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.isQisRunningAndResponding" title="Link to this definition">¶</a></dt>
+<dd><p>checks if qis is running and responding to a $version</p>
 </dd></dl>
 
 <dl class="py function">
@@ -112,7 +111,7 @@ an address can be specified for remote systems.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.startLocalQis">
-<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">startLocalQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headless</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.startLocalQis" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">startLocalQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headless</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.startLocalQis" title="Link to this definition">¶</a></dt>
 <dd><p>Executes QIS on the local system, using the version contained within quarchpy</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -528,20 +527,14 @@ an address can be specified for remote systems.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="quarchpy.qis.isQisRunning">
 <span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">isQisRunning</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.isQisRunning" title="Link to this definition">¶</a></dt>
-<dd><p>Checks if a local instance of QIS is running and responding</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>is_running</strong> – True if QIS is running and responding</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
+<dd><p>Checks if a local instance of QIS is running and responding
+:returns: <strong>is_running</strong> – True if QIS is running and responding
+:rtype: bool</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="quarchpy.qis.startLocalQis">
-<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">startLocalQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headless</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.startLocalQis" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">startLocalQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headless</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.startLocalQis" title="Link to this definition">¶</a></dt>
 <dd><p>Executes QIS on the local system, using the version contained within quarchpy</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -621,11 +614,11 @@ an address can be specified for remote systems.</p>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &#169;2020, Quarch Technology Ltd.
+      &copy;2020, Quarch Technology Ltd.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
       <a href="../_sources/source/quarchpy.qis.rst.txt"

@@ -16,6 +16,7 @@ Change Log
 2.1.20
 ------
 - Improved direct IP scanning for quarch modules.
+- New QPS v1.37 and QIS v1.40
 
 2.1.19
 ------

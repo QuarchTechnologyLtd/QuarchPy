@@ -5,8 +5,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Index &#8212; quarchpy  documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=61cd365c" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b3523f8e" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
     <script src="_static/documentation_options.js?v=5929fcd5"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
@@ -15,9 +15,8 @@
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
-
   
-  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head><body>
   
@@ -117,13 +116,15 @@
 </li>
       <li><a href="source/quarchpy.connection_specific.html#quarchpy.connection_specific.connection_USB.TQuarchUSB_IF.BulkRead">BulkRead() (quarchpy.connection_specific.connection_USB.TQuarchUSB_IF method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/quarchpy.connection_specific.html#quarchpy.connection_specific.connection_USB.TQuarchUSB_IF.BulkReadEP">BulkReadEP() (quarchpy.connection_specific.connection_USB.TQuarchUSB_IF method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/quarchpy.connection_specific.html#quarchpy.connection_specific.connection_USB.TQuarchUSB_IF.BulkReadEPTout">BulkReadEPTout() (quarchpy.connection_specific.connection_USB.TQuarchUSB_IF method)</a>
 </li>
       <li><a href="source/quarchpy.connection_specific.html#quarchpy.connection_specific.connection_USB.TQuarchUSB_IF.BulkReadN">BulkReadN() (quarchpy.connection_specific.connection_USB.TQuarchUSB_IF method)</a>
+</li>
+      <li><a href="source/quarchpy.fio.html#quarchpy.fio.fioDiskFinder.fioDiskFinder.bytes2human">bytes2human() (quarchpy.fio.fioDiskFinder.fioDiskFinder method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -330,9 +331,13 @@
       <ul>
         <li><a href="source/quarchpy.disk_test.html#quarchpy.disk_test.iometerDiskFinder.iometerDiskFinder.findDevices">(quarchpy.disk_test.iometerDiskFinder.iometerDiskFinder method)</a>
 </li>
+        <li><a href="source/quarchpy.fio.html#quarchpy.fio.fioDiskFinder.fioDiskFinder.findDevices">(quarchpy.fio.fioDiskFinder.fioDiskFinder method)</a>
+</li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="source/quarchpy.fio.html#quarchpy.fio.fioDiskFinder.fioDiskFinder">fioDiskFinder (class in quarchpy.fio.fioDiskFinder)</a>
+</li>
       <li><a href="source/quarchpy.debug.html#quarchpy.debug.SystemTest.fix_usb">fix_usb() (in module quarchpy.debug.SystemTest)</a>
 </li>
       <li><a href="source/quarchpy.fio.html#quarchpy.fio.FIO_interface.follow">follow() (in module quarchpy.fio.FIO_interface)</a>
@@ -343,6 +348,8 @@
 
       <ul>
         <li><a href="source/quarchpy.disk_test.html#quarchpy.disk_test.iometerDiskFinder.iometerDiskFinder.formatList">(quarchpy.disk_test.iometerDiskFinder.iometerDiskFinder method)</a>
+</li>
+        <li><a href="source/quarchpy.fio.html#quarchpy.fio.fioDiskFinder.fioDiskFinder.formatList">(quarchpy.fio.fioDiskFinder.fioDiskFinder method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -537,6 +544,8 @@
         <li><a href="source/quarchpy.qis.html#quarchpy.qis.qisFuncs.isQisRunning">(in module quarchpy.qis.qisFuncs)</a>
 </li>
       </ul></li>
+      <li><a href="source/quarchpy.qis.html#quarchpy.qis.qisFuncs.isQisRunningAndResponding">isQisRunningAndResponding() (in module quarchpy.qis.qisFuncs)</a>
+</li>
       <li><a href="source/quarchpy.qps.html#quarchpy.qps.isQpsRunning">isQpsRunning() (in module quarchpy.qps)</a>
 
       <ul>
@@ -660,6 +669,8 @@
         <li><a href="source/quarchpy.fio.html#module-quarchpy.fio">quarchpy.fio</a>
 </li>
         <li><a href="source/quarchpy.fio.html#module-quarchpy.fio.FIO_interface">quarchpy.fio.FIO_interface</a>
+</li>
+        <li><a href="source/quarchpy.fio.html#module-quarchpy.fio.fioDiskFinder">quarchpy.fio.fioDiskFinder</a>
 </li>
         <li><a href="source/quarchpy.iometer.html#module-quarchpy.iometer">quarchpy.iometer</a>
 </li>
@@ -980,6 +991,13 @@
 </li>
       </ul></li>
       <li>
+    quarchpy.fio.fioDiskFinder
+
+      <ul>
+        <li><a href="source/quarchpy.fio.html#module-quarchpy.fio.fioDiskFinder">module</a>
+</li>
+      </ul></li>
+      <li>
     quarchpy.iometer
 
       <ul>
@@ -1120,6 +1138,8 @@
 
       <ul>
         <li><a href="source/quarchpy.disk_test.html#quarchpy.disk_test.iometerDiskFinder.iometerDiskFinder.returnDisk">(quarchpy.disk_test.iometerDiskFinder.iometerDiskFinder method)</a>
+</li>
+        <li><a href="source/quarchpy.fio.html#quarchpy.fio.fioDiskFinder.fioDiskFinder.returnDisk">(quarchpy.fio.fioDiskFinder.fioDiskFinder method)</a>
 </li>
       </ul></li>
       <li><a href="source/quarchpy.connection_specific.html#quarchpy.connection_specific.connection_USB.TQuarchUSB_IF.RunCommand">RunCommand() (quarchpy.connection_specific.connection_USB.TQuarchUSB_IF method)</a>
@@ -1599,11 +1619,11 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &#169;2020, Quarch Technology Ltd.
+      &copy;2020, Quarch Technology Ltd.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 

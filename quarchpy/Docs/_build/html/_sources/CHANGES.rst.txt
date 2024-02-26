@@ -13,10 +13,20 @@ Quarchpy
 Change Log
 ----------
 
-2.1.18
+2.1.20
+------
+- Improved direct IP scanning for quarch modules.
+- New QPS v1.37 and QIS v1.40
+
+2.1.19
 ------
 - Imporoved QIS streaming 
 - Bug fixes
+- Added zeroconf, numpy and pandas as requirements
+
+2.1.18
+------
+- Minor bug fix
 
 2.1.17
 ------

@@ -685,6 +685,11 @@ class QisInterface:
                 logging.warning("No module found at " + ipAddress)
 
     def GetQisModuleSelection(self, favouriteOnly=True , additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
+        '''
+        Fuction used to list the available deviced to QIS and present them to the user for selection.
+
+        Returns myDeviceID - Str the connection string used to connect to the selected device.
+        '''
         tableHeaders =["Modules"]
         ip_address = None
         favourite = favouriteOnly
@@ -698,15 +703,15 @@ class QisInterface:
             myDeviceID = listSelection(title="Select a module",message="Select a module",selectionList=foundDevices,
                                        additionalOptions= additionalOptions, nice=True, tableHeaders=tableHeaders,
                                        indexReq=True)
-            if myDeviceID in 'rescan':
+            if myDeviceID.lower() == 'rescan':
                 favourite = True
                 ip_address = None
                 continue
-            elif myDeviceID in 'all con types':
+            elif myDeviceID.lower() == 'all con types':
                 favourite = False
                 printText("Displaying all connection types...")
                 continue
-            elif myDeviceID in 'ip scan':
+            elif myDeviceID.lower() == 'ip scan':
                 ip_address = requestDialog(title="Please input the IP Address you would like to scan")
                 favourite = False
                 continue

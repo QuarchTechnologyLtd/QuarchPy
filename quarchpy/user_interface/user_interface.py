@@ -218,7 +218,7 @@ def printText(text, fillLine=False, terminalWidth=100, fill=" ", **kwargs):
 def logWarning(text, fillLine=False):
     '''
     logWarning(text)
-    Processes a warning message and diaplays it using python standar logging or a warning message in test centre.
+    Processes a warning message and diaplays it using python standard logging or a warning message in test centre.
         arguments:
             text - a string of text, or a list of strings
     '''
@@ -229,6 +229,22 @@ def logWarning(text, fillLine=False):
 
     else:
          logging.warning(text)
+    return
+
+def logDebug(text, fillLine=False):
+    '''
+    logDebug(text)
+    Processes a debug message and diaplays it using python standard logging or a debug message in test centre.
+        arguments:
+            text - a string of text, or a list of strings
+    '''
+    if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
+        # if line is not empty
+        if text.strip() != "":
+            TestCenter.testPoint("Quarch_Host.LogComment", "Message=" + __formatForTestcenter(text))
+
+    else:
+         logging.debug(text)
     return
 
 

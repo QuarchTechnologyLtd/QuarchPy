@@ -7,7 +7,7 @@ import time, platform
 from threading import Thread, Lock, Event, active_count
 from queue import Queue, Empty
 from quarchpy.connection_specific.connection_QIS import QisInterface
-from quarchpy.user_interface.user_interface import printText
+from quarchpy.user_interface.user_interface import printText, logDebug
 import subprocess
 import logging
 
@@ -134,10 +134,11 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
                 raise TimeoutError("QIS failed to launch within timelimit of " + str(timeout) + " sec.")
             pass
 
+
         if isQisRunningAndResponding(timeout=timeout):
-            logging.debug("QPS running and responding")
+            logDebug("QPS running and responding")
         else:
-            logging.debug("QIS running but not responding")
+            logDebug("QIS running but not responding")
 
     #change directory back to start directory 
     os.chdir(current_direc)

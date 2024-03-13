@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<SyntheticChannelFunctions version="1.0">
+	<SyntheticChannelFunction displayGroup="V" displayName="L1_FILT" functionName="firFilter">
+		<FunctionArguments argument_0="100ms" argument_1="LOWPASS_100HZ_AC" argument_2="chan(L1,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L2_FILT" functionName="firFilter">
+		<FunctionArguments argument_0="100ms" argument_1="LOWPASS_100HZ_AC" argument_2="chan(L2,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L3_FILT" functionName="firFilter">
+		<FunctionArguments argument_0="100ms" argument_1="LOWPASS_100HZ_AC" argument_2="chan(L3,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L1_HAR" functionName="subtract">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L1,V)" argument_2="chan(L1_FILT,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L2_HAR" functionName="subtract">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L2,V)" argument_2="chan(L2_FILT,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L3_HAR" functionName="subtract">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L3,V)" argument_2="chan(L3_FILT,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L1_FILT_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L1_FILT,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L2_FILT_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L2_FILT,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L3_FILT_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L3_FILT,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L1_HAR_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L1_HAR,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L2_HAR_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L2_HAR,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L3_HAR_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L3_HAR,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="THD%" displayName="L1_V_THD" functionName="percentageRatio">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L1_FILT,V)" argument_2="chan(L1_HAR,V)" argument_3="chan(L1_FILT_RMS,V)" argument_4="chan(L1_HAR_RMS,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="THD%" displayName="L2_V_THD" functionName="percentageRatio">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L2_FILT,V)" argument_2="chan(L2_HAR,V)" argument_3="chan(L2_FILT_RMS,V)" argument_4="chan(L2_HAR_RMS,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="THD%" displayName="L3_V_THD" functionName="percentageRatio">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L3_FILT,V)" argument_2="chan(L3_HAR,V)" argument_3="chan(L3_FILT_RMS,V)" argument_4="chan(L3_HAR_RMS,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L1_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L1,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="A" displayName="L1_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L1,A)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VA" displayName="L1_PInst" functionName="pInstantaneous">
+		<FunctionArguments argument_0="chan(L1,V)" argument_1="chan(L1,A)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VA" displayName="L1_PApp" functionName="pApparent">
+		<FunctionArguments argument_0="chan(L1_RMS,V)" argument_1="chan(L1_RMS,A)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="W" displayName="L1_PAct" functionName="pActive">
+		<FunctionArguments argument_0="100mS" argument_1="chan(L1_PInst,VA)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VAR" displayName="L1_PReact" functionName="pReactive">
+		<FunctionArguments argument_0="chan(L1_PApp,VA)" argument_1="chan(L1_PAct,W)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="PF%" displayName="L1_PF" functionName="powerFactor">
+		<FunctionArguments argument_0="chan(L1_PAct,W)" argument_1="chan(L1_PApp,VA)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="Freq" displayName="L1V_Freq" functionName="frequency">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L1,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L2_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L2,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="A" displayName="L2_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L2,A)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VA" displayName="L2_PInst" functionName="pInstantaneous">
+		<FunctionArguments argument_0="chan(L2,V)" argument_1="chan(L2,A)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VA" displayName="L2_PApp" functionName="pApparent">
+		<FunctionArguments argument_0="chan(L2_RMS,V)" argument_1="chan(L2_RMS,A)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="W" displayName="L2_PAct" functionName="pActive">
+		<FunctionArguments argument_0="100mS" argument_1="chan(L2_PInst,VA)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VAR" displayName="L2_PReact" functionName="pReactive">
+		<FunctionArguments argument_0="chan(L2_PApp,VA)" argument_1="chan(L2_PAct,W)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="PF%" displayName="L2_PF" functionName="powerFactor">
+		<FunctionArguments argument_0="chan(L2_PAct,W)" argument_1="chan(L2_PApp,VA)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="Freq" displayName="L2V_Freq" functionName="frequency">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L2,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="V" displayName="L3_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L3,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="A" displayName="L3_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L3,A)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VA" displayName="L3_PInst" functionName="pInstantaneous">
+		<FunctionArguments argument_0="chan(L3,V)" argument_1="chan(L3,A)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VA" displayName="L3_PApp" functionName="pApparent">
+		<FunctionArguments argument_0="chan(L3_RMS,V)" argument_1="chan(L3_RMS,A)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="W" displayName="L3_PAct" functionName="pActive">
+		<FunctionArguments argument_0="100mS" argument_1="chan(L3_PInst,VA)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VAR" displayName="L3_PReact" functionName="pReactive">
+		<FunctionArguments argument_0="chan(L3_PApp,VA)" argument_1="chan(L3_PAct,W)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="PF%" displayName="L3_PF" functionName="powerFactor">
+		<FunctionArguments argument_0="chan(L3_PAct,W)" argument_1="chan(L3_PApp,VA)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="Freq" displayName="L3V_Freq" functionName="frequency">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L3,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VA" displayName="Tot_PInst" functionName="sum">
+		<FunctionArguments argument_0="chan(L1_PInst,VA)" argument_1="chan(L2_PInst,VA)" argument_2="chan(L3_PInst,VA)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VA" displayName="Tot_PApp" functionName="sum">
+		<FunctionArguments argument_0="chan(L1_PApp,VA)" argument_1="chan(L2_PApp,VA)" argument_2="chan(L3_PApp,VA)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="W" displayName="Tot_PAct" functionName="sum">
+		<FunctionArguments argument_0="chan(L1_PAct,W)" argument_1="chan(L2_PAct,W)" argument_2="chan(L3_PAct,W)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="VAR" displayName="Tot_PReact" functionName="sum">
+		<FunctionArguments argument_0="chan(L1_PReact,VAR)" argument_1="chan(L2_PReact,VAR)" argument_2="chan(L3_PReact,VAR)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="A" displayName="Neutral_RMS" functionName="rms">
+		<FunctionArguments argument_0="100ms" argument_1="chan(Neutral,A)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="CF" displayName="L1_V_CREST" functionName="crestFactor">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L1,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="CF" displayName="L2_V_CREST" functionName="crestFactor">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L2,V)"/>
+	</SyntheticChannelFunction>
+	<SyntheticChannelFunction displayGroup="CF" displayName="L3_V_CREST" functionName="crestFactor">
+		<FunctionArguments argument_0="100ms" argument_1="chan(L3,V)"/>
+	</SyntheticChannelFunction>
+</SyntheticChannelFunctions>

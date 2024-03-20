@@ -1,7 +1,7 @@
 """
 Functions to allow automatic update and checking of the quarchpy package.
 """
-from quarchpy import isQisRunning, closeQIS, isQpsRunning, closeQPS
+from quarchpy import isQisRunning, isQpsRunning, closeQps, closeQis
 import subprocess, sys
 from quarchpy.user_interface import *
 
@@ -89,11 +89,11 @@ def check_if_update(auto_update):
         if update_desired:
             if isQpsRunning() == True:
                  usr_input = requestDialog(title="", message="QPS must be closed to update. Close QPS Y/N?")
-                 if auto_update or usr_input == "Y" or usr_input == "y": closeQPS()
+                 if auto_update or usr_input == "Y" or usr_input == "y": closeQps()
                  else: return False
             if isQisRunning() == True:
                  usr_input = requestDialog(title="", message="QIS must be closed to update. Close QIS Y/N?")
-                 if auto_update or usr_input == "Y" or usr_input == "y": closeQIS()
+                 if auto_update or usr_input == "Y" or usr_input == "y": closeQis()
                  else: return False
         else:
             return False

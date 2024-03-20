@@ -393,9 +393,6 @@ class quarchStream:
         else:
             dataPointTime = toQpsTimeStamp(dataPointTime)
 
-        # print ("printing command:  $log " + channelName + " " + groupName + " " + str(dataPointTime) + " " + str(dataValue))
-        # self.connectionObj.qps.sendCmdVerbose("$log " + channelName + " " + groupName + " " + str(dataPointTime) + " " + str(dataValue))
-
         self.connectionObj.qps.sendCmdVerbose(
             "$stream data add " + channelName + " " + groupName + " " + str(dataPointTime) + " " + str(
                 dataValue) + " " + timeFormat)

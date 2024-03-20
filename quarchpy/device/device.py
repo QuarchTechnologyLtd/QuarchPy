@@ -214,7 +214,6 @@ class quarchDevice:
 
     # def setCanStream(self):
     # ask module name if = name in list
-    # TODO: expectedResponse does nothing can it be removed
     # TODO: The connectionObj should be an instance of a common base class such that the IF block here is not needed
     def sendCommand(self, CommandString, expectedResponse = True):
         """
@@ -245,32 +244,34 @@ class quarchDevice:
             if numb_colons == 1:
                 self.ConString = self.ConString.replace(':', '::')
 
-            response = self.connectionObj.qis.sendCmd(self.ConString, CommandString)
+            response = self.connectionObj.qis.sendCommand(CommandString, device=self.ConString, expectedResponse=expectedResponse)
             # send response to log
             logging.debug(os.path.basename(__file__) + ": "+self.ConType[:3]+" received: " + response)
             return response
 
         elif self.ConType == "PY":
-            response = self.connectionObj.connection.sendCommand(CommandString)
+            response = self.connectionObj.connection.sendCommand(CommandString, expectedResponse=expectedResponse)
             # send response to log
             logging.debug(os.path.basename(__file__) + ": "+self.ConType[:3]+" received: " + response)
             return response
 
         elif self.ConType[:3] == "QPS":
-            # checking if the command string passed has a $ as first char
+            # If "$" CMD is for QPS, else its for the specific module. Since QPS can talk to many modules we must added the conString.
             if CommandString[0] != '$':
                 CommandString = self.ConString + " " + CommandString
 
-            response = self.connectionObj.qps.sendCmdVerbose(CommandString)
+            response = self.connectionObj.qps.sendCommand(CommandString, expectedResponse)
             # send response to log
             logging.debug(os.path.basename(__file__) + ": "+self.ConType[:3]+" received: " + response)
             return response
+
 
     # Only works for usb
     # TODO: Can this be marked '_' for private use only
     def sendBinaryCommand(self, cmd):
         self.connectionObj.connection.Connection.SendCommand(cmd)
         return self.connectionObj.connection.Connection.BulkRead()
+
 
     # TODO: Not using class hierarchy based connectionObj, recreation of PYConnection may not release the previous handle in time.
     # QPS and QIS actions are different despite the underlying connection being the same!
@@ -297,6 +298,7 @@ class quarchDevice:
         else:
             raise Exception("Connection type not recognised")
 
+
     # TODO: Not using class hierarchy based connectionObj. QPS and QIS actions are different despite the underlying connection being the same!
     def closeConnection(self):
         """
@@ -317,7 +319,7 @@ class quarchDevice:
 
         return "OK"
 
-    
+
     # TODO: Not using class hierarchy based connectionObj.
     def resetDevice(self, timeout=10):
         """
@@ -427,6 +429,7 @@ class quarchDevice:
         else:
             return True
 
+
     def getRuntime(self, command="conf:runtimes?"):
         '''
 
@@ -467,6 +470,7 @@ def _check_ip_in_qis_list(ip_address, detailed_device_list):
 
     # If the ip address wasn't found, then return none
     return None
+
 
 # TODO: Can we make this an '_' internal function?
 def checkModuleFormat(ConString):

@@ -220,7 +220,6 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
                     break
             cont = 0
 
-            # print(msg_received)
             # Used split \r\n since values of 13 or 10 were looked at as /r and /n when using splitlines
             # This fixes for all cases except if 13 is followed by 10.
             splits = msg_received[0].split(b"\r\n")
@@ -480,7 +479,6 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         except Exception as e:
             logging.error(e)
             logging.warning("Network scan failed, check network connection")
-        # print(foundDevices)
 
     if target_conn.lower() == "serial":
         foundDevices = list_serial()

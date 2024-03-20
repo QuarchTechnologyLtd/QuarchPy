@@ -52,6 +52,31 @@ class QpsInterface:
         else:
             self.client.send( data )
 
+    def sendCommand(self, cmd, timeout=20, expectedResponse=True ):
+        cmd = cmd + "\r\n"
+        logging.debug("Sending cmd to QPS: " + str(cmd))
+        self.send(cmd)
+
+        start = time.time()
+        response = self.recv().strip()
+        while response.rfind('\r\n>') == -1:  # If true then the resposnse is large and multi packeted
+            time.sleep(0.1)
+            t_response = self.recv().strip()
+            # Add current response to new response
+            response += t_response
+            # Keep reading from the socket if there's stuff that was retreived
+            if len(str(t_response)) == 0:
+                if time.time() - start > timeout:
+                    logging.warning("Command : " + str(cmd) + " Hit timeout during QPS read. timeout = " + str(timeout))
+                    break
+
+        pos = response.rfind('\r\n>')
+        if pos == -1:
+            logging.warning("Did not retrieve trailing '\\r\\n>' from QPS read, returned full response so far")
+            logging.warning("command : " + cmd.replace('\r\n', '\\r\\n'))
+            logging.warning("returned : " + response.replace('\r\n', '\\r\\n'))
+            pos = len(str(response))
+        return response[:pos]
 
     def sendCmdVerbose(self, cmd, timeout=20):
         cmd = cmd + "\r\n"
@@ -83,7 +108,6 @@ class QpsInterface:
     def connect(self, targetDevice):
         cmd="$connect " + targetDevice
         retVal = self.sendCmdVerbose(cmd)
-        #print(cmd+" : "+retVal)
         time.sleep(0.3)
         return retVal
 

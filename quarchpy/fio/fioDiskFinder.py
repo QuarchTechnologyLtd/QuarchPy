@@ -37,7 +37,7 @@ class fioDiskFinder (AbsDiskFinder):
         # removes the host drive with this param
         deviceList = psutil.disk_partitions()
 
-        print (deviceList)
+        printText(deviceList)
 
         for idx, part in enumerate(deviceList):
             if os.name == 'nt':

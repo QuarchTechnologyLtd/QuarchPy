@@ -7,8 +7,8 @@ using the format:
 # Import the various functions which need to be called from the command line options
 from quarchpy.debug.SystemTest import main as systemTestMain
 from quarchpy.debug.module_debug import parse_arguments as moduleDebugMain
-from quarchpy.qis.qisFuncs import startLocalQis, isQisRunning, closeQis as closeQIS
-from quarchpy.qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps as closeQPS
+from quarchpy.qis.qisFuncs import startLocalQis, isQisRunning, closeQis
+from quarchpy.qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps
 from quarchpy.debug.upgrade_quarchpy import main as uprade_quarchpy_main
 from quarchpy.user_interface import*
 from quarchpy.debug.simple_terminal import main as simple_terminal_main
@@ -183,7 +183,7 @@ def _run_qis_function(args=None):
                 shutdown = True
                 if isQisRunning() == True:
                     printText("Closing QIS")
-                    closeQIS()
+                    closeQis()
                     break
                 else:
                     printText("QIS is not running")
@@ -209,7 +209,7 @@ def _run_qps_function(args=None):
                 shutdown = True
                 if isQpsRunning() == True:
                     printText("Closing QPS")
-                    closeQPS()
+                    closeQps()
                     break
                 else:
                     printText("QPS is not running")

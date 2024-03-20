@@ -171,10 +171,6 @@ class QisInterface:
                 moduleStreaming= module.sendCommand("rec stream?").lower() #checking if module thinks its streaming.
                 moduleStreaming2= module.sendCommand("stream?").lower() #checking if the module has told qis it has stopped streaming.
 
-                #print("thread list = " + str(threadNameList))
-                #print("moduleStreaming rec stream? = " + str(moduleStreaming))
-                #print("moduleStreaming stream? = " + str(moduleStreaming2))
-
                 if (moduleName in threadNameList or "running" in moduleStreaming or "running" in moduleStreaming2):
                     time.sleep(0.1)
 
@@ -276,7 +272,6 @@ class QisInterface:
                     #now = time.time()
                     streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module, numStripesPerRead)
                     newStripes = newStripes.replace(' ', separator)
-                    #print (time.time() - now)
                     if streamOverrun:
                         self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun']
                     # TODO: MD Why don't we return isEmpty in the tuple, instead of having this confusing test?
@@ -498,10 +493,7 @@ class QisInterface:
                     streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module,
                                                                                       numStripesPerRead)
                     newStripes = newStripes.replace(' ',separator)
-                    # print(newStripes)
-                    # print(len(newStripes))
 
-                    # print (time.time() - now)
                     if streamOverrun:
                         self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun']
                     if (removeChar == -6 and len(newStripes) == 6):
@@ -1564,6 +1556,25 @@ class QisInterface:
             x = x.replace("-", " ")
             f.write("Saved: "+x+ "\n")
 
+
+    def sendCommand(self, cmd, device="", timeout=20,sock=None,readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse=True):
+        '''Send command is used to send a command to QIS and as far as I can see it has no difference than sendAndReceiveCmd'''
+        if expectedResponse is True:
+            if sock == None:
+                sock = self.sock
+            if not (device == ''):
+                self.deviceDictSetup(device)
+            res = self.sendAndReceiveText(sock, cmd, device, readUntilCursor)
+            if (betweenCommandDelay > 0):
+                time.sleep(betweenCommandDelay)
+            # If ends with cursor get rid of it
+            if res[-1:] == '>':
+                res = res[:-3]  # remove last three chars - hopefully '\r\n>'
+            return res
+
+        else :
+            self.sendText(sock, cmd, device)
+            return
 
     # when sending commands to module (as opposed to back end)
     # If read until cursor is set to True (which is default) then keep reading response until a cursor is returned as the last character of result string

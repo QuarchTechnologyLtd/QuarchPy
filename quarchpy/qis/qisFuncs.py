@@ -53,16 +53,12 @@ def isQisRunningAndResponding(timeout=2):
     counter = 0
     maxCounter = 20
     while counter <= maxCounter:
-        print(str(counter))  # TODO Remove sb db
         versionResponse = myQis.sendAndReceiveCmd(cmd="$version")
         if ": v" in versionResponse.lower():
             qisResponding = True
             break
         else:
             logging.debug("Qis returned from $version: " + str(versionResponse) + "  Expected to contain ': v'")
-            print("Qis returned from $version: " + str(
-                versionResponse) + "  Expected to contain ': v'")  # TODO Remove sb db
-
             time.sleep(timeout / maxCounter)  # We attempt to get QIS
             counter += 1
 

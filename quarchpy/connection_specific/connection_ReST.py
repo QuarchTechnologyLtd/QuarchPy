@@ -15,9 +15,9 @@ class ReSTConn:
     def close(self):
         return True
 
-    def sendCommand(self, Command, expectedResponse = True, max_retries=1):
+    def sendCommand(self, Command, expectedResponse = True, max_retries=2):
         Command = "/" + Command.replace(" ", "%20")
-        for attempt in range(1, max_retries + 1):
+        for attempt in range(0, max_retries ):
             try:
                 self.Connection.request("GET", Command)
                 if expectedResponse == True:
@@ -37,6 +37,7 @@ class ReSTConn:
             except socket.timeout as e:
                 if attempt < max_retries:
                     logging.warning("Socket timed out, retrying command...")
+                    time.sleep(0.1)
                 else:
                     logging.error("Maximum number of retries reached on module at: "+self.ConnTarget+". Exiting.")
                     raise e

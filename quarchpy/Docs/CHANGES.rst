@@ -17,6 +17,7 @@ Change Log
 ------
 - New QPS v1.38 and QIS 1.41
 - Minor bug fixes
+
 2.1.20
 ------
 - Improved direct IP scanning for quarch modules.

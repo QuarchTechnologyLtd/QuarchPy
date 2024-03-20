@@ -205,6 +205,7 @@ def printText(text, fillLine=False, terminalWidth=100, fill=" ", **kwargs):
         # if line is not empty
         if text.strip() != "":
                 TestCenter.testPoint ("Quarch_Host.LogComment","Message=" + __formatForTestcenter(text),stack_level=2)
+                logging.debug(str(text))
 
     else:
         if fillLine:

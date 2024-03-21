@@ -46,17 +46,17 @@ from debug.versionCompare import requiredQuarchpyVersion
 #breacking back-compatibility with old scripts.  Avoid using these direct imports
 #and use the managed sub module format instead (from quarchpy.device import *)
 from device import quarchDevice, getQuarchDevice
-from connection_specific.connection_QIS import QisInterface
-from connection_specific.connection_QPS import QpsInterface
+from connection_specific.connection_QIS import QisInterface, QisInterface as qisInterface
+from connection_specific.connection_QPS import QpsInterface, QpsInterface as qpsInterface
 from qis.qisFuncs import isQisRunning, startLocalQis, GetQisModuleSelection
-from qis.qisFuncs import closeQis
+from qis.qisFuncs import closeQis, closeQis as closeQIS
 from device.quarchPPM import quarchPPM
 from iometer.iometerFuncs import generateIcfFromCsvLineData, readIcfCsvLineData, generateIcfFromConf, runIOMeter, processIometerInstResults
 from device.quarchQPS import quarchQPS
 from qps.qpsFuncs import isQpsRunning, startLocalQps, GetQpsModuleSelection
-from qps.qpsFuncs import closeQps
-from disk_test.DiskTargetSelection import getDiskTargetSelection
-from qps.qpsFuncs import toQpsTimeStamp
+from qps.qpsFuncs import closeQps, closeQps as closeQPS
+from disk_test.DiskTargetSelection import getDiskTargetSelection, getDiskTargetSelection as GetDiskTargetSelection
+from qps.qpsFuncs import toQpsTimeStamp, toQpsTimeStamp as adjustTime
 from fio.FIO_interface import runFIO
 from device.scanDevices import scanDevices
 

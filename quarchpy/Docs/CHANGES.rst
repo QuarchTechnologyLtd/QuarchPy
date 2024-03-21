@@ -13,6 +13,12 @@ Quarchpy
 Change Log
 ----------
 
+2.1.22
+------
+- QIS and QPS devices and interfaces can use sendCommand to send comannds to the modules and to the applications uniformly
+- Tidy up of print statments and comments.
+
+
 2.1.21
 ------
 - New QPS v1.38 and QIS 1.41
@@ -20,7 +26,7 @@ Change Log
 
 2.1.20
 ------
-- Improved direct IP scanning for quarch modules.
+- Improved direct IP scanning for quarch modules
 - New QPS v1.37 and QIS v1.40
 
 2.1.19
@@ -49,19 +55,19 @@ Change Log
 
 2.1.14
 ------
-- minor bug fixes and logging improvements.
+- minor bug fixes and logging improvements
 
 2.1.13
 ------
 - New QPS v1.36
 - New QIS v1.39
-- minor bug fixes and logging improvements.
+- minor bug fixes and logging improvements
 
 2.1.12
 ------
 - New QPS v1.35
 - New QIS v1.38
-- minor bug fixes and removal of depracated code.
+- minor bug fixes and removal of depracated code
 
 2.1.11
 ------
@@ -100,7 +106,7 @@ Change Log
 2.1.3
 -----
 - New QPS v1.22
-- modules on the network can now be connected to using conType:QTLNumber eg. TCP:QTL1999-02-001. 
+- modules on the network can now be connected to using conType:QTLNumber eg. TCP:QTL1999-02-001
 - fixed QIS not closing with QPS when launch with by QPS
 - closeConnection added to QIS api
 - display table formats multiline items and handles empty cells

@@ -4,15 +4,30 @@ using the format:
 > python -m quarchpy.run [option]
 """
 
+### This is very important. It allows us to import from the run.py we are running from.
+### If this cwn parent wasn't added we would always look at the python3/Lib/sitepackages/quarchpy
+### which is not always where we are running from.
+import sys, os
+cwd=os.getcwd()
+parent_dir = os.path.dirname(cwd)
+sys.path.insert(0, parent_dir) #It must be added at the start of the list so it is caught there before installed quarchpy is found.
+
 # Import the various functions which need to be called from the command line options
 from quarchpy.debug.SystemTest import main as systemTestMain
 from quarchpy.debug.module_debug import parse_arguments as moduleDebugMain
-from quarchpy.qis.qisFuncs import startLocalQis, isQisRunning, closeQis
-from quarchpy.qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps
+from quarchpy.qis.qisFuncs import startLocalQis, isQisRunning, closeQis as closeQIS
+from quarchpy.qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps as closeQPS
 from quarchpy.debug.upgrade_quarchpy import main as uprade_quarchpy_main
 from quarchpy.user_interface import*
 from quarchpy.debug.simple_terminal import main as simple_terminal_main
 import sys, logging, traceback
+
+
+#
+# #from .qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps as closeQPS
+# from qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps as closeQPS
+# from .qps.qpsFuncs import startLocalQps
+# #from quarchpy.qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps as closeQPS
 
 def main(args):
     """
@@ -183,7 +198,7 @@ def _run_qis_function(args=None):
                 shutdown = True
                 if isQisRunning() == True:
                     printText("Closing QIS")
-                    closeQis()
+                    closeQIS()
                     break
                 else:
                     printText("QIS is not running")
@@ -209,7 +224,7 @@ def _run_qps_function(args=None):
                 shutdown = True
                 if isQpsRunning() == True:
                     printText("Closing QPS")
-                    closeQps()
+                    closeQPS()
                     break
                 else:
                     printText("QPS is not running")
@@ -280,3 +295,4 @@ def _run_help_function(args=None):
 
 if __name__ == "__main__":
     main (sys.argv[1:])
+    main (["qps"])

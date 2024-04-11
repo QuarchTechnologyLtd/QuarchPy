@@ -1,6 +1,17 @@
-from quarchpy import *
-from quarchpy.device import *
-from importlib.metadata import distribution
+# from quarchpy import *
+# from quarchpy.device import *
+try:
+    from importlib.metadata import distribution
+except:
+    try:
+        from importlib_metadata import distribution
+    except Exception as e:
+        print("Failed to import distribution from importlib_metadata")
+    try:
+
+        from importlib_metadata import distribution
+    except:
+        print("here")
 import os
 import platform
 import sys

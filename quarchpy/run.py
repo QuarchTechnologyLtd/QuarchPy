@@ -22,13 +22,6 @@ from quarchpy.user_interface import*
 from quarchpy.debug.simple_terminal import main as simple_terminal_main
 import sys, logging, traceback
 
-
-#
-# #from .qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps as closeQPS
-# from qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps as closeQPS
-# from .qps.qpsFuncs import startLocalQps
-# #from quarchpy.qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps as closeQPS
-
 def main(args):
     """
     Main function parses the arguments from the run command only
@@ -295,4 +288,3 @@ def _run_help_function(args=None):
 
 if __name__ == "__main__":
     main (sys.argv[1:])
-    main (["qps"])

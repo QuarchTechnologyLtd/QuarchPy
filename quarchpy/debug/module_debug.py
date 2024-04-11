@@ -130,7 +130,7 @@ def main(filepath=None):
                         logText(sig.name, "end")
                         logText(", Host Monitor: " + my_device.sendCommand("sig:{}:stat:host?".format(sig.name)), "end")
                         logText(", Device Monitor: " + my_device.sendCommand("sig:{}:stat:dev?".format(sig.name)), "end")
-                    logText("\n")
+                        logText("\n")
 
     # Print the list of signals on the module, and the capability flags for each signal
     # This can be used to iterate a test over every signal in a module

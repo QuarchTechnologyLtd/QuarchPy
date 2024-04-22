@@ -19,7 +19,7 @@ from quarchpy.device import quarchDevice, quarchArray
 from quarchpy.connection_specific.connection_Serial import serialList, serial
 from quarchpy.device.quarchArray import isThisAnArrayController
 from quarchpy.connection_specific.connection_USB import TQuarchUSB_IF
-from quarchpy.connection_specific import connection_ReST
+from quarchpy.connection_specific import connection_ReST, connection_TCP
 from quarchpy.connection_specific.connection_mDNS import MyListener
 from quarchpy.utilities import TestCenter
 
@@ -183,6 +183,7 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
     # Broadcast the message.
     logging.debug("Broadcast LAN discovery message for UDP scan to all network interfaces")
     ipList = socket.gethostbyname_ex(socket.gethostname())
+    ipList[2].append("")
     logging.debug(os.path.basename(__file__) + ": Discovered the following interfaces: " + str(ipList))
 
 
@@ -306,8 +307,13 @@ def get_user_level_serial_number(network_modules):
 ''''''
 def lookupDevice(ipAddressLookup, mySocket, lan_modules):
     try:
-        logging.debug("Ipaddress lookup " + ipAddressLookup)
+        specifiedDevice =None
         # For future reference, 0 is the C terminator for a string
+        timeout = mySocket.gettimeout()
+        # mySocket.settimeout(20)
+        # timeout2 = mySocket.gettimeout()
+        logging.debug("Ipaddress lookup =" + ipAddressLookup+ "  timeout = "+ str(timeout))
+
         mySocket.sendto(b'Discovery: Who is out there?\0\n', (str(ipAddressLookup).strip(), 30303))
         specifiedDevice = mySocket.recvfrom(256)
         # Check to see if the response contains the connection protocol
@@ -315,26 +321,47 @@ def lookupDevice(ipAddressLookup, mySocket, lan_modules):
     except Exception as e:
         logging.warning("Error during UDP lookup of IP address "+ str(ipAddressLookup) +"  Error: " + str(e))
         logging.warning("No Quarch module found at this address. Please check the IP address and that you can ping it.\r\n")
-    return None
-    #
-    # if specifiedDevice is None: #Only True if TCP not found or errored
-    #     try:
-    #         restCon = connection_ReST.ReSTConn(str(ipAddressLookup).replace("\r\n", ""))
-    #         restDevice = restCon.sendCommand("*enclosure?") #Try use enclosure for PPMs
-    #         if "fail" in restDevice.lower(): # This will fail nicely for other modules
-    #             restDevice = restCon.sendCommand("*serial?") # and serial number will be used in place.
-    #         if not str(restDevice).startswith("QTL"):
-    #             restDevice = "QTL" + restDevice
-    #         # Exit as device was found correctly
-    #         # Add the item to list
-    #         lan_modules["REST:" + str(ipAddressLookup).replace("\r\n", "")] = restDevice
-    #         specifiedDevice=None # Don't return rest connection, to bypass tcp parsing.
-    #     except Exception as e:
-    #         logging.warning("Error During REST scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
-    #         logging.warning("Please check the IP address and that you can ping it.\r\n")
-    #
-    #     # Needs to return None so previous method will not attempt another lookup.
-    #     return specifiedDevice
+
+    #return None # Commented out, attempt a REST connection with IP. This is what other quarch applications do.
+    if specifiedDevice is None: #Only True if TCP not found or errored
+        try:
+            restCon = connection_ReST.ReSTConn(str(ipAddressLookup).replace("\r\n", ""))
+            restDevice = restCon.sendCommand("*enclosure?") #Try use enclosure for PPMs
+            if "fail" in restDevice.lower(): # This will fail nicely for other modules
+                restDevice = restCon.sendCommand("*serial?") # and serial number will be used in place.
+            if not str(restDevice).startswith("QTL"):
+                restDevice = "QTL" + restDevice
+            # Exit as device was found correctly
+            # Add the item to list
+            lan_modules["REST:" + str(ipAddressLookup).replace("\r\n", "")] = restDevice
+            specifiedDevice=None # Don't return rest connection, to bypass tcp parsing.
+        except Exception as e:
+            logging.warning("Error During REST scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
+            logging.warning("Please check the IP address and that you can ping it.\r\n")
+        try:
+            # from threading import Thread
+            # t = Thread(target=connection_TCP.TCPConn, args=(str(ipAddressLookup).replace("\r\n", ""),))
+            # t.daemon = True
+            # t.start()
+            # t.join(50)
+            # if t.is_alive():
+            #     raise TimeoutError("Timeout during TCP Connection attempt.")
+
+            tcpCon= connection_TCP.TCPConn(str(ipAddressLookup).replace("\r\n", ""))
+            tcpDevice = tcpCon.sendCommand("*enclosure?") #Try use enclosure for PPMs
+            if "fail" in tcpDevice.lower(): # This will fail nicely for other modules
+                tcpDevice = tcpCon.sendCommand("*serial?") # and serial number will be used in place.
+            if not str(tcpDevice).startswith("QTL"):
+                tcpDevice = "QTL" + tcpDevice
+            # Exit as device was found correctly
+            # Add the item to list
+            lan_modules["TCP:" + str(ipAddressLookup).replace("\r\n", "")] = tcpDevice
+            specifiedDevice=None # Don't return tcp connection, to bypass tcp parsing.
+        except Exception as e:
+            logging.warning("Error During TCP scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
+            logging.warning("Please check the IP address and that you can ping it.\r\n")
+        # Needs to return None so previous method will not attempt another lookup.
+        return specifiedDevice
 
 
 
@@ -462,7 +489,8 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
                 module_type_filter=None, ipAddressLookup=None):
     foundDevices = dict()
     scannedArrays = list()
-
+    mdnsListener = MyListener()
+    scan_mDNS(mdnsListener)
 
     if target_conn.lower() == "all":
         foundDevices = list_USB()
@@ -471,8 +499,6 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
             #This will fail if the test machine is not connected to a network
             foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
             try:
-                mdnsListener = MyListener()
-                scan_mDNS(mdnsListener)
                 foundDevices = mergeDict(foundDevices, mdnsListener.found_devices)
             except Exception as mdnsExcept:
                 logging.debug("An error occurred while trying to use the mdns listner to scan\n" +str(mdnsExcept))

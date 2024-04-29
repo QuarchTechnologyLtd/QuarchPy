@@ -292,13 +292,15 @@ printProgressBar (iteration,total,prefix='',suffix='',decimals=1,length=100,fill
 
 '''
 def progressBar(iteration, total, prefix='', suffix='', decimals=1, fill='█', fullWidth=100):
+    iteration = float(iteration)
+    total = float(total)
     if iteration >= 0 and total > 0:
 
         if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
             TestCenter.testPoint ("Quarch_Host.ShowTaskProgress","Title=Task Progress", "Iteration="+str(int(iteration)), "Total="+str(int(total)), stack_level=2);
 
         else:
-            percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+            percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / total))
             length = fullWidth - (len(prefix)+len(suffix)+len(percent) +4) #the length of the bar must scale acording to anything else on the line
 
             filledLength = int(length * iteration // total)

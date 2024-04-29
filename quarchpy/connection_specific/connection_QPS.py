@@ -182,4 +182,45 @@ class QpsInterface:
         #return list of devices
         return deviceList
 
+
+    def open_recording(self, file_path, cmdTimeout=5, pollInterval=3, startOpenTimout=5):
+        """
+
+        """
+        #print("Open recording at file : \""+str(file_path)+"\"")
+        self.sendCmdVerbose("$open recording qpsFile=\""+str(file_path)+"\"",timeout=cmdTimeout)
+        loadingStarted=False
+        message=""
+        startTime=time.time()
+        notLoadingMessageStartTime=None
+        while(1):
+            update=self.sendCmdVerbose("$progress check \"open recording\"",timeout=cmdTimeout)
+            #print(update)
+            m = re.search('\d+(\.\d+)?%', update)
+            if m: # A percentage was found
+                loadingStarted=True
+                found = float(m.group(0)[:-1])
+                user_interface.progressBar(found,100)
+                if found > 99.9: # This will catch the case we have 99.9999% or 100% loaded. recording with less that 1mill records auto return 100%
+                    message = "Passed, Recording opened, loading detected and complete."
+                    break
+            elif("Chart window is open but no loading is in progress." in update):
+                if loadingStarted ==True:
+                    # Loading started and has now ended, so we can exit the loop.
+                    message="Passed, Recording opened, loading detected and complete."
+                    break
+                else: # QPS has not started loading a recording.
+                    if notLoadingMessageStartTime == None:
+                        # Start a timer from now so that if loading doesn't take place between now and a timeout value,
+                        # we exit, stating that no loading started within the desired time.
+                        notLoadingMessageStartTime = time.time()
+                    elif time.time() - notLoadingMessageStartTime> startOpenTimout:
+                        message = "No detection that QPS started loading the recording within "+str(startOpenTimout)+"s."
+                        break
+
+            time.sleep(pollInterval) #Sleep pollInterval time, so we are not hammering QPS for updates while its busy loading.
+        time.sleep(1) #sleep outside the loop as there is a
+        return message
+
+
     

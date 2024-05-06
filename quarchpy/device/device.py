@@ -110,21 +110,16 @@ class quarchDevice:
         ## QIS
         # ConType may be QIS only or QIS:ip:port [:3] checks if the first 3 letters are QIS.
         elif self.ConType[:3].upper() == "QIS":
-            # If host and port are specified.
-            try:
-                # Extract QIS, host and port.
-                QIS, host, port = self.ConType.split(':')
-                # QIS port should be an int.
-                port = int(port)
-            # If host and port are not specified.
-            except:
+            try: # If host and port are specified.
+                QIS, host, port = self.ConType.split(':') # Extract QIS, host and port.
+                port = int(port) # QIS port should be an int.
+            except:  # If host and port are not specified.
                 host = '127.0.0.1'
                 port = 9722
 
             numb_colons = self.ConString.count(":")
             if numb_colons == 1:
                 self.ConString = self.ConString.replace(':', '::')
-
             # Creates the connection object.
             self.connectionObj = QISConnection(self.ConString, host, port)
 
@@ -132,9 +127,8 @@ class quarchDevice:
             list_str = "".join(list).lower()
 
             timeout = time.time() + int(timeout) # now + n seconds
-
             # check for device in list, has a timeout
-            while time.time() < timeout:
+            while time.time() < timeout: # look for the connection string in qis $list details
 
                 # Check if it's a module's QTL number
                 if "qtl" not in self.ConString.lower():
@@ -143,7 +137,6 @@ class quarchDevice:
                     ip_address = re.search(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", self.ConString)
                     if not ip_address:
                         raise ValueError("ConString " + self.ConString + " does not contain a valid QTL number or IP address")
-
                     # Attempt to get QTL number from qis "$list details"
                     temp_str = _check_ip_in_qis_list(ip_address.group(), self.connectionObj.qis.get_list_details())
                     if temp_str:
@@ -159,9 +152,8 @@ class quarchDevice:
                     if "located" in str(self.connectionObj.qis.scanIP(self.ConString)).lower():
                         # Note - Qis takes a moment or 2 to add this newly located device to the $list 21/03/23
                         timeout += 20   # Extend the timeout as the drive was located
-
                         while time.time() < timeout:
-                            # try find the new device again from ipaddress
+                            # try find the QTL from ipaddress
                             temp_str = _check_ip_in_qis_list(ip_address.group(), self.connectionObj.qis.get_list_details())
                             if temp_str:
                                 # If the item is found, break out of this loop
@@ -181,8 +173,7 @@ class quarchDevice:
                     time.sleep(1)
                     list = self.connectionObj.qis.getDeviceList()
                     list_str = "".join(list).lower()
-            else:
-                # If we didn't hit a 'break' condition in the above loop, then it timed out
+            else: # If we didn't hit a 'break' condition in the above loop, then it timed out
                 raise timeout_exception("Could not find module " + self.ConString + " from Qis within specified time")
 
             self.connectionObj.qis.sendAndReceiveCmd(cmd="$default " + self.ConString)
@@ -190,9 +181,9 @@ class quarchDevice:
         ## QPS
         elif self.ConType[:3].upper() == "QPS":
             try:
-                # Extract QIS, host and port.
-                QIS, host, port = self.ConType.split(':')
-                # QIS port should be an int.
+                # Extract QPS, host and port.
+                QPS, host, port = self.ConType.split(':')
+                # QPS port should be an int.
                 port = int(port)
             # If host and port are not specified.
             except:
@@ -204,6 +195,65 @@ class quarchDevice:
                 self.ConString = self.ConString.replace(':', '::')
 
             self.connectionObj = QPSConnection(host, port)
+            list = self.connectionObj.qps.sendCmdVerbose("$module list details").replace("\r\n","\n").split("\n")
+            list_str = "".join(list).lower()
+
+            timeout = time.time() + int(timeout) # now + n seconds
+            # check for device in list, has a timeout
+            while time.time() < timeout: # look for the connection string in QPS $list details
+
+                # Check if it's a module's QTL number
+                if "qtl" not in self.ConString.lower():
+
+                    # If not, check if it contains a valid IP address format
+                    ip_address = re.search(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", self.ConString)
+                    if not ip_address:
+                        raise ValueError("ConString " + self.ConString + " does not contain a valid QTL number or IP address")
+
+                    # Attempt to get QTL number from QPS "$list details"
+                    temp_str = _check_ip_in_qis_list(ip_address.group(), list)
+                    if temp_str:
+                        # If found
+                        self.ConString = temp_str
+                        break
+
+                    logging.debug("Did not find ip address in list details, attempt targetted QPS scan")
+
+                    # If it's not present in the list already, then try scanning for it via QPS
+                    # Scan is purposefully after initial check! 09/03/2023
+                    # Valid response example "Located device: 192.168.1.3"
+
+                    if "located" in str(self.connectionObj.qps.scanIP(self.ConString)).lower():
+                        # Note - QPS takes a moment or 2 to add this newly located device to the $list 21/03/23
+                        timeout += 20   # Extend the timeout as the drive was located
+                        while time.time() < timeout:
+                            # try find the QTL from ipaddress
+                            temp_str = _check_ip_in_qis_list(ip_address.group(), self.connectionObj.qps.get_list_details())
+                            if temp_str:
+                                # If the item is found, break out of this loop
+                                self.ConString = temp_str
+                                break
+                            time.sleep(1)   # Slow down the poll
+                        else:
+                            # if it's not found, continue and allow program to timeout
+                            continue
+                        # Break out of both loops
+                        break
+
+                elif str(self.ConString).lower() in str(list_str).lower():
+                    # If we have QTL device, and it's in list, nothing more needs done.
+                    break
+                else:
+                    time.sleep(1)
+                    list = self.connectionObj.qps.getDeviceList()
+                    list_str = "".join(list).lower()
+            else: # If we didn't hit a 'break' condition in the above loop, then it timed out
+                raise timeout_exception("Could not find module " + self.ConString + " from QPS within specified time")
+
+
+
+
+
 
             ## Neither PY or QIS, connection cannot be created.
         else:
@@ -238,7 +288,7 @@ class quarchDevice:
         # send command to log
         logging.debug(os.path.basename(__file__) + ": "+self.ConType[:3]+" sending command: " + CommandString)
 
-        if self.ConType[:3] == "QIS":
+        if self.ConType[:3].upper() == "QIS":
 
             numb_colons = self.ConString.count(":")
             if numb_colons == 1:
@@ -249,13 +299,13 @@ class quarchDevice:
             logging.debug(os.path.basename(__file__) + ": "+self.ConType[:3]+" received: " + response)
             return response
 
-        elif self.ConType == "PY":
+        elif self.ConType.upper() == "PY":
             response = self.connectionObj.connection.sendCommand(CommandString, expectedResponse=expectedResponse)
             # send response to log
             logging.debug(os.path.basename(__file__) + ": "+self.ConType[:3]+" received: " + response)
             return response
 
-        elif self.ConType[:3] == "QPS":
+        elif self.ConType[:3].upper() == "QPS":
             # If "$" CMD is for QPS, else its for the specific module. Since QPS can talk to many modules we must added the conString.
             if CommandString[0] != '$':
                 CommandString = self.ConString + " " + CommandString

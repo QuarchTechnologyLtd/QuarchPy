@@ -140,6 +140,17 @@ class QpsInterface:
         time.sleep(
             sleep)  # Time must be allowed for QPS to Scan. If another scan request is sent it will time out and throw an error.
 
+    def get_list_details(self, sock=None):
+        if sock == None:
+            sock = self.sock
+        devString = self.sendCmdVerbose("$module list details")
+        #devString = self.sendAndReceiveText(sock, '$list details')
+        devString = devString.replace('>', '')
+        devString = devString.replace(r'\d+\) ', '')
+        devString = devString.split('\r\n')
+        devString = [x for x in devString if x]  # remove empty elements
+        return devString
+
     def getDeviceList(self, scan = True, ipAddress = None):
         deviceList = []
         scanWait = 2

@@ -14,7 +14,7 @@ import logging
 
 def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
     '''
-    This func will return true if QPS is running with a working QIS connection. This is becuase
+    This func will return true if QPS is running with a working QIS connection.
     '''
     myQps=None
     logging.debug("Checking if QPS is running")
@@ -93,14 +93,15 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
         else:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
 
-    startTime = time.time()
-    while not isQpsRunning():
-        time.sleep(0.2)
-        _get_std_msg_and_err_from_QPS_process(process)
+        startTime = time.time()
+        while not isQpsRunning():
+            time.sleep(0.2)
+            _get_std_msg_and_err_from_QPS_process(process)
 
-        if time.time() - startTime > timeout:
-            os.chdir(current_dir)
-            raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
+            if time.time() - startTime > timeout:
+                os.chdir(current_dir)
+                raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
+
     # return current working directory
     os.chdir(current_dir)
 

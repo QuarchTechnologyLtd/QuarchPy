@@ -20,8 +20,7 @@ from quarchpy.connection_specific.connection_Serial import serialList, serial
 from quarchpy.device.quarchArray import isThisAnArrayController
 from quarchpy.connection_specific.connection_USB import TQuarchUSB_IF
 from quarchpy.connection_specific import connection_ReST, connection_TCP
-from quarchpy.connection_specific.connection_mDNS import MyListener
-from quarchpy.utilities import TestCenter
+from quarchpy.connection_specific.mDNS import MyListener
 
 
 '''
@@ -475,11 +474,14 @@ def filter_module_type(module_type_filter, found_devices):
                 filtered_devices.update({key: value})
     return filtered_devices
 
-def scan_mDNS(mdnsListener):
+def scan_mDNS(mdnsListener, zeroconf=None):
     from zeroconf import ServiceBrowser, Zeroconf
-    zeroconf = Zeroconf()
+    if zeroconf is None:
+        zeroconf = Zeroconf()
     listener = mdnsListener
     browser = ServiceBrowser(zeroconf, "_http._tcp.local.", listener)
+    return browser
+
 
 
 '''
@@ -487,10 +489,21 @@ Scans for Quarch modules across the given interface(s). Returns a dictionary of 
 '''
 def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly=True,filterStr=None,
                 module_type_filter=None, ipAddressLookup=None):
+
     foundDevices = dict()
     scannedArrays = list()
-    mdnsListener = MyListener()
-    scan_mDNS(mdnsListener)
+
+    # Setup mdns with zeroconf
+    # Ensure listener/zeroconf instance stay persistent (ensures only one thread is used for each scan cycle)
+    mdns_listener = MyListener().get_instance()
+    zeroconf = mdns_listener.get_zeroconf()
+    # Setup new mdns discovery service for every scan cycle
+    browser = scan_mDNS(mdns_listener, zeroconf)
+    # Setup mdns discovery that stays persistent in the background - (could be removed)
+    # if not mdns_listener.mdns_service_running:
+    #     from zeroconf import ServiceBrowser, Zeroconf
+    #     scan_mDNS(mdns_listener, None)
+    #     mdns_listener.mdns_service_running = True
 
     if target_conn.lower() == "all":
         foundDevices = list_USB()
@@ -499,7 +512,9 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
             #This will fail if the test machine is not connected to a network
             foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
             try:
-                foundDevices = mergeDict(foundDevices, mdnsListener.found_devices)
+                foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
+                # Cancels the mdns discovery service (required to close active thread)
+                browser.cancel()
             except Exception as mdnsExcept:
                 logging.debug("An error occurred while trying to use the mdns listner to scan\n" +str(mdnsExcept))
         except Exception as e:

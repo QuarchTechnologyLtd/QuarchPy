@@ -47,6 +47,7 @@ class MyListener:
         self.found_devices = {}
         self.mdns_service_running = False
         self.zeroconf = None
+        self.target_conn = None
 
     def update_service(self, zc, type_, name):
         """
@@ -81,14 +82,22 @@ class MyListener:
         Add a device to the found devices dictionary.
         """
         qtl_num = "QTL" + properties_dict['86'] if '86' in properties_dict else None
+        # Check if module contains REST connection
         if '84' in properties_dict:
-            if properties_dict['84'] == '80':
-                # print("Rest connection exists for device: " + qtl_num)
-                self.get_instance().update_device_dict(device_dict={"REST:" + ip_address: qtl_num})
+            # Check the user specified connection type
+            if self.get_instance().target_conn == "all" or self.get_instance().target_conn == "rest":
+                if properties_dict['84'] == '80':
+                    # print("Rest connection exists for device: " + qtl_num)
+                    # Updates the found devices dict
+                    self.get_instance().update_device_dict(device_dict={"REST:" + ip_address: qtl_num})
+        # Check if module contains TCP connection
         if '85' in properties_dict:
-            if properties_dict['85'] == "9760":
-                # print("TCP connection exists for device: " + qtl_num)
-                self.get_instance().update_device_dict(device_dict={"TCP:" + ip_address: qtl_num})
+            # Check the user specified connection type
+            if self.get_instance().target_conn == "all" or self.get_instance().target_conn == "tcp":
+                if properties_dict['85'] == "9760":
+                    # print("TCP connection exists for device: " + qtl_num)
+                    # Updates the found devices dict
+                    self.get_instance().update_device_dict(device_dict={"TCP:" + ip_address: qtl_num})
 
     def update_device_dict(self, device_dict):
         """
@@ -100,10 +109,12 @@ class MyListener:
         """
         Get the found devices and perform ping check.
         """
-        for key, value in self.get_instance().found_devices.items():
+        temp_dict = self.get_instance().found_devices
+        for key, value in list(temp_dict.items()):
             result = ping(key[key.index(":") + 1:])
-            if not result:
+            if not result or self.get_instance().target_conn not in key.lower():
                 del self.get_instance().found_devices[key]
+        print(str(self.get_instance().found_devices))
         return self.get_instance().found_devices
 
     def get_zeroconf(self):

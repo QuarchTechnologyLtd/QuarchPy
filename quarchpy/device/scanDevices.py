@@ -499,6 +499,8 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
     zeroconf = mdns_listener.get_zeroconf()
     # Setup new mdns discovery service for every scan cycle
     browser = scan_mDNS(mdns_listener, zeroconf)
+    # Set target_conn
+    mdns_listener.target_conn = target_conn.lower()
     # Setup mdns discovery that stays persistent in the background - (could be removed)
     # if not mdns_listener.mdns_service_running:
     #     from zeroconf import ServiceBrowser, Zeroconf
@@ -511,10 +513,7 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         try:
             #This will fail if the test machine is not connected to a network
             foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
-            try:
-                foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
-            except Exception as mdnsExcept:
-                logging.debug("An error occurred while trying to use the mdns listner to scan\n" +str(mdnsExcept))
+            foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
         except Exception as e:
             logging.error(e)
             logging.warning("Network scan failed, check network connection")
@@ -527,6 +526,8 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
 
     if target_conn.lower() == "tcp" or target_conn.lower() == "rest" or target_conn.lower() == "telnet":
         foundDevices = list_network(target_conn, ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout)
+        foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
+
 
     if (scanInArray):
         for k, v in foundDevices.items(): # k=Connection target, v=serial number

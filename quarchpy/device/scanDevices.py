@@ -513,8 +513,6 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
             foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
             try:
                 foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
-                # Cancels the mdns discovery service (required to close active thread)
-                browser.cancel()
             except Exception as mdnsExcept:
                 logging.debug("An error occurred while trying to use the mdns listner to scan\n" +str(mdnsExcept))
         except Exception as e:
@@ -582,7 +580,8 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
     # used to filter module via type ( Power / Drive / ...)
     if module_type_filter:
         foundDevices = filter_module_type(module_type_filter, foundDevices)
-
+    # Cancels the mdns discovery service (required to close active thread)
+    browser.cancel()
     return foundDevices
 
 

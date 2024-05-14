@@ -73,8 +73,8 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     if keepQisRunning:
         if not isQisRunning():
             startLocalQis()
-    # if startQPSMinimised == True: #TODO add to release for QPS 1.38
-    #     args.append("CCS=MIN")
+    if startQPSMinimised == True: #TODO add to release for QPS 1.38
+        args.append("CCS=MIN")
     temp =""
     args = temp.join(args)
 
@@ -97,13 +97,21 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
         while not isQpsRunning():
             time.sleep(0.2)
             _get_std_msg_and_err_from_QPS_process(process)
-
             if time.time() - startTime > timeout:
                 os.chdir(current_dir)
                 raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
+        logging.debug("QPS detected after " + str(time.time() - startTime) + "s")
+
+        while not isQisRunning():
+            if time.time() - startTime > timeout:
+                raise TimeoutError(
+                    "QPS did launch but QIS did not respond during the timeout time of " + str(timeout) + " sec.")
+            time.sleep(0.2)
+        logging.debug("QIS detected after " + str(time.time() - startTime) + "s")
 
     # return current working directory
     os.chdir(current_dir)
+    return
 
 def reader(stream, q, source, lock,stop_flag):
     '''

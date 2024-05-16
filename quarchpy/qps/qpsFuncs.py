@@ -73,10 +73,11 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     if keepQisRunning:
         if not isQisRunning():
             startLocalQis()
-    if startQPSMinimised == True: #TODO add to release for QPS 1.38
-        args.append("CCS=MIN")
     temp =""
     args = temp.join(args)
+    if startQPSMinimised == True: #TODO add to release for QPS 1.38
+        if "-ccs=" not in args.lower():
+            args +=" -ccs=MIN"
 
     QpsPath = os.path.dirname(os.path.abspath(__file__))
     QpsPath, junk = os.path.split(QpsPath)

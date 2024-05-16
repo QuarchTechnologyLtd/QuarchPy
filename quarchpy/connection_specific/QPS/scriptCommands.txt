@@ -1,7 +1,7 @@
 QPS Command Summary
 Copyright (c) Quarch Ltd
-QPS v1.39
-Generated: 18-Mar-2024
+QPS v1.39.13
+Generated: 13-May-2024
 
 
 *** Commands ***
@@ -344,6 +344,19 @@ Type: STRING
 Default value: NONE
 Examples:
 $open recording qpsFile="C:\quarch\recordings\AC\AC_Gen_test\AC_Gen_Test.qps"
+
+Command: $progress check
+Description: Checks the progress of a specific QPS task
+Version: 2
+Arguments
+Argument: task
+Description: The task to be checked
+Index: 0
+Type: STRING
+Default value: NONE
+Acceptable values: [open recording]
+Examples:
+$progress check task="open recording"
 
 Command: $qis launch
 Description: Launches new QIS instance
@@ -991,6 +1004,8 @@ $module name ~ Returns the connected device ID
 $module scan ~ Scans for available devices
 
 $open recording ~ Opens a recording
+
+$progress check ~ Checks the progress of a specific QPS task
 
 $qis launch ~ Launches new QIS instance
 

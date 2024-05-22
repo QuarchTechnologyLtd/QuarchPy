@@ -1,5 +1,5 @@
-# from quarchpy import *
-# from quarchpy.device import *
+from quarchpy import *
+from quarchpy.device import *
 try:
     from importlib.metadata import distribution
 except:

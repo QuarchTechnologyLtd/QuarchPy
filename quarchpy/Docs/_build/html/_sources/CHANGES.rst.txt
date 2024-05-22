@@ -13,6 +13,15 @@ Quarchpy
 Change Log
 ----------
 
+2.1.25
+------
+- New QPS 1.40 and Qis 1.43
+- mdns scanning added to quarchpy
+
+2.1.24
+------
+- Yanked
+
 2.1.23
 ------
 - QIS and QPS devices and interfaces can use sendCommand to send comannds to the modules and to the applications uniformly

@@ -1,6 +1,6 @@
 import platform  # For getting the operating system name
 import subprocess  # For executing a shell command
-
+import logging
 from zeroconf import Zeroconf
 
 
@@ -70,17 +70,27 @@ class MyListener:
         """
         Handle service addition event.
         """
+        logging.debug("Adding service: " +name)
         info = zc.get_service_info(type_, name)
+        # Log the service name
         if "Quarch:" in str(info):
             # decode the incoming properties from mdns
-            decoded_properties = {key.decode('utf-8'): value.decode('utf-8') for key, value in info.properties.items()}
+            decoded_properties ={}
+            for key, value in info.properties.items():
+                decoded_properties[ key.decode('utf-8')]=value.decode('utf-8')
+                pass
+            #decoded_properties = {key.decode('utf-8'): value.decode('utf-8') for key, value in info.properties.items()}
             decoded_ip = ".".join(str(byte) for byte in info.addresses[0])
             self.get_instance().add_device(decoded_properties, decoded_ip)
+
+
+
 
     def add_device(self, properties_dict, ip_address):
         """
         Add a device to the found devices dictionary.
         """
+        logging.debug("Adding device: " +str(ip_address)+"\n"+str(properties_dict))
         qtl_num = "QTL" + properties_dict['86'] if '86' in properties_dict else None
         # Check if module contains REST connection
         if '84' in properties_dict:
@@ -110,11 +120,16 @@ class MyListener:
         Get the found devices and perform ping check.
         """
         temp_dict = self.get_instance().found_devices
+        remove_device = False
         for key, value in list(temp_dict.items()):
-            result = ping(key[key.index(":") + 1:])
-            if not result or self.get_instance().target_conn not in key.lower():
+            can_ping = ping(key[key.index(":") + 1:])
+            if can_ping is False:
+                remove_device=True # Remove the device if it can't be pinged
+            elif self.get_instance().target_conn not in key.lower() and self.get_instance().target_conn.lower() != "all":
+                remove_device = True # or if its of the wrong connection type.
+            if remove_device is True:
                 del self.get_instance().found_devices[key]
-        print(str(self.get_instance().found_devices))
+        logging.debug("Returning found devices "+str(self.get_instance().found_devices))
         return self.get_instance().found_devices
 
     def get_zeroconf(self):

@@ -7,6 +7,7 @@ import platform
 from quarchpy.qis import isQisRunning, startLocalQis
 from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy.connection_specific.connection_QPS import QpsInterface
+from quarchpy.connection_specific.jdk_j21_jres.fix_permissions import main as fix_permissions, find_java_permissions
 from quarchpy.user_interface import *
 import subprocess
 import logging
@@ -79,15 +80,66 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
         if "-ccs=" not in args.lower():
             args +=" -ccs=MIN"
 
-    QpsPath = os.path.dirname(os.path.abspath(__file__))
-    QpsPath, junk = os.path.split(QpsPath)
-    QpsPath = os.path.join(QpsPath, "connection_specific", "QPS", "qps.jar")
+    # Record current working directory
     current_dir = os.getcwd()
-    os.chdir(os.path.dirname(QpsPath))
 
-    command = "java -jar \"" + QpsPath + "\"" + " " + str(args)
+    # JRE 21 path
+    java_path = os.path.dirname(os.path.abspath(__file__))
+    java_path, junk = os.path.split(java_path)
+    java_path = os.path.join(java_path, "connection_specific", "jdk_j21_jres")
+    # Start to build the path towards qps.jar
+    qps_path = os.path.dirname(os.path.abspath(__file__))
+    qps_path, junk = os.path.split(qps_path)
+
+    # Check the current OS
+    current_os = platform.system()
+
+    # ensure the jres folder has the required permissions
+    permissions, message = find_java_permissions()
+    if permissions is False:
+        logging.warning(message)
+        logging.warning("Not having correct permissions will prevent Quarch Java 21 Programs from launching.")
+        logging.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
+        user_input = input("Would you like to use auto run this now? (Y/N)")
+        if user_input.lower() == "y":
+            fix_permissions()
+            permissions, message = find_java_permissions()
+            time.sleep(0.5)
+            if permissions is False:
+                logging.warning("Attempt to fix permissions was unsuccessful. Please fix manually.")
+            else:
+                logging.warning("Attempt to fix permissions was successful. Now continuing.")
+
+    # Single or multiple QPS builds for each OS
+    is_single_qps_build = True
+    if is_single_qps_build: # One QPS to rule them all.
+        qps_path = os.path.join(qps_path, "connection_specific", "QPS", "win-amd64", "qps.jar")
+    else: # Different QPS.jar for each OS
+        if current_os in "Windows":
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "win-amd64", "qps.jar")
+        elif current_os in "Linux":
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "lin-amd64", "qps.jar")
+        elif current_os in "Darwin":
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "mac-amd64", "qps.jar")
+        else:  # default to windows
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "win-amd64", "qps.jar")
+
+    # Change the working directory to the directory containing qps.jar
+    os.chdir(os.path.dirname(qps_path))
+
+
+    # OS dependency
+    if current_os in "Windows":
+        command = java_path + "\\win_amd64_jdk_21_jre\\bin\\java -jar qps.jar " + str(args)
+    elif current_os in "Linux":
+        command = java_path + "/lin_amd64_jdk_21_jre/bin/java -jar qps.jar " + str(args)
+    elif current_os in "Darwin":
+        command = java_path + "/mac_amd64_jdk_21_jre/bin/java -jar qps.jar " + str(args)
+    else:  # default to windows
+        command = java_path + "\\win_amd64_jdk_21_jre\\bin\\java -jar qps.jar " + str(args)
+
     if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
-        os.system(command)
+        process = subprocess.Popen(command,shell=True)
     else:
         if sys.version_info[0] < 3:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -114,6 +166,7 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     os.chdir(current_dir)
     return
 
+
 def reader(stream, q, source, lock,stop_flag):
     '''
     Used to read output and place it in a queue for multithreaded reading
@@ -130,6 +183,7 @@ def reader(stream, q, source, lock,stop_flag):
             break
         with lock:
             q.put((source, line.strip()))
+
 
 def _get_std_msg_and_err_from_QPS_process(process):
     '''

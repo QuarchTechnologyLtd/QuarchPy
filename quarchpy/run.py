@@ -86,6 +86,7 @@ def _get_run_options():
     run_options.append ([None               , "qps"         , _run_qps_function            , "Launches Quarch Power Studios, for power capture and analysis"])
     run_options.append (["simple_terminal"  , "terminal"    , _run_simple_terminal_function, "Runs the Simple Terminal script"])
     run_options.append (["upgrade_quarchpy" , "upgrade"     , _run_upgrade_function        , "Detects if an update of Quarchpy is available and assists in the upgrade process"])
+    run_options.append (["fix_permissions" , "fix_perm"     , _run_fix_permissions         , "Fixes Permissions for running Java 21 programs"])
     run_options.append (["h"                , "help"        , _run_help_function           , "Displays the help screen with a list of commands supported"])
     run_options.append (["dd"               , "list_drives" , _run_show_drives_function    , "Displays a list of shown drives on the current system"])
 
@@ -264,6 +265,12 @@ def _run_upgrade_function(args=None):
 
     uprade_quarchpy_main(args)
 
+def _run_fix_permissions(args):
+    '''
+    Fixes excecution permissions for running quarch java 21 applications.
+    '''
+    from quarchpy.connection_specific.jdk_j21_jres.fix_permissions import main as fix_permissions_main
+    fix_permissions_main()
 
 def _run_help_function(args=None):
     """

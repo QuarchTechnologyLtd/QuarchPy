@@ -13,6 +13,11 @@ Quarchpy
 Change Log
 ----------
 
+2.2.0
+-----
+- New QPS v1.42 and QIS v1.44 packaged with java 21 with no need for installed java.
+- Minor bug fixes
+
 2.1.26
 ------
 - minor bugfix

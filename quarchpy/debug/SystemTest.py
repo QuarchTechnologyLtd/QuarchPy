@@ -33,6 +33,7 @@ def test_communication():
     # Close the module before exiting the script
     myDevice.closeConnection()
 
+
 def test_system_info():
     print("")
     print("SYSTEM INFORMATION")
@@ -76,6 +77,10 @@ def test_system_info():
     except:
         print("Unable to detect java location"
               "If Java is not installed then QIS and QPS will NOT run")
+    try:
+        find_java_permissions()
+    except:
+        print("Unable to get j21 java permissions")
 
     # Scan for all quarch devices on the system
 
@@ -196,5 +201,6 @@ def main (args=None):
 
 if __name__ == "__main__":
     main([])
+    #find_java_permissions()
     #main(["--skipSystemInfo","--skipCommsTest"])
     #main(["--fixusb"])

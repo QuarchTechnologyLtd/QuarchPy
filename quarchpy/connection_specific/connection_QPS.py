@@ -7,7 +7,8 @@ import os
 import random
 import logging
 import time
-
+import re
+from quarchpy.user_interface import user_interface
 
 class QpsInterface:
     def __init__(self, host='127.0.0.1', port=9822):
@@ -207,7 +208,7 @@ class QpsInterface:
         while(1):
             update=self.sendCmdVerbose("$progress check \"open recording\"",timeout=cmdTimeout)
             #print(update)
-            m = re.search('\d+(\.\d+)?%', update)
+            m = re.search(r'\d+(\.\d+)?%', update)
             if m: # A percentage was found
                 loadingStarted=True
                 found = float(m.group(0)[:-1])

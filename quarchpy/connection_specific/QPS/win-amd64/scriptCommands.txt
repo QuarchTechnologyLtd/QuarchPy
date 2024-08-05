@@ -1,7 +1,7 @@
 QPS Command Summary
 Copyright (c) Quarch Ltd
-QPS v1.39.13
-Generated: 13-May-2024
+QPS v1.42.J21
+Generated: 19 Jul 2024
 
 
 *** Commands ***
@@ -149,9 +149,11 @@ Default value: NONE
 Notes:
 Command is passed to QIS which will test the connection availability and suitability for streaming data returning a status of OK
 or the reason for connection failure if connection is successful, ccs and file dialogs should close and the chart window connected to the device should display
+$connect supports both device names and IP addresses
 Examples:
 $connect usb::QTL1999-02-999
 $connect tcp::QTL1999-02-999
+$connect tcp::81.187.174.46
 
 Command: $connected
 Description: Returns the connected device ID

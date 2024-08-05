@@ -1,0 +1,41 @@
+*** What's New In Quarch Power Studio ***
+
+19th July 2024
+
+QPS version 1.42
+QIS version 1.44
+
+
+
+*** New Features ***
+
+QPS is now build against Java21.  The runtime is packaged in the installer so seperate Java install is not required in most cases
+
+This 'What's new' dialog added, to call out the latest features!
+
+Annotations improvements: Hover-over displays their text. Hover over the Annotations tab text to highlight the annotation.  Vertical movement is enabled by default, to arrange them more easily
+
+Speed improvements when navigating through large datasets
+
+Modules with updated firmware available are now indicated to the user
+
+Missing USB drivers are now highlighted to the user
+
+Statistics tab now has auto-ranging for units, to be more readable
+
+The color of cursors can be changed, to make them more visible
+
+Summary data can now be collapsed to make it more readable
+
+
+*** Major Fixes ***
+
+Fixed issue where old trace data did not delete correctly
+
+Fixed issue where LAN devices could lose connection after a couple of hours of streaming
+
+Fixed issue where progress bar and notifications were both modal, locking access
+
+Touchpad horizontal two finger scrolling now works correctly
+
+Multiple other exceptions trapped and handled

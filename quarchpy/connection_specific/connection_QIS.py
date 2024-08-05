@@ -253,7 +253,7 @@ class QisInterface:
         else:
             raise ValueError("couldn't decode samplePeriod")
 
-        baseSamplePeriodS = int(re.search('^\d*\.?\d*', baseSamplePeriod).group())*(10**baseSampleUnitExponent)        
+        baseSamplePeriodS = int(re.search(r'^\d*\.?\d*', baseSamplePeriod).group())*(10**baseSampleUnitExponent)
 
         # # TODO: MD Thinks this implements software averaging, is unused and now performed in QIS
         # if streamAverage != None:

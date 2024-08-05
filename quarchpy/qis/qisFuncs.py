@@ -7,6 +7,7 @@ import time, platform
 from threading import Thread, Lock, Event, active_count
 from queue import Queue, Empty
 from quarchpy.connection_specific.connection_QIS import QisInterface
+from quarchpy.connection_specific.jdk_j21_jres.fix_permissions import main as fix_permissions, find_java_permissions
 from quarchpy.user_interface.user_interface import printText, logDebug
 import subprocess
 import logging
@@ -85,38 +86,98 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
         List of additional parameters to be supplied to QIS on the command line
 
     """
-    # Gathering Vars needed to build the command
-    QisPath =os.path.dirname(os.path.abspath(__file__))
-    QisPath,junk = os.path.split (QisPath)
-    QisPath = os.path.join(QisPath, "connection_specific","QPS", "qis", "qis.jar")
+
+    # java path
+    java_path = os.path.dirname(os.path.abspath(__file__))
+    java_path, junk = os.path.split(java_path)
+    java_path = os.path.join(java_path, "connection_specific", "jdk_j21_jres")
+
+    # change directory to /QPS/QIS
+    qis_path = os.path.dirname(os.path.abspath(__file__))
+    qis_path,junk = os.path.split (qis_path)
+
+    # OS
+    current_os = platform.system()
+
+    # ensure the jres folder has the required permissions
+    permissions,message= find_java_permissions()
+    if permissions is False:
+        logging.warning(message)
+        logging.warning("Not having correct permissions will prevent Quarch Java Programs to launch")
+        logging.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
+        user_input = input("Would you like to fix permissions now? (Y/N)")
+        if user_input.lower()=="y":
+            fix_permissions()
+            permissions, message = find_java_permissions()
+            time.sleep(0.5)
+            if permissions is False:
+                logging.warning("Attempt to fix permissions was unsuccessful. Please fix these manually.")
+            else:
+                logging.warning("Attempt to fix permissions was successful. Now continuing.")
+
+
+
+    # if current_os != "Windows":
+    #     subprocess.call(['chmod', '-R', '+rwx', java_path])
+
+    # single or multiple QPS builds for each OS
+    is_single_qps_build = True
+    if is_single_qps_build:
+        qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
+    else:
+        if current_os in "Windows":
+            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
+        elif current_os in "Linux":
+            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "lin-amd64", "qis", "qis.jar")
+        elif current_os in "Darwin":
+            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "mac-amd64", "qis", "qis.jar")
+        else:  # default to windows
+            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
+
+    os.chdir(os.path.dirname(qis_path))
 
     # Building the command
+
+    # prefer IPV4 to IPV6
+    ipv4v6_vm_args = "-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false"
+
     # Process command prefix. Needed for headless mode, to support OSs with no system tray.
-    if (headless == True or (args is not None and "-headless" in args)):
-        cmdPrefix = "java -Djava.awt.headless=true"
-    else:
-        cmdPrefix = "java"
+    cmd_prefix = ""
+    if headless is True or (args is not None and "-headless" in args):
+        cmd_prefix = "-Djava.awt.headless=true"
+
     # Process command suffix (additional standard options for QIS).
-    if (terminal == True):
-        cmdSuffix = " -terminal"
+    if terminal is True:
+        cmd_suffix = " -terminal"
     else:
-        cmdSuffix = ""
+        cmd_suffix = ""
     if args is not None:
         for option in args:
             # Avoid doubling the terminal option
-            if (option == "-terminal" and terminal == True):
+            if option == "-terminal" and terminal is True:
                 continue
             # Headless option is processed seperately as a java command
-            if (option != "-headless"):
-                cmdSuffix = cmdSuffix + " " + option
-    # Find file path and change directory to Qis Location
-    current_direc = os.getcwd() 
-    os.chdir(os.path.dirname(QisPath))
-    command = cmdPrefix+" -jar qis.jar"+cmdSuffix
+            if option != "-headless":
+                cmd_suffix = cmd_suffix + " " + option
+
+    # record current working directory
+    current_dir = os.getcwd()
+
+    command = "java " + ipv4v6_vm_args + cmd_prefix + " -jar qis.jar" + cmd_suffix
+    
+    # different start for different OS
+    if current_os == "Windows":
+        command = java_path + "\\win_amd64_jdk_21_jre\\bin\\" + command
+    elif current_os == "Linux":
+        command = java_path + "/lin_amd64_jdk_21_jre/bin/" + command
+    elif current_os == "Darwin":
+        command = java_path + "/mac_amd64_jdk_21_jre/bin/" + command
+    else:  # default to windows
+        command = java_path + "\\win_amd64_jdk_21_jre\\bin\\" + command
 
     # Use the command and check QIS has launched
     if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to view logging.
-        os.system(command)
+        process = subprocess.Popen(command,shell=True)
     else:
         if sys.version_info[0] < 3:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -136,8 +197,8 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
         else:
             logDebug("QIS running but not responding")
 
-    #change directory back to start directory 
-    os.chdir(current_direc)
+    # change directory back to start directory
+    os.chdir(current_dir)
 
 
 def reader(stream, q, source, lock,stop_flag):

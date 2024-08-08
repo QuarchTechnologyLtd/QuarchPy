@@ -138,13 +138,15 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
 
     # Building the command
 
+
     # prefer IPV4 to IPV6
     ipv4v6_vm_args = "-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false"
 
     # Process command prefix. Needed for headless mode, to support OSs with no system tray.
-    cmd_prefix = ""
+    cmd_prefix =ipv4v6_vm_args
     if headless is True or (args is not None and "-headless" in args):
-        cmd_prefix = "-Djava.awt.headless=true"
+        cmd_prefix = " -Djava.awt.headless=true"
+
 
     # Process command suffix (additional standard options for QIS).
     if terminal is True:
@@ -163,7 +165,8 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     # record current working directory
     current_dir = os.getcwd()
 
-    command = "java " + ipv4v6_vm_args + cmd_prefix + " -jar qis.jar" + cmd_suffix
+
+    command = "java " + cmd_prefix + " -jar qis.jar" + cmd_suffix
     
     # different start for different OS
     if current_os == "Windows":

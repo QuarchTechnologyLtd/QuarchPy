@@ -145,7 +145,7 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     # Process command prefix. Needed for headless mode, to support OSs with no system tray.
     cmd_prefix =ipv4v6_vm_args
     if headless is True or (args is not None and "-headless" in args):
-        cmd_prefix = " -Djava.awt.headless=true"
+        cmd_prefix += " -Djava.awt.headless=true"
 
 
     # Process command suffix (additional standard options for QIS).

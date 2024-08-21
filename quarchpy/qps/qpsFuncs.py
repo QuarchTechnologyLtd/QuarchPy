@@ -93,6 +93,14 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
 
     # Check the current OS
     current_os = platform.system()
+    current_arch = platform.machine()
+    current_arch = current_arch.lower()  # ensure comparing same case
+
+    # Currently officially unsupported
+    if (current_os in "Linux" and current_arch == "aarch64") or (current_os in "Darwin" and current_arch == "arm64"):
+        logging.warning("The system [" + current_os + ", " + current_arch + "] is not officially supported.")
+        logging.warning("Please contact Quarch support for running QuarchPy on this system.")
+        return
 
     # ensure the jres folder has the required permissions
     permissions, message = find_java_permissions()
@@ -117,10 +125,14 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     else: # Different QPS.jar for each OS
         if current_os in "Windows":
             qps_path = os.path.join(qps_path, "connection_specific", "QPS", "win-amd64", "qps.jar")
-        elif current_os in "Linux":
+        elif current_os in "Linux" and current_arch == "x86_64":
             qps_path = os.path.join(qps_path, "connection_specific", "QPS", "lin-amd64", "qps.jar")
-        elif current_os in "Darwin":
+        elif current_os in "Linux" and current_arch == "aarch64":
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "lin-arm64", "qps.jar")
+        elif current_os in "Darwin" and current_arch == "x86_64":
             qps_path = os.path.join(qps_path, "connection_specific", "QPS", "mac-amd64", "qps.jar")
+        elif current_os in "Darwin" and current_arch == "arm64":
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "mac-arm64", "qps.jar")
         else:  # default to windows
             qps_path = os.path.join(qps_path, "connection_specific", "QPS", "win-amd64", "qps.jar")
 
@@ -131,10 +143,14 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     # OS dependency
     if current_os in "Windows":
         command = java_path + "\\win_amd64_jdk_21_jre\\bin\\java -jar qps.jar " + str(args)
-    elif current_os in "Linux":
+    elif current_os in "Linux" and current_arch == "x86_64":
         command = java_path + "/lin_amd64_jdk_21_jre/bin/java -jar qps.jar " + str(args)
-    elif current_os in "Darwin":
+    elif current_os in "Linux" and current_arch == "aarch64":
+        command = java_path + "/lin_arm64_jdk_21_jre/bin/java -jar qps.jar " + str(args)
+    elif current_os in "Darwin" and current_arch == "x86_64":
         command = java_path + "/mac_amd64_jdk_21_jre/bin/java -jar qps.jar " + str(args)
+    elif current_os in "Darwin" and current_arch == "arm64":
+        command = java_path + "/mac_arm64_jdk_21_jre/bin/java -jar qps.jar " + str(args)
     else:  # default to windows
         command = java_path + "\\win_amd64_jdk_21_jre\\bin\\java -jar qps.jar " + str(args)
 

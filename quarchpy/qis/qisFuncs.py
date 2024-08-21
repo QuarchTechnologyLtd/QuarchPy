@@ -98,6 +98,14 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
 
     # OS
     current_os = platform.system()
+    current_arch = platform.machine()
+    current_arch = current_arch.lower()  # ensure comparing same case
+
+    # Currently officially unsupported
+    if (current_os in "Linux" and current_arch == "aarch64") or (current_os in "Darwin" and current_arch == "arm64"):
+        logging.warning("The system [" + current_os + ", " + current_arch + "] is not officially supported.")
+        logging.warning("Please contact Quarch support for running QuarchPy on this system.")
+        return
 
     # ensure the jres folder has the required permissions
     permissions,message= find_java_permissions()
@@ -127,10 +135,14 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     else:
         if current_os in "Windows":
             qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
-        elif current_os in "Linux":
+        elif current_os in "Linux" and current_arch == "x86_64":
             qis_path = os.path.join(qis_path, "connection_specific", "QPS", "lin-amd64", "qis", "qis.jar")
-        elif current_os in "Darwin":
+        elif current_os in "Linux" and current_arch == "aarch64":
+            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "lin-arm64", "qis", "qis.jar")
+        elif current_os in "Darwin" and current_arch == "x86_64":
             qis_path = os.path.join(qis_path, "connection_specific", "QPS", "mac-amd64", "qis", "qis.jar")
+        elif current_os in "Darwin" and current_arch == "arm64":
+            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "mac-arm64", "qis", "qis.jar")
         else:  # default to windows
             qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
 
@@ -171,10 +183,14 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     # different start for different OS
     if current_os == "Windows":
         command = java_path + "\\win_amd64_jdk_21_jre\\bin\\" + command
-    elif current_os == "Linux":
+    elif current_os == "Linux" and current_arch == "x86_64":
         command = java_path + "/lin_amd64_jdk_21_jre/bin/" + command
-    elif current_os == "Darwin":
+    elif current_os == "Linux" and current_arch == "aarch64":
+        command = java_path + "/lin_arm64_jdk_21_jre/bin/" + command
+    elif current_os == "Darwin" and current_arch == "x86_64":
         command = java_path + "/mac_amd64_jdk_21_jre/bin/" + command
+    elif current_os == "Darwin" and current_arch == "arm64":
+        command = java_path + "/mac_arm64_jdk_21_jre/bin/" + command
     else:  # default to windows
         command = java_path + "\\win_amd64_jdk_21_jre\\bin\\" + command
 

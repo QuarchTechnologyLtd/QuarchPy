@@ -197,6 +197,11 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     # Use the command and check QIS has launched
     if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to view logging.
         process = subprocess.Popen(command,shell=True)
+        startTime = time.time() #Checks for Popen launch only
+        while not isQisRunning():
+            if time.time() - startTime > timeout:
+                raise TimeoutError("QIS failed to launch within timelimit of " + str(timeout) + " sec.")
+            pass
     else:
         if sys.version_info[0] < 3:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)

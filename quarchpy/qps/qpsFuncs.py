@@ -155,7 +155,12 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
         command = java_path + "\\win_amd64_jdk_21_jre\\bin\\java -jar qps.jar " + str(args)
 
     if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
-        process = subprocess.Popen(command,shell=True)
+        if current_os in "Windows":
+            process = subprocess.Popen(command,shell=True)
+        else:
+            # Add a hold command to keep the terminal open (useful for bash)
+            command_with_pause = command + "; exec bash"
+            process = subprocess.run(command_with_pause, shell=True)
     else:
         if sys.version_info[0] < 3:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)

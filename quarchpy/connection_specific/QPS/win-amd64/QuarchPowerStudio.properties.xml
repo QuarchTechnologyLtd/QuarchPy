@@ -9,7 +9,6 @@
         <autoStartStream>false</autoStartStream>
         <autoStartValidAverages>32k 16k 8k 4k 2k 1k 512 32k 16k 8k 4k 2k 1k 512 </autoStartValidAverages>
         <autoStartValidTriggers>MANUAL MANUAL </autoStartValidTriggers>
-        <colorTheme>DefaultDark</colorTheme>
         <csvSaveOptions>
             <delimiter>COMMA</delimiter>
             <csvFile>C:\Users\Chris\test.csv</csvFile>
@@ -23,6 +22,7 @@
         <fullScreenMain>false</fullScreenMain>
         <imageFormat>jpg</imageFormat>
         <minimumFreeSpace>545259520</minimumFreeSpace>
+        <loggingLevel>OFF</loggingLevel>
         <statisticsGrid>
             <channels>
                 <entry>

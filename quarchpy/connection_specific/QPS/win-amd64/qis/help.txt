@@ -291,6 +291,8 @@ Non $ Commands internal to qis:
 		Creates a new channel.
 	stream created channel delete ...
 		Deletes a previously created channel.
+	stream create channel enable ...
+		Enables/Disables a previously created channel.
 	stream created channels clear
 		Deletes all previously created channels.
 	stream created channels?
@@ -496,6 +498,8 @@ Appendix B: Synthetic Channel Functions
 		Creates a new channel.
 	stream created channel delete ...
 		Deletes a previously created channel.
+	stream create channel enable ...
+		Enables/Disables a previously created channel.
 	stream created channels clear
 		Deletes all previously created channels.
 	stream created channels?
@@ -525,6 +529,11 @@ A more detailed description, with examples, of each command follows:
 		A previously defined channel is deleted using the delete command by specifying both the channel name and group. For example:
 		
 		stream created channel delete chan(L1_RMS,V)
+	
+	stream created channel enable chan(chName, chGroup) [ON|OFF]
+		A previously defined channel is enabled or disabled using the enable command by specifying both the channel name and group. For example:
+		
+		stream created channel enable chan(L1_RMS,V) off
 		
 	stream created channels clear
 		Deletes all previously created channels, and serves as a convenience command to the above in which all channels are

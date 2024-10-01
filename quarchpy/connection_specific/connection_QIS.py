@@ -1100,24 +1100,25 @@ class QisInterface:
         try:
             if sock == None:
                 sock = self.sock
-            
-            # Get the raw data
-            headerData = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
+            count = 0
+            while(True):
+                if count > 5:
+                    break
+                count += 1
+                # Get the raw data
+                headerData = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
 
-            # The XML can contain the cursor on the end!  Trap and remove it here TODO: Needs fixed in the command layer above
-            if ('\r\n>' in headerData):
-                headerData = headerData[:-1]
-            
-            # Check for no header (no stream started)
-            if('Header Not Available' in headerData):
-                logging.error(device + ' Stream header not available.' + self.host + ':' + str(self.port))
-                return None;
-                
-            # Check for XML format
-            if('?xml version=' not in headerData):
-                logging.error(device + ' Header not in XML form.' + self.host + ':' + str(self.port))
-                return None;
-                
+                # Check for no header (no stream started)
+                if('Header Not Available' in headerData):
+                    logging.error(device + ' Stream header not available.' + self.host + ':' + str(self.port))
+                    continue
+
+                # Check for XML format
+                if('?xml version=' not in headerData):
+                    logging.error(device + ' Header not in XML form.' + self.host + ':' + str(self.port))
+                    continue
+
+                break
             # Parse XML into structured format
             xml_root = ET.fromstring(headerData)            
             
@@ -1638,15 +1639,39 @@ class QisInterface:
                 logging.warning(res[0])
             # If reading until a cursor comes back then keep reading until a cursor appears or max tries exceeded
             if readUntilCursor:
+                import xml.etree.ElementTree as ET
+
                 maxReads = 1000
                 count = 1
-                # check for cursor at end of read and if not there read again
-                while res[-1:] != self.cursor:
-                    res+= self.receiveText(sock) #TODO Confirm this works with multi response CMD Like a $get stats on a large stream with many annos. test with py2 and py3
-                    #res.extend(self.rxBytes(sock))
+                is_xml = False
+
+                while True:
+
+                    # Determine if the response is XML based on its start
+                    if count == 1:  # Only check this on the first read
+                        if res.startswith("<?xml"):  # Likely XML if it starts with '<'
+                            is_xml = True
+
+                    if is_xml:
+                        # Try to parse the XML to check if it's complete
+                        try:
+                            ET.fromstring(res[:-1])  # If it parses, the response is complete
+                            return res[:-1]  # Exit the loop, valid XML received
+                        except ET.ParseError:
+                            pass  # Keep reading until XML is complete
+                    else:
+                        # Handle normal strings
+                        if res[-1:] == self.cursor:  # If the last character is '>', stop reading
+                            break
+
+                    # Receive more data
+                    res += self.receiveText(sock)
+
+                    # Increment count and check for max reads
                     count += 1
                     if count >= maxReads:
-                        raise Exception(' Count = Error: max reads exceeded before cursor returned')
+                        raise Exception('Count = Error: max reads exceeded before response was complete')
+
             return res
 
         except Exception as e:

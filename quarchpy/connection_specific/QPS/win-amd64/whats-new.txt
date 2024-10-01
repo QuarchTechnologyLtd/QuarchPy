@@ -1,41 +1,31 @@
 *** What's New In Quarch Power Studio ***
 
-19th July 2024
+23rd September 2024
 
-QPS version 1.42
-QIS version 1.44
+QPS version 1.43
+QIS version 1.45
 
 
 
 *** New Features ***
 
-QPS is now build against Java21.  The runtime is packaged in the installer so seperate Java install is not required in most cases
+Support added for 'Hybrid Breakers', porting the control features from Testmonkey
 
-This 'What's new' dialog added, to call out the latest features!
+Synthetic channels can now be disabled in the same way as device channels.  Profile loading now supports enable options for all channel types.
 
-Annotations improvements: Hover-over displays their text. Hover over the Annotations tab text to highlight the annotation.  Vertical movement is enabled by default, to arrange them more easily
+Channels now highlight when you hover over the selection in the right-side tabs, making them easier to see.  You can also search for channels and show/hide them as a group.
 
-Speed improvements when navigating through large datasets
+The annotation system has been greatly improved with easier editing, hover over display and a search function
 
-Modules with updated firmware available are now indicated to the user
+CSV export can now be done by system clock time (in addition to sample time)
 
-Missing USB drivers are now highlighted to the user
-
-Statistics tab now has auto-ranging for units, to be more readable
-
-The color of cursors can be changed, to make them more visible
-
-Summary data can now be collapsed to make it more readable
+Sample rate controls have been enabled for AC devices
 
 
 *** Major Fixes ***
 
-Fixed issue where old trace data did not delete correctly
+Fixed issue where multi-rate stream text in python automation could have missing values
 
-Fixed issue where LAN devices could lose connection after a couple of hours of streaming
+Fixed issue where recording duration calculated incorrectly if an external trigger was used
 
-Fixed issue where progress bar and notifications were both modal, locking access
-
-Touchpad horizontal two finger scrolling now works correctly
-
-Multiple other exceptions trapped and handled
+Fixed issue where exception reporting could also crash, failing to capture the log

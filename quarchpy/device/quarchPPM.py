@@ -33,9 +33,12 @@ class quarchPPM(quarchDevice):
     def waitStop(self):
         return self.connectionObj.qis.waitStop()
 
-    def streamResampleMode(self, streamCom):
+    def streamResampleMode(self, streamCom, group=None):
         if streamCom.lower() == "off" or streamCom[0:-2].isdigit():
-            retVal = self.connectionObj.qis.sendAndReceiveCmd(cmd="stream mode resample " + streamCom.lower(),
+            cmd = "stream mode resample " + streamCom.lower()
+            if group is not None:
+                cmd = "stream mode resample group " + str(group) + " " + streamCom.lower()
+            retVal = self.connectionObj.qis.sendAndReceiveCmd(cmd=cmd,
                                                               device=self.ConString)
             if "fail" in retVal.lower():
                 logging.error(retVal)

@@ -35,7 +35,7 @@ class quarchQPS(quarchDevice):
         directory - str - desired stream dir
         unserInput=True - if a failure occurs userInput=True allows user to rectify problem with user input. set to False if user interaction is not available (automating).
         """
-        time.sleep(1)  # TODO remove this sleep once script->QPS timeing issue resolved. This works fine in the meantime
+        #time.sleep(1)  # TODO remove this sleep once script->QPS timeing issue resolved. This works fine in the meantime
         return quarchStream(self.quarchDevice, directory, unserInput)
 
 

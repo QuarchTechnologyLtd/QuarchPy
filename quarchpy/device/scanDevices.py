@@ -179,6 +179,7 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
     retVal={}
     lan_modules = dict()
     specifiedDevice = None
+    moduleFound = None
     # Broadcast the message.
     logging.debug("Broadcast LAN discovery message for UDP scan to all network interfaces")
     ipList = socket.gethostbyname_ex(socket.gethostname())
@@ -199,7 +200,7 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
 
         if ipAddressLookup is not None:
             # Attempts to find the device through UDP then REST
-            specifiedDevice = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules)
+            specifiedDevice, moduleFound = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules, moduleFound)
 
 
         mySocket.sendto(b'Discovery: Who is out there?\0\n', ('255.255.255.255', 30303))
@@ -266,7 +267,11 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
                     lan_modules["TCP:" + ip_module] = module_name
                     logging.debug("Found TCP module: " + module_name)
         mySocket.close()
-
+    if ipAddressLookup is not None:
+        if moduleFound is None:
+            printText("IP Scan failed, no module found.")
+        else:
+            printText("IP Scan succeeded, module found: " + moduleFound)
     logging.debug("Finished UDP scan")
     retVal.update(lan_modules)
     return retVal
@@ -304,7 +309,7 @@ def get_user_level_serial_number(network_modules):
 
 
 ''''''
-def lookupDevice(ipAddressLookup, mySocket, lan_modules):
+def lookupDevice(ipAddressLookup, mySocket, lan_modules, module_found):
     try:
         specifiedDevice =None
         # For future reference, 0 is the C terminator for a string
@@ -318,8 +323,8 @@ def lookupDevice(ipAddressLookup, mySocket, lan_modules):
         # Check to see if the response contains the connection protocol
         return specifiedDevice
     except Exception as e:
-        logging.warning("Error during UDP lookup of IP address "+ str(ipAddressLookup) +"  Error: " + str(e))
-        logging.warning("No Quarch module found at this address. Please check the IP address and that you can ping it.\r\n")
+        logging.debug("Error during UDP lookup of IP address "+ str(ipAddressLookup) +"  Error: " + str(e))
+        logging.debug("No Quarch module found at this address. Please check the IP address and that you can ping it.\r\n")
 
     #return None # Commented out, attempt a REST connection with IP. This is what other quarch applications do.
     if specifiedDevice is None: #Only True if TCP not found or errored
@@ -333,10 +338,11 @@ def lookupDevice(ipAddressLookup, mySocket, lan_modules):
             # Exit as device was found correctly
             # Add the item to list
             lan_modules["REST:" + str(ipAddressLookup).replace("\r\n", "")] = restDevice
+            module_found = restDevice
             specifiedDevice=None # Don't return rest connection, to bypass tcp parsing.
         except Exception as e:
-            logging.warning("Error During REST scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
-            logging.warning("Please check the IP address and that you can ping it.\r\n")
+            logging.debug("Error During REST scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
+            logging.debug("Please check the IP address and that you can ping it.\r\n")
         try:
             # from threading import Thread
             # t = Thread(target=connection_TCP.TCPConn, args=(str(ipAddressLookup).replace("\r\n", ""),))
@@ -355,12 +361,14 @@ def lookupDevice(ipAddressLookup, mySocket, lan_modules):
             # Exit as device was found correctly
             # Add the item to list
             lan_modules["TCP:" + str(ipAddressLookup).replace("\r\n", "")] = tcpDevice
+            module_found = tcpDevice
             specifiedDevice=None # Don't return tcp connection, to bypass tcp parsing.
         except Exception as e:
-            logging.warning("Error During TCP scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
-            logging.warning("Please check the IP address and that you can ping it.\r\n")
+            logging.debug("Error During TCP scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
+            logging.debug("Please check the IP address and that you can ping it.\r\n")
+
         # Needs to return None so previous method will not attempt another lookup.
-        return specifiedDevice
+        return specifiedDevice, module_found
 
 
 

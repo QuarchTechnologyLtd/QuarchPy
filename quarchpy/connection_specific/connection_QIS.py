@@ -1651,6 +1651,9 @@ class QisInterface:
                     if count == 1:  # Only check this on the first read
                         if res.startswith("<?xml"):  # Likely XML if it starts with '<'
                             is_xml = True
+                        elif res.startswith("<XmlResponse"):
+                            is_xml = True
+
 
                     if is_xml:
                         # Try to parse the XML to check if it's complete

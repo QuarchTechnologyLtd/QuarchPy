@@ -56,7 +56,6 @@ from device.quarchQPS import quarchQPS
 from qps.qpsFuncs import isQpsRunning, startLocalQps, GetQpsModuleSelection
 from qps.qpsFuncs import closeQps, closeQps as closeQPS
 from disk_test.DiskTargetSelection import getDiskTargetSelection, getDiskTargetSelection as GetDiskTargetSelection
-from qps.qpsFuncs import toQpsTimeStamp, toQpsTimeStamp as adjustTime
 from fio.FIO_interface import runFIO
 from device.scanDevices import scanDevices
 

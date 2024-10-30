@@ -137,13 +137,6 @@ all_outputs={"terse_version_3":"0",
 
 out_data = {}
 
-def timeNow():
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f")
-
-def adjustTime(timestamp):
-    return time.mktime(datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S:%f").timetuple())
-
-
 def follow(thefile, p):
     thefile.seek(0,2)
     #flag for exiting the loop

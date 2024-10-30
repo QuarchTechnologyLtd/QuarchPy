@@ -1568,9 +1568,12 @@ class QisInterface:
             res = self.sendAndReceiveText(sock, cmd, device, readUntilCursor)
             if (betweenCommandDelay > 0):
                 time.sleep(betweenCommandDelay)
+
             # If ends with cursor get rid of it
-            if res[-1:] == '>':
-                res = res[:-3]  # remove last three chars - hopefully '\r\n>'
+            if res[-3:] == '\r\n>':
+                res = res[:-3]  # remove last three chars - '\r\n>'
+            elif res[-2:] == '\n>':
+                    res = res[:-2]  # remove last 2 chars - '\n>'
             return res
 
         else :

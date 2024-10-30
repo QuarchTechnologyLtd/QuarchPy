@@ -1,5 +1,4 @@
 from quarchpy.device import quarchDevice
-from quarchpy.qps import toQpsTimeStamp
 from quarchpy.utilities.Version import Version
 from quarchpy.user_interface.user_interface import requestDialog
 import os, time, datetime, sys, logging
@@ -198,8 +197,9 @@ class quarchStream:
             raise Exception(command_response)
         return (command_response)
 
+
     def addAnnotation(self, title, annotationTime=0, extraText="", yPos="", titleColor="", annotationColor="",
-                      annotationType="", annotationGroup=""):
+                      annotationType="", timeFormat="unix"):
         """
                     Adds a custom annotation to stream with given parameters.
 
@@ -215,9 +215,9 @@ class quarchStream:
                         The color of the text next to the annotation in hex format 000000 to FFFFFF
                     annotationColor : str, optional
                         The color of the annotation marker in hex format 000000 to FFFFFF
-                    annotationGroup : str, optional
-                        The group the annotation belongs to
-                    annotationTime : int, optional
+                    annotationType : str, optional
+                        The group the annotation belongs to, annotation comment or any custom group the user has made.
+                    timeFormat : str, optional
                         The time in milliseconds after the start of the stream at which the annotation should be placed. 0 will plot the annotation live at the most recent sample
 
                     Returns
@@ -226,62 +226,57 @@ class quarchStream:
 
                         The response text from QPS. "ok" if annotation successfully added
             """
-        annotationTime = str(annotationTime)
+
         annotationType = annotationType.lower()
+        annotationTime = str(annotationTime)
+
+        if (annotationTime[0].isalpha() or annotationTime[-1].isalpha()):
+            timeFormat="elapsed"
+            if annotationTime.startswith("e"): #Old format allowed e to be used to pass elapsed time in seconds "e2" -> 2s + elapsed
+                annotationTime=annotationTime[1:]+"s"
+
+        elif annotationTime=="0":
+            annotationTime=current_milli_time()
+            timeFormat="unix"
+
         if annotationType == "" or annotationType == "annotation":
             annotationType = "annotate"
         elif annotationType == "comment":
             pass  # already in the correct format for command
-        else:
-            retString = "Fail annotationType must be 'annotation' or 'comment'"
-            logging.warning(retString)
-            return retString
+        # else: # QPS now supports custom types passed as annotationType rather than annotation group.
+        #     retString = "Fail annotationType must be 'annotation' or 'comment'"
+        #     logging.warning(retString)
+        #     return retString
 
-        # If the function has already been passed the XML string to give to QPS
-        if ("<<" in title.replace(" ", "")):
-            annotationString = str(title)
-        else:
-            annotationString = "<"
+        title = title.replace("\n", "\\n")
+        cmd="$stream annotation add "+" time="+str(annotationTime)+ " text=\""+title+"\""
+        if extraText!="":
+            extraText = extraText.replace("\n", "\\n")
+            cmd+=" extraText=\"" +str(extraText)+"\""
+        if yPos!= "":
+            cmd+=" yPos="+str(yPos)
+        if type!="":
+            cmd+=" type="+ str(annotationType)
+        if annotationColor!="":
+            cmd+=" colour="+str(annotationColor)
+        if titleColor!="":
+            cmd+=" textColour="+str(titleColor)
+        if timeFormat!="":
+            cmd+=" timeFormat="+str(timeFormat)
 
-            if annotationTime == "0":
-                # Use current time
-                annotationTime = qpsNowStr()
-            elif (annotationTime.startswith("e")):
-                pass
-            else:
-                # Convert timestamp to QPS format
-                # annotationTime = toQpsTimeStamp(annotationTime)
-                annotationTime = str(annotationTime)
+        logging.warning("Sending to QPS:" + str(cmd))
+        return self.connectionObj.qps.sendCmdVerbose(cmd)
 
-            if title != "":
-                annotationString += "<text>" + str(title) + "</text>"
-            if extraText != "":
-                annotationString += "<extraText>" + str(extraText) + "</extraText>"
-            if yPos != "":
-                annotationString += "<yPos>" + str(yPos) + "</yPos>"
-            if titleColor != "":
-                annotationString += "<textColor>" + str(titleColor) + "</textColor>"
-            if annotationColor != "":
-                annotationString += "<color>" + str(annotationColor) + "</color>"
-            if annotationGroup != "":
-                annotationString += "<userType>" + str(annotationGroup) + "</userType>"
-            annotationString += ">"
-
-        # command is sent on newline so \n needs to be chnaged to \\n which is changed back just before printing in qps.
-        annotationString = annotationString.replace("\n", "\\n")
-        logging.debug("Time sending to QPS:" + str(annotationTime))
-        return self.connectionObj.qps.sendCmdVerbose(
-            "$" + annotationType + " " + str(annotationTime) + " " + annotationString)
 
     def addComment(self, title, commentTime=0, extraText="", yPos="", titleColor="", commentColor="", annotationType="",
-                   annotationGroup=""):
+                   annotationGroup="", timeFormat="unix"):
         # Comments are just annotations that do not affect the statistics grid.
         # This function was kept to be backwards compatible and is a simple pass through to add annotation.
         if annotationType == "":
             annotationType = "comment"
         return self.addAnnotation(title=title, annotationTime=commentTime, extraText=extraText, yPos=yPos,
                                   titleColor=titleColor, annotationColor=commentColor, annotationType=annotationType,
-                                  annotationGroup=annotationGroup)
+                                  annotationGroup=annotationGroup, timeFormat=timeFormat)
 
     def saveCSV(self, filePath, linesPerFile=None, cr=None, delimiter=None, timeout=60):
         """
@@ -378,7 +373,7 @@ class quarchStream:
         self.hideChannel("smclk:digital")
         self.hideChannel("smdat:digital")
 
-    # function to add a data point the the stream
+    # function to add a data point to the stream
     # time value will default to current time if none passed
     def addDataPoint(self, channelName, groupName, dataValue, dataPointTime=0, timeFormat="unix"):
         '''
@@ -386,13 +381,14 @@ class quarchStream:
         groupName - str
         dataValue - int/float value of the data point
         dataPointTime=0 - time of the data point
-        timeFormat="unix" - the format of the given time
+        timeFormat="unix" - the format of the given time ["elapsed"|"unix"]
         '''
         if dataPointTime == None or dataPointTime == 0:
             dataPointTime = qpsNowStr()
         else:
-            dataPointTime = toQpsTimeStamp(dataPointTime)
-
+            dataPointTime = int(dataPointTime)
+        logging.warning("$stream data add " + channelName + " " + groupName + " " + str(dataPointTime) + " " + str(
+                dataValue) + " " + timeFormat)
         self.connectionObj.qps.sendCmdVerbose(
             "$stream data add " + channelName + " " + groupName + " " + str(dataPointTime) + " " + str(
                 dataValue) + " " + timeFormat)

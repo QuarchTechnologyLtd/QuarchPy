@@ -643,7 +643,10 @@ def displayTable(tableData=[[""]], message="", tableHeaders=None, indexReq=False
         for item in rowData:
             spaces = (columnWidths[index] - len(str(item)) + 2)
             if align.lower() in "l":
-                rowString += str(item) + " " * spaces + "|"
+                if "aborted" not in str(item):
+                    rowString += str(item) + " " * spaces + "|"
+                else:
+                    rowString += "DEVICE IN USE" + " " * spaces + "|"
             elif align.lower() in "c":
                 prefix = " " * math.floor(spaces / 2)
                 suffix = " " * math.ceil(spaces / 2)

@@ -264,7 +264,6 @@ class quarchStream:
         if timeFormat!="":
             cmd+=" timeFormat="+str(timeFormat)
 
-        logging.warning("Sending to QPS:" + str(cmd))
         return self.connectionObj.qps.sendCmdVerbose(cmd)
 
 

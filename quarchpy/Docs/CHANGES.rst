@@ -13,6 +13,16 @@ Quarchpy
 Change Log
 ----------
 
+2.2.2
+-----
+- New QPS v1.44 and QIS v1.46 packaged with java 21 with no need for installed java.
+- Added support for automatic creation of default synthetic channels when connecting to module via QIS
+
+2.2.1
+-----
+- New QPS v1.43 and QIS v1.45 packaged with java 21 with no need for installed java.
+- Minor bug fixes
+
 2.2.0
 -----
 - New QPS v1.42 and QIS v1.44 packaged with java 21 with no need for installed java.

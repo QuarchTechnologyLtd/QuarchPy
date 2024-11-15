@@ -1,4 +1,4 @@
-(C)Quarch Technology Ltd 2024, QIS v1.44
+(C)Quarch Technology Ltd 2024, QIS v1.45
 
 qis:
 
@@ -590,6 +590,8 @@ The currently supported synthetic channel functions are:
 		The ratio of peak value to RMS value over the specified time window.
 	sum
 		The sum of the specified channels.
+	subtract
+		The difference of the specified channels.
 		
 Each of the above functions have differing arguments and return value and the best source of reference for each function's
 details is via the XML function definitions command described above.

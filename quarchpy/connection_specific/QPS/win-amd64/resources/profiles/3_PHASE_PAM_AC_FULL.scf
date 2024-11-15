@@ -9,13 +9,13 @@
 	<SyntheticChannelFunction displayGroup="V" displayName="L3_FILT" functionName="firFilter">
 		<FunctionArguments argument_0="100ms" argument_1="LOWPASS_100HZ_AC" argument_2="chan(L3,V)"/>
 	</SyntheticChannelFunction>
-	<SyntheticChannelFunction displayGroup="V" displayName="L1_HAR" functionName="subtract">
+	<SyntheticChannelFunction displayGroup="V" displayName="L1_HAR" functionName="harSubtract">
 		<FunctionArguments argument_0="100ms" argument_1="chan(L1,V)" argument_2="chan(L1_FILT,V)"/>
 	</SyntheticChannelFunction>
-	<SyntheticChannelFunction displayGroup="V" displayName="L2_HAR" functionName="subtract">
+	<SyntheticChannelFunction displayGroup="V" displayName="L2_HAR" functionName="harSubtract">
 		<FunctionArguments argument_0="100ms" argument_1="chan(L2,V)" argument_2="chan(L2_FILT,V)"/>
 	</SyntheticChannelFunction>
-	<SyntheticChannelFunction displayGroup="V" displayName="L3_HAR" functionName="subtract">
+	<SyntheticChannelFunction displayGroup="V" displayName="L3_HAR" functionName="harSubtract">
 		<FunctionArguments argument_0="100ms" argument_1="chan(L3,V)" argument_2="chan(L3_FILT,V)"/>
 	</SyntheticChannelFunction>
 	<SyntheticChannelFunction displayGroup="V" displayName="L1_FILT_RMS" functionName="rms">

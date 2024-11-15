@@ -1,7 +1,7 @@
 QPS Command Summary
 Copyright (c) Quarch Ltd
-QPS v1.43
-Generated: 26 Sept 2024
+QPS v1.43.5
+Generated: 9 Nov 2024
 
 
 *** Commands ***
@@ -147,8 +147,8 @@ Index: 0
 Type: STRING
 Default value: NONE
 Notes:
-Command is passed to QIS which will test the connection availability and suitability for streaming data returning a status of OK
-or the reason for connection failure if connection is successful, ccs and file dialogs should close and the chart window connected to the device should display
+The command is passed to QIS which will test the connection availability and suitability for streaming data returning a status of OK
+or the reason for connection failure. If connection is successful, the CCS and file dialogs should close and the chart window connected to the device should display.
 $connect supports both device names and IP addresses
 Examples:
 $connect usb::QTL1999-02-999
@@ -292,15 +292,20 @@ Time format: UNIX time in mS or exxxDxx:xx:xx.xxxx for daysDhours:minutes:second
 To indicate the end marker of an interval then set the value to 'endSeq'; eg : myStream.addDataPoint(channelName, groupName, 'endSeq')
 
 Command: $module connect
-Description: Device ID
+Description: Connects to a specified device
 Version: 2
 See also: $connect, $module disconnect
 Arguments
 Argument: device
-Description: 
+Description: Device ID
 Index: 0
 Type: STRING
 Default value: NONE
+Notes:
+$module connect supports both device names and IP addresses
+Examples:
+$module connect usb::QTL1999-02-999
+$module connect tcp::81.187.174.46
 
 Command: $module disconnect
 Description: Disconnects the current connection
@@ -798,10 +803,16 @@ Description: File type; eg CSV
 Index: 4
 Type: STRING
 Default value: csv
+Argument: channels
+Description: List of channels to export; eg "voltage:5v,current:12v" with the default set to "all"
+Index: 5
+Type: STRING
+Default value: all
 Notes:
 Format: $save csv file path/file name ALL|Max lines per file yes/no ",", "\t", ";", " "
 Argument file is optional and if not specified then a file name is assigned and of the form: 
 If no fileType file is specified then the following is assigned: .../path to recording directory/fileType+Export+yyyyMMddHHmmss.fileType
+By default all channels are exported but can be filtered using argument "channel"
 
 Command: $stream read
 Description: Reads data between from a given start time and either end time or number of records
@@ -993,7 +1004,7 @@ $list -details ~ Lists available device details
 
 $log ~ Adds a channel/group value at a specified time
 
-$module connect ~ Device ID
+$module connect ~ Connects to a specified device
 
 $module disconnect ~ Disconnects the current connection
 

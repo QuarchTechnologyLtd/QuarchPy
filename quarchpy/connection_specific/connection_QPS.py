@@ -206,7 +206,7 @@ class QpsInterface:
         startTime=time.time()
         notLoadingMessageStartTime=None
         while(1):
-            update=self.sendCmdVerbose("$progress check \"open recording\"",timeout=cmdTimeout)
+            update=self.sendCmdVerbose("$progress check task=\"open recording\"",timeout=cmdTimeout)
             #print(update)
             m = re.search(r'\d+(\.\d+)?%', update)
             if m: # A percentage was found
@@ -216,8 +216,8 @@ class QpsInterface:
                 if found > 99.9: # This will catch the case we have 99.9999% or 100% loaded. recording with less that 1mill records auto return 100%
                     message = "Passed, Recording opened, loading detected and complete."
                     break
-            elif("Chart window is open but no loading is in progress." in update):
-                if loadingStarted ==True:
+            elif "Chart window is open but no loading is in progress." in update:
+                if loadingStarted == True:
                     # Loading started and has now ended, so we can exit the loop.
                     message="Passed, Recording opened, loading detected and complete."
                     break
@@ -227,7 +227,7 @@ class QpsInterface:
                         # we exit, stating that no loading started within the desired time.
                         notLoadingMessageStartTime = time.time()
                     elif time.time() - notLoadingMessageStartTime> startOpenTimout:
-                        message = "No detection that QPS started loading the recording within "+str(startOpenTimout)+"s."
+                        message = "No detection that QPS started loading the recording within " + str(startOpenTimout) + "s."
                         break
 
             time.sleep(pollInterval) #Sleep pollInterval time, so we are not hammering QPS for updates while its busy loading.

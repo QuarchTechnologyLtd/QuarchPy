@@ -1,7 +1,7 @@
 QPS Command Summary
 Copyright (c) Quarch Ltd
-QPS v1.44
-Generated: 12 Nov 2024
+QPS v1.44.2
+Generated: 14 Jan 2025
 
 
 *** Commands ***
@@ -774,7 +774,7 @@ To indicate the end marker of an interval then set the value to 'endSeq'; eg : m
 Command: $stream export
 Description: Saves to a given format
 Version: 2
-See also: $save csv
+See also: $save csv, $stream import
 Arguments
 Argument: file
 Description: The file path to save the export
@@ -813,6 +813,60 @@ Format: $save csv file path/file name ALL|Max lines per file yes/no ",", "\t", "
 Argument file is optional and if not specified then a file name is assigned and of the form: 
 If no fileType file is specified then the following is assigned: .../path to recording directory/fileType+Export+yyyyMMddHHmmss.fileType
 By default all channels are exported but can be filtered using argument "channel"
+
+Command: $stream import
+Description: Imports from a given format
+Version: 2
+See also: $stream export
+Arguments
+Argument: file
+Description: The file path to be imported
+Index: 0
+Type: STRING
+Default value: NONE
+Argument: fileType
+Description: File type; eg CSV
+Index: 1
+Type: STRING
+Default value: csv
+Argument: delimiter
+Description: Value separator; eg ,
+Index: 2
+Type: STRING
+Default value: ,
+Acceptable values: ["\t", ";", ",", " "]
+Argument: minTime
+Description: The minimum time value; eg 100mS. The default value of 0nS indicates reading from the start
+Index: 3
+Type: STRING
+Default value: 0nS
+Argument: maxTime
+Description: The maximum time value; eg 800mS. The default value of -1nS indicates reading to the end
+Index: 4
+Type: STRING
+Default value: -1nS
+Argument: offsetTime
+Description: The offset time value; eg 10mS. The default value of 0nS indicates there is no offset
+Index: 5
+Type: STRING
+Default value: 0nS
+Argument: channels
+Description: List of channels to import; eg "voltage:5v,current:12v" with the default set to "all"
+Index: 6
+Type: STRING
+Default value: all
+Argument: timeFormat
+Description: Time format ["elapsed", "unix"]. The default is "elapsed"
+Index: 7
+Type: STRING
+Default value: elapsed
+Acceptable values: [elapsed, unix]
+Notes:
+The file must contain an extension that matches the one specified in fileType. This is used as a check.
+Examples:
+$stream import file="C:\Temp\data.csv"
+$stream import file="C:\Temp\data.csv" channels="voltage:12v,current:12v"
+$stream import file="C:\Temp\data.csv" channels="voltage:12v,current:12v" minTime=1S maxTime=10S
 
 Command: $stream read
 Description: Reads data between from a given start time and either end time or number of records
@@ -1071,6 +1125,8 @@ $stream comment add ~ Adds a comment
 $stream data add ~ Adds a channel/group value at a specified time
 
 $stream export ~ Saves to a given format
+
+$stream import ~ Imports from a given format
 
 $stream read ~ Reads data between from a given start time and either end time or number of records
 

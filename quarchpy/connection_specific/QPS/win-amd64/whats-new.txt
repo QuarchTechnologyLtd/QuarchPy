@@ -1,39 +1,31 @@
 *** What's New In Quarch Power Studio ***
 
-11th November 2024
+14th January 2025
 
-QPS version 1.44
-QIS version 1.46
+QPS version 1.45
+QIS version 1.47
 
 
 
 *** New Features ***
 
-Synthetic channels can now be disabled without deleting them (as with instrument channels)
+Improved help menu links and additional documentation
 
-Added channel options to the CSV export dialog
+Data valid synthetic channel for AC compliance testing
 
-Improved cursor controls and display
+Improved import speed for custom user data
 
-Instrument profiles now display their name and description information when loaded
+Reduced time from start stream, until data is first displayed
 
-Synthetic channel for subtraction added
+Added notification for locked devices that are open in other applications
 
-Channels can now have visibility disabled by default for a less cluttered view
-
-Added a simple user debug command to capture all logs
-
-Improved debug logging when loading traces
+Improved checking of analysis files when loading
 
 
 *** Major Fixes ***
 
-Fixed loading of synthetic channel files for AC PAM
+Fixed issues with window resizing on multiple monitors
 
-Fixed failure to calculate statistics for very short regions
+Improved thread cycling which reduced performance
 
-Fixed issue where stream start could take a second or so to begin showing data
-
-Fixed bug where QIS debug logging did not work to console
-
-Fixed bug where sparse user channels did not always export correctly to CSV
+Fixed duplicate logging lines

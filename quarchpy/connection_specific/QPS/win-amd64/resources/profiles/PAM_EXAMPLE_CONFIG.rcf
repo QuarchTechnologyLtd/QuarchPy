@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Recording Configuration File 
+
+This is a new file format supported by Quarch Power Studio. 
+It contains the relevant recording configuration data that a user could use to quickly configure QPS with the approapriate data.
+Currently it supports:
+
+- Add new synthetic channels (as we do already)
+
+- Allow new synthetic channels to be added, but disabled by default (not recorded)
+
+- Allow new synthetic channels to be added, but hidden by default (recorded, but not displayed)
+
+- Allow existing device channels to disabled (not recorded)
+
+- Allow existing device channels to be hidden by default (recorded, but not displayed)
+
+-->
+<RecordingConfiguration>
+    <Header> <!-- Header information for the recording configuration -->
+        <FileVersion>2.0</FileVersion> <!-- Version of the file, checked on load. -->
+        <DeviceTarget>QTL2312-01</DeviceTarget> <!-- Device identifier for the compatible device(s) -->
+        <FileDescription>This is an example file for PAMs, showing how to configure channels and add an RMS</FileDescription> <!-- Description of the file to make it clear what the file is intended for -->
+    </Header>
+    <SyntheticChannels> <!-- Root tag for synthetic channels configuration -->
+        <Clear>false</Clear> <!-- Indicates whether to clear existing synthetic channels -->
+        <SyntheticChannel> <!-- Defines a single synthetic channel -->
+            <Configuration> <!-- Configuration settings for the synthetic channel -->
+                <Enable>false</Enable> <!-- Whether the synthetic channel is enabled -->
+                <Visible>false</Visible> <!-- Whether the synthetic channel is visible -->
+            </Configuration>
+            <SyntheticChannelFunction> <!-- Function definition for the synthetic channel -->
+                <FunctionDetails> <!-- Details about the function -->
+                    <DisplayGroup>v</DisplayGroup> <!-- Display group for categorizing the function -->
+                    <DisplayName>+3.3V_VOLT_RMS</DisplayName> <!-- Display name for the function -->
+                    <FunctionName>rms</FunctionName> <!-- Name of the function to be applied -->
+                </FunctionDetails>
+                <FunctionArguments> <!-- Arguments for the function -->
+                    <Argument>1ms</Argument> <!-- First argument: time window for RMS calculation -->
+                    <Argument>chan(+3.3V,v)</Argument> <!-- Second argument: channel reference -->
+                </FunctionArguments>
+            </SyntheticChannelFunction>
+        </SyntheticChannel>
+        <SyntheticChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>false</Visible>
+            </Configuration>
+            <SyntheticChannelFunction>
+                <FunctionDetails>
+                    <DisplayGroup>a</DisplayGroup>
+                    <DisplayName>+3.3V_CURR_RMS</DisplayName>
+                    <FunctionName>rms</FunctionName>
+                </FunctionDetails>
+                <FunctionArguments>
+                    <Argument>1ms</Argument>
+                    <Argument>chan(+3.3V,a)</Argument>
+                </FunctionArguments>
+            </SyntheticChannelFunction>
+        </SyntheticChannel>
+        <SyntheticChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <SyntheticChannelFunction>
+                <FunctionDetails>
+                    <DisplayGroup>w</DisplayGroup>
+                    <DisplayName>+3.3V_POWER_RMS</DisplayName>
+                    <FunctionName>rms</FunctionName>
+                </FunctionDetails>
+                <FunctionArguments>
+                    <Argument>1ms</Argument>
+                    <Argument>chan(+3.3V,v)</Argument>
+                </FunctionArguments>
+            </SyntheticChannelFunction>
+        </SyntheticChannel>
+    </SyntheticChannels>
+    <DeviceChannels> <!-- Root tag for device channels configuration -->
+        <DeviceChannel>
+            <Configuration> <!-- Configuration settings for the device channel -->
+                <Enable>false</Enable> <!-- Whether the device channel is enabled -->
+                <Visible>false</Visible> <!-- Whether the device channel is visible -->
+            </Configuration>
+            <DisplayGroup>Voltage</DisplayGroup> <!-- Display group for categorizing the device channel -->
+            <DisplayName>+3.3V</DisplayName> <!-- Display name for the device channel -->
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Voltage</DisplayGroup>
+            <DisplayName>+12V</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>false</Visible>
+            </Configuration>
+            <DisplayGroup>Voltage</DisplayGroup>
+            <DisplayName>+3.3Vaux</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Current</DisplayGroup>
+            <DisplayName>+3.3V</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Current</DisplayGroup>
+            <DisplayName>+12V</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Current</DisplayGroup>
+            <DisplayName>+3.3Vaux</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Digital</DisplayGroup>
+            <DisplayName>PERST#</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Digital</DisplayGroup>
+            <DisplayName>CLKREQ#</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Digital</DisplayGroup>
+            <DisplayName>WAKE#</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Digital</DisplayGroup>
+            <DisplayName>SMBCLK</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Digital</DisplayGroup>
+            <DisplayName>SMBDAT</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Power</DisplayGroup>
+            <DisplayName>+3.3V</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Power</DisplayGroup>
+            <DisplayName>+12V</DisplayName>
+        </DeviceChannel>
+        <DeviceChannel>
+            <Configuration>
+                <Enable>true</Enable>
+                <Visible>true</Visible>
+            </Configuration>
+            <DisplayGroup>Power</DisplayGroup>
+            <DisplayName>+3.3Vaux</DisplayName>
+        </DeviceChannel>
+    </DeviceChannels>
+</RecordingConfiguration>

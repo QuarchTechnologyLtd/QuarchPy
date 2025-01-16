@@ -200,11 +200,12 @@ class QpsInterface:
 
         """
         #print("Open recording at file : \""+str(file_path)+"\"")
-        self.sendCmdVerbose("$open recording qpsFile=\""+str(file_path)+"\"",timeout=cmdTimeout)
+        notLoadingMessageStartTime=None
         loadingStarted=False
         message=""
-        startTime=time.time()
-        notLoadingMessageStartTime=None
+
+        openResponse = self.sendCmdVerbose("$open recording qpsFile=\""+str(file_path)+"\"",timeout=cmdTimeout)
+        #print(openResponse)
         while(1):
             update=self.sendCmdVerbose("$progress check task=\"open recording\"",timeout=cmdTimeout)
             #print(update)
@@ -216,6 +217,9 @@ class QpsInterface:
                 if found > 99.9: # This will catch the case we have 99.9999% or 100% loaded. recording with less that 1mill records auto return 100%
                     message = "Passed, Recording opened, loading detected and complete."
                     break
+            elif "Initialising main chart" in update:
+                loadingStarted = True
+                user_interface.progressBar(found, 100)
             elif "Chart window is open but no loading is in progress." in update:
                 if loadingStarted == True:
                     # Loading started and has now ended, so we can exit the loop.

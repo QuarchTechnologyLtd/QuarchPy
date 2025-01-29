@@ -15,7 +15,7 @@ class quarchPPM(quarchDevice):
         numb_colons = self.ConString.count(":")
         if numb_colons == 1:
             self.ConString = self.ConString.replace(':', '::')
-        if not skipDefaultSyntheticChannels and self.ConType[:3].upper() == "QIS":
+        if not skipDefaultSyntheticChannels and self.ConType[:3].upper() == "QIS" and "FAIL:" not in self.fixture_definition:
             self.create_default_synthetic_channels()
  
     def startStream(self, fileName='streamData.txt', fileMaxMB=200000, streamName ='Stream With No Name', streamDuration = None, streamAverage = None, releaseOnData = False, separator=",", inMemoryData = None):

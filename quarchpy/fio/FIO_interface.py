@@ -3,6 +3,12 @@ import time
 import json
 from datetime import datetime
 import subprocess
+import json
+import csv
+import logging
+import time
+import os
+from bisect import bisect_left
 
 all_outputs={"terse_version_3":"0",
             "fio_version":"1",
@@ -314,3 +320,251 @@ def runFIO(myStream, mode, fioCallbacks, user_data, arguments="", file_name=""):
 
         if isinstance(arguments, dict):
             break
+
+
+
+### FIO postprocessing for QIS ###
+
+
+def merge_fio_qis_stream(qis_stream_file, fio_output_file, unix_stream_start_time, output_file=None, rounding_option="round"):
+    """
+    Merge FIO and QIS data into a single CSV file.
+
+    For each FIO entry:
+        - If timestamps match, append FIO data to the corresponding QIS row.
+        - If no match, handle based on `rounding_option`:
+            - "round": Find the nearest QIS time and add FIO data to that row.
+            - "insert": Add a new row with blank QIS data and only FIO data.
+
+    Parameters:
+        qis_stream_file (str): Path to the QIS CSV file (converted to Unix time).
+        fio_output_file (str): Path to the FIO output file (in JSON format).
+        unix_stream_start_time (str): Starting Unix timestamp for the QIS stream.
+        output_file (str, optional): Output file path for the merged CSV. If not provided, the file is saved
+                                     with "_merged" appended to the QIS file name.
+        rounding_option (str): Determines how to handle mismatched times ("round" or "insert").
+
+    Returns:
+        str: Path to the merged CSV file.
+    """
+    # Convert QIS timestamps to Unix time
+    qis_converted_file = convert_qis_stream_to_unix_time(qis_stream_file, unix_stream_start_time)
+
+    # Parse QIS data
+    qis_data = []
+    with open(qis_converted_file, 'r') as qis_file:
+        reader = csv.reader(qis_file)
+        qis_headers = next(reader) #read header row
+        if qis_headers[-1]=="": qis_headers=qis_headers[:-1]
+        for row in reader:
+            qis_data.append(row)
+
+    # Parse FIO data
+    fio_data = fio_json_to_csv (fio_output_file)
+
+    # Extend QIS headers with FIO headers
+    fio_headers = ["block_size", "job_name", "read_iops", "write_iops"]
+    merged_headers = qis_headers + fio_headers
+
+    # Extract QIS times into a separate list for binary search
+    qis_times = [int(row[0]) for row in qis_data]  # Assuming the first column is the timestamp
+
+    # Prepare merged data
+    merged_data = qis_data.copy()
+    for row in merged_data:
+        row.extend([""] * len(fio_headers))
+
+    # Merge FIO and QIS data
+    for fio_entry in fio_data:
+        fio_time = fio_entry["timestamp_us"]
+
+        # Binary search to find the closest QIS time
+        idx = bisect_left(qis_times, fio_time)
+        exact_match = None
+        if idx < len(qis_times) and qis_times[idx] == fio_time:
+            # Exact match found
+            exact_match = idx
+        elif idx > 0 and (idx == len(qis_times) or abs(qis_times[idx - 1] - fio_time) < abs(qis_times[idx] - fio_time)):
+            exact_match = idx - 1
+
+        if exact_match is not None and qis_times[exact_match] == fio_time:
+            # Append FIO data to the matching QIS row
+            qis_data[exact_match].extend([fio_entry.get(header, "") for header in fio_headers])
+        else:
+            # Log the two QIS times between which the FIO timestamp falls
+            lower_bound = qis_times[idx - 1] if idx > 0 else None
+            upper_bound = qis_times[idx] if idx < len(qis_times) else None
+            logging.debug(f"FIO timestamp {fio_time} falls between QIS times {lower_bound} and {upper_bound} at array position {idx - 1} and {idx}")
+
+            if rounding_option == "round":
+                # Find the nearest QIS time to the FIO time
+                nearest_idx = idx - 1 if idx > 0 and (idx == len(qis_times) or abs(qis_times[idx - 1] - fio_time) < abs(
+                    qis_times[idx] - fio_time)) else idx
+                merged_data[nearest_idx] = merged_data[nearest_idx][:-4]
+                merged_data[nearest_idx].extend([fio_entry.get(header, "") for header in fio_headers])
+            elif rounding_option == "insert":
+                # Add a new row with blank QIS data and only FIO data at the end
+                blank_qis_data = [""] * len(qis_headers)
+                blank_qis_data[0]=fio_time
+                new_row = blank_qis_data + [fio_entry.get(header, "") for header in fio_headers]
+                merged_data.insert(idx, new_row)
+
+    # Write the merged data to a new file
+    if output_file is None:
+        output_file = qis_stream_file.replace(".csv", f"_merged_{rounding_option}.csv")
+    with open(output_file, 'w', newline='') as output_file_out:
+        writer = csv.writer(output_file_out)
+        writer.writerow(merged_headers)
+        writer.writerows(merged_data)
+
+    logging.debug(f"Merged data written to {output_file}")
+    os.remove(qis_converted_file) # remove the intermidiary file
+    return output_file
+
+def convert_qis_stream_to_unix_time(qis_stream_file, unix_stream_start_time):
+    """
+    Converts a QIS stream CSV file to Unix time by adding the unixStreamStartTime to the first column
+    in each row, taking into account the time units provided in both the CSV header and the start time.
+
+    Parameters:
+        qis_stream_file (str): The path to the QIS stream CSV file.
+        unix_stream_start_time (str): The starting Unix time with units (e.g., "1737374310S", "1737374310000mS").
+
+    Returns:
+        str: Path to the converted CSV file.
+    """
+    # Extract the numeric value and unit from unixStreamStartTime
+    import re
+    match = re.match(r"(\d+)([a-zA-Z]+)", unix_stream_start_time)
+    if not match:
+        logging.warning("Invalid unix_stream_start_time format. Use format like '1737374310S' or '1737374310000mS'.")
+        return
+
+    unix_start_value = int(match.group(1))
+    unix_start_unit = match.group(2).lower()  # Normalize to lowercase
+
+    # Unit multipliers
+    unit_multipliers = {'s': 1, 'ms': 1e-3, 'us': 1e-6, 'ns': 1e-9}
+    if unix_start_unit not in unit_multipliers:
+        raise ValueError(f"Unsupported time unit: {unix_start_unit}")
+
+    unix_start_in_seconds = unix_start_value * unit_multipliers[unix_start_unit]
+
+    # Determine the output file name
+    output_file = qis_stream_file.replace('.csv', '_converted.csv')
+
+    try:
+        with open(qis_stream_file, 'r') as infile, open(output_file, 'w', newline='') as outfile:
+            reader = csv.reader(infile)
+            writer = csv.writer(outfile)
+
+            # Read the header to determine the time column unit
+            header = next(reader)
+            writer.writerow(header)  # Write the header to the output file
+
+            # Identify the time unit in the header (e.g., "Time uS")
+            time_unit = None
+            for col in header:
+                if "time" in col.lower():
+                    time_unit_match = re.search(r"time\s+([a-zA-Z]+)", col, re.IGNORECASE)
+                    if time_unit_match:
+                        time_unit = time_unit_match.group(1).lower()
+                    break
+
+            if not time_unit or time_unit not in unit_multipliers:
+                logging.warning(f"Unsupported or missing time unit in the header: {time_unit}")
+                return
+
+            # Convert time units in the CSV to seconds
+            time_unit_multiplier = unit_multipliers[time_unit]
+
+            # Process each row and update the first column
+            for row in reader:
+                if row and row[0].isdigit():  # Ensure the first cell is numeric
+                    elapsed_time_in_seconds = int(row[0]) * time_unit_multiplier
+                    new_time_in_seconds = elapsed_time_in_seconds + unix_start_in_seconds
+                    # Convert back to the original unit for consistency
+                    row[0] = str(int(new_time_in_seconds / time_unit_multiplier))
+                writer.writerow(row)
+
+        logging.debug(f"File successfully converted and saved as: {output_file}")
+        return output_file
+
+    except FileNotFoundError:
+        logging.error(f"Error: File '{qis_stream_file}' not found.")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+#1737376756
+#convertQISStreamToUnixTime("Stream1.csv", "1737376756S")
+
+
+
+def fio_json_to_csv(output_file):
+    retVal=[]
+    isThreaded = True
+    #checking to see if the first line of file needs to be skipped = Windows only
+    if os.name == "nt":
+        isThreaded = False
+    logfile = open(output_file,"r")
+    #variables for parsing json
+    iterator = 0
+    jobCount = 0
+    jsonLines = ""
+    openBracketCount = 0
+    closeBracketCount = 0
+    # Init the job end time to the current start time
+    jobEndTime = int(round(time.time() * 1000))
+    for line in logfile:
+        if (isThreaded == False):
+            # skip the very first line -- (title line) --
+            if iterator == 0:
+                iterator = iterator + 1
+                # marking threaded as true for remainder of read > Efficiency
+                isThreaded = True
+                continue
+        # add to iterator - not needed, may be useful later
+        iterator = iterator + 1
+        # concat strings
+        jsonLines += line
+        # finding brackets withing json
+        if '{' in line:
+            openBracketCount = openBracketCount + 1
+        if '}' in line:
+            closeBracketCount = closeBracketCount + 1
+        # an equal amount of brackets denotes the end of a json object
+        if openBracketCount == closeBracketCount and openBracketCount != 0:
+            try:
+                # format into a json parsable string
+                TempJsonObject = jsonLines[0: jsonLines.rindex('}') + 1]
+                # parse json
+                jsonobject = json.loads(TempJsonObject)
+                # checking for first job
+                if (jobCount == 0):
+                    # getting start time of job
+                    startTime = (jsonobject['timestamp_ms'] - jsonobject['jobs'][0]['read']['runtime'])
+                    #comment = str(arguments).replace(",", "\n").replace("}", "").replace("{", "")
+                    jobName = str(jsonobject['jobs'][0]['jobname'])
+                    # adding start annotation
+                    #fioCallbacks["TEST_START"](myStream, str(startTime), jobName, comment)
+                    logging.debug(f"first job name: {jobName}   start time {startTime} ")
+                # pass specific data
+                readDataValue = jsonobject['jobs'][0]['read']['iops']
+                writeDataValue = jsonobject['jobs'][0]['write']['iops']
+                blockSize = jsonobject['global options']['bs']
+                # converted to ditionary - easy script use
+                dataValues = {"read_iops": readDataValue, "write_iops": writeDataValue, "block_size": blockSize}
+                jobEndTime = str(jsonobject['timestamp_ms'])
+                dataValues['timestamp_us']=int(jobEndTime)*1000
+                dataValues['job_name'] = jobName
+                logging.debug(str(dataValues))
+
+                retVal.append(dataValues)
+                # jsonLines variable is now all characters after last job + any new that come in
+                jsonLines = jsonLines[jsonLines.rindex('}') + 1:]
+                # add 1 to the job count
+                jobCount += 1
+            except Exception as e:
+                # exception caused by not being able to find substring -- Last json object --
+                logging.warning("Exception Caught\n"+ str(e))
+                pass
+    return retVal

@@ -77,7 +77,7 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     temp =" "
     args = temp.join(args)
     if startQPSMinimised == True: #TODO add to release for QPS 1.38
-        if "-ccs=" not in args.lower():
+        if "-ccs" not in args.lower():
             args +=" -ccs=MIN"
 
     # Record current working directory

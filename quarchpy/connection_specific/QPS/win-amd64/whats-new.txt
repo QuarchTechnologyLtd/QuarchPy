@@ -1,0 +1,31 @@
+*** What's New In Quarch Power Studio ***
+
+14th January 2025
+
+QPS version 1.45
+QIS version 1.47
+
+
+
+*** New Features ***
+
+Improved help menu links and additional documentation
+
+Data valid synthetic channel for AC compliance testing
+
+Improved import speed for custom user data
+
+Reduced time from start stream, until data is first displayed
+
+Added notification for locked devices that are open in other applications
+
+Improved checking of analysis files when loading
+
+
+*** Major Fixes ***
+
+Fixed issues with window resizing on multiple monitors
+
+Improved thread cycling which reduced performance
+
+Fixed duplicate logging lines

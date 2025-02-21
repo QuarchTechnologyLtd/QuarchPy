@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<filters>
+	<Header>
+		<!-- Version of the XML document -->
+		<Version>1.0</Version>
+
+		<!-- Name of the filter set -->
+		<Name>EXAMPLE_FILTERS</Name>
+
+		<!-- Description of the filter set -->
+		<Desc>This is an example of the XML layout for the filter XML files.</Desc>
+	</Header>
+    <!-- Example filter definition -->
+    <filter>
+        <!-- Provide a unique name for this filter with the format - FilterType_Frequency e.g. LowPass_100Hz -->
+        <name>FilterType_Frequency</name>
+
+        <!-- Description of the filter -->
+        <desc>This is a good description</desc>
+
+        <!-- Set the sample rate of the filter set -->
+        <sampleRate>125us</sampleRate>
+
+        <!-- Set the number of coefficient values here -->
+        <count>5</count>
+
+        <!-- Add up to 1000 comma-separated coefficient values -->
+        <values>
+            0.1,0.2,0.3,0.4,0.5
+        </values>
+    </filter>
+-->
+</filters>
+<!--
+    End of Example XML snippet
+-->

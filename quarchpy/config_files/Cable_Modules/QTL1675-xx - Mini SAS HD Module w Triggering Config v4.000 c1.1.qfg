@@ -1,0 +1,211 @@
+@CONFIG Version=1
+
+# Torridon mini SAS HD Module +Triggering
+@HEADER
+DeviceClass=TorridonModule
+DeviceNumbers=QTL1675-xx
+DeviceNumbersExclude=
+MinFirmwareRequired=4.000
+MinFpgaRequired=1.1
+DeviceDescription=Mini SAS HD Cable Pull Module +Triggering
+
+#Describes general module abilities
+@GENERAL
+HotPlugRead_Present = true
+GlitchStateRead_Present = true
+SourceUserBounce_Present = true
+Triggering_Present=true
+
+#Describes all signals on the module
+@SIGNALS
+Name=TX0_PL,GlitchEnable_Present=true
+Name=TX0_MN,GlitchEnable_Present=true
+Name=RX0_PL,GlitchEnable_Present=true
+Name=RX0_MN,GlitchEnable_Present=true
+Name=TX1_PL,GlitchEnable_Present=true
+Name=TX1_MN,GlitchEnable_Present=true
+Name=RX1_PL,GlitchEnable_Present=true
+Name=RX1_MN,GlitchEnable_Present=true
+Name=TX2_PL,GlitchEnable_Present=true
+Name=TX2_MN,GlitchEnable_Present=true
+Name=RX2_PL,GlitchEnable_Present=true
+Name=RX2_MN,GlitchEnable_Present=true
+Name=TX3_PL,GlitchEnable_Present=true
+Name=TX3_MN,GlitchEnable_Present=true
+Name=RX3_PL,GlitchEnable_Present=true
+Name=RX3_MN,GlitchEnable_Present=true
+
+Name=VMAN,GlitchEnable_Present=true
+Name=VACT_0,GlitchEnable_Present=true
+Name=VACT_1,GlitchEnable_Present=true
+Name=MODPRSL,GlitchEnable_Present=true
+Name=SDA,GlitchEnable_Present=true
+Name=SCL,GlitchEnable_Present=true
+Name=INTL,GlitchEnable_Present=true
+
+
+@SIGNAL_GROUPS
+Name=ALL,Signals="TX0_PL,TX0_MN,RX0_PL,RX0_MN,TX1_PL,TX1_MN,RX1_PL,RX1_MN,TX2_PL,TX2_MN,RX2_PL,RX2_MN,TX3_PL,TX3_MN,RX3_PL,RX3_MN,VMAN,VACT_0,VACT_1,MODPRSL,SDA,SCL,INTL"
+Name=LANE0,Signals="TX0_PL,TX0_MN,RX0_PL,RX0_MN"
+Name=LANE1,Signals="TX1_PL,TX1_MN,RX1_PL,RX1_MN"
+Name=LANE2,Signals="TX2_PL,TX2_MN,RX2_PL,RX2_MN"
+Name=LANE3,Signals="TX3_PL,TX3_MN,RX3_PL,RX3_MN"
+Name=MANAGEMENT,Signals="VMAN,VACT_0,VACT_1,MODPRSL,SDA,SCL,INTL"
+
+# Describes all sources on the module
+@SOURCES
+
+# Describes basic source parameters
+@SOURCE_START
+Number=0
+Type=ALWAYS_OFF
+Name=Source 0
+SourceEnable_Present=false
+@SOURCE_END
+
+
+# Describes basic source parameters
+@SOURCE_START
+Number=1
+Type=TIMED
+Name=Source 1
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=2
+Type=TIMED
+Name=Source 2
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=3
+Type=TIMED
+Name=Source 3
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=4
+Type=TIMED
+Name=Source 4
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=5
+Type=TIMED
+Name=Source 5
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=6
+Type=TIMED
+Name=Source 6
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=7
+Type=IMMEDIATE_CHANGE
+Name=Source 7
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=8
+Type=ALWAYS_ON
+Name=Source 8
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes glitching module
+@GLITCH
+GlitchSignals_present=true
+GlitchSignals_Version=2
+GlitchLength_Limits=int,0,255,1
+GlitchMultiplier_Settings=50ns,500ns,5us,50us,500us,5ms,50ms,500ms
+GlitchPrbs_Settings=1:2,1:4,1:8,1:16,1:32,1:64,1:128,1:256,1:512,1:1024,1:2048,1:4096,1:8192,1:16384,1:32768,1:65536
+
+@MEASURE
+Name=1v2,Type=SelfVoltage
+Name=3v3,Type=SelfVoltage
+Name=3v3b,Type=SelfVoltage
+Name=5v,Type=SelfVoltage
+Name=-5v,Type=SelfVoltage
+Name=12v,Type=SelfVoltage

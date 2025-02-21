@@ -1,0 +1,331 @@
+<html>
+<head>
+<style>
+body {
+    font-family: "Roboto", sans-serif;
+}
+h1, h2 {
+    color: #1a94c6;
+}
+table {
+  border-collapse: collapse;
+  border: 2px solid #1a94c6;
+  text-align: left;
+}
+th,
+td {
+  border: 1px solid #1a94c6;
+  padding: 8px 10px;
+  vertical-align: top;
+}
+th {
+  background: #1a94c6;
+  color: white;
+}
+.backlink {
+    font-size: x-small;
+}
+.outer-container {
+    padding-left: 5%;
+    padding-right: 5%;
+}
+.version {
+    font-weight: light;
+    font-style: italic;
+    font-size: small;
+    color: #1a94c6;
+}
+.notes-title, .examples-title, .default-title, .acceptable-title, .see-also-title {
+    font-style: italic;
+    color: #1a94c6;
+}
+.default-title, .acceptable-title, .see-also-title {
+    font-size: small;
+}
+.see-also {
+    font-size: small;
+}
+.content-item {
+    padding-top: 30px;
+    padding-bottom: 30px;
+}
+</style>
+<title>Quarch Power Studio Command Reference</title>
+</head>
+<body>
+<div class="outer-container">
+<h1><a name="index">Quarch Power Studio Command Reference</a></h1>
+<p>Copyright (c) Quarch Ltd</p><p>QPS v1.44.2</p><p>Generated:14 Jan 2025</p><p>This document lists the commands that can be sent to QPS over the TCP interface. By default
+QPS will open port 9822. Commands may be sent as UTF-8 text with the standard line terminator \r\n
+ denoting the end of a command.
+</p><ul>
+<li>
+<a href="#annotate">$annotate</a></li>
+<li>
+<a href="#channels">$channels</a></li>
+<li>
+<a href="#comment">$comment</a></li>
+<li>
+<a href="#connect">$connect</a></li>
+<li>
+<a href="#connected">$connected</a></li>
+<li>
+<a href="#createchannel">$create channel</a></li>
+<li>
+<a href="#echo">$echo</a></li>
+<li>
+<a href="#getcustomstatsrange">$get custom stats range</a></li>
+<li>
+<a href="#getstats">$get stats</a></li>
+<li>
+<a href="#help">$help</a></li>
+<li>
+<a href="#hidechannel">$hide channel</a></li>
+<li>
+<a href="#list">$list</a></li>
+<li>
+<a href="#list-details">$list -details</a></li>
+<li>
+<a href="#log">$log</a></li>
+<li>
+<a href="#qisstatus">$qis status</a></li>
+<li>
+<a href="#read">$read</a></li>
+<li>
+<a href="#savecsv">$save csv</a></li>
+<li>
+<a href="#scan">$scan</a></li>
+<li>
+<a href="#showchannel">$show channel</a></li>
+<li>
+<a href="#shutdown">$shutdown</a></li>
+<li>
+<a href="#startstream">$start stream</a></li>
+<li>
+<a href="#statstocsv">$stats to csv</a></li>
+<li>
+<a href="#stopstream">$stop stream</a></li>
+<li>
+<a href="#streamstate">$stream state</a></li>
+<li>
+<a href="#takesnapshot">$take snapshot</a></li>
+<li>
+<a href="#version">$version</a></li>
+<li>
+<a href="#chartchannelhide">$chart channel hide</a></li>
+<li>
+<a href="#chartchannelshow">$chart channel show</a></li>
+<li>
+<a href="#chartsnapshot">$chart snapshot</a></li>
+<li>
+<a href="#debuglistcommands">$debug list commands</a></li>
+<li>
+<a href="#moduleconnect">$module connect</a></li>
+<li>
+<a href="#modulelist">$module list</a></li>
+<li>
+<a href="#modulelistdetails">$module list details</a></li>
+<li>
+<a href="#modulename">$module name</a></li>
+<li>
+<a href="#modulescan">$module scan</a></li>
+<li>
+<a href="#streamannotationadd">$stream annotation add</a></li>
+<li>
+<a href="#streamchanneladd">$stream channel add</a></li>
+<li>
+<a href="#streamchannels">$stream channels</a></li>
+<li>
+<a href="#streamcommentadd">$stream comment add</a></li>
+<li>
+<a href="#streamdataadd">$stream data add</a></li>
+<li>
+<a href="#streamexport">$stream export</a></li>
+<li>
+<a href="#streamimport">$stream import</a></li>
+<li>
+<a href="#streamread">$stream read</a></li>
+<li>
+<a href="#streamrecord">$stream record</a></li>
+<li>
+<a href="#streamstatsexport">$stream stats export</a></li>
+<li>
+<a href="#streamstatstable">$stream stats table</a></li>
+<li>
+<a href="#streamstop">$stream stop</a></li>
+<li>
+<a href="#chartreposition">$chart reposition</a></li>
+<li>
+<a href="#moduledisconnect">$module disconnect</a></li>
+<li>
+<a href="#openrecording">$open recording</a></li>
+<li>
+<a href="#progresscheck">$progress check</a></li>
+<li>
+<a href="#qisshutdown">$qis shutdown</a></li>
+<li>
+<a href="#qislaunch">$qis launch</a></li>
+<li>
+<a href="#qpshide">$qps hide</a></li>
+<li>
+<a href="#qpsshow">$qps show</a></li>
+<li>
+<a href="#streamannotationslist">$stream annotations list</a></li>
+<li>
+<a href="#streamannotationstable">$stream annotations table</a></li>
+<li>
+<a href="#streamstarttime">$stream start time</a></li>
+<li>
+<a href="#streamstoptime">$stream stop time</a></li>
+<li>
+<a href="#streamrecordduration">$stream record duration</a></li>
+<li>
+<a href="#streamchannellist">$stream channel list</a></li>
+<li>
+<a href="#streamchanneltable">$stream channel table</a></li>
+<li>
+<a href="#streamchannelclearsynthetic">$stream channel clear synthetic</a></li>
+<li>
+<a href="#streamchanneladdsynthetic">$stream channel add synthetic</a></li>
+<li>
+<a href="#streamchannelremovesynthetic">$stream channel remove synthetic</a></li>
+</ul>
+<hr/>
+<div class="content-item"><h2><a name="annotate">$annotate</a></h2><p class="version">Version 1</p><p>Adds an annotation</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>time</code></td><td><code>STRING</code></td><td>Annotation time</td></tr><tr><td><code>2</code></td><td><code>text</code></td><td><code>STRING</code></td><td>Annotation string</td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Format of params string: time_specifier[space]text to be added, eg 123.456 hello world</p><p>Time specifier is of the form:
+for elapsed time relative to the recording: exxxDxxx:xxx:xxx.xxx
+for absolute time, pass the number of milliseconds since the epoch (midnight 1 January 1970 UTC, ie Unix time common to many environments): xxxxxxxxxxxx</p><p>The annotation text may be split over two or more lines by including \n in the string</p><div class="examples-title">Examples</div><p><code>$annotate 0 Annotation1 --&gt; adds an annotation at time 0 and so at record number 0</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#comment">$comment</a></li><li><a href="#streamannotationadd">$stream annotation add</a></li><li><a href="#streamcommentadd">$stream comment add</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="channels">$channels</a></h2><p class="version">Version 1</p><p>Returns details of the current channels</p><p>No arguments</p><p><span class="notes-title">Notes:&nbsp;</span>Return details of current channels in the format: channelName groupName baseUnits</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamchannels">$stream channels</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="comment">$comment</a></h2><p class="version">Version 1</p><p>Adds a comment</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>time</code></td><td><code>STRING</code></td><td>Comment time</td></tr><tr><td><code>2</code></td><td><code>text</code></td><td><code>STRING</code></td><td>Comment string</td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Format of params string: time_specifier[space]text to be added, eg 123.456 hello world</p><p>Time specifier is of the form:
+for elapsed time relative to the recording: exxxDxxx:xxx:xxx.xxx
+for absolute time, pass the number of milliseconds since the epoch (midnight 1 January 1970 UTC, ie Unix time common to many environments): xxxxxxxxxxxx</p><p>The annotation text may be split over two or more lines by including \n in the string</p><div class="examples-title">Examples</div><p><code>$comment e1 Comment1 --&gt; adds a comment after an elapsed time of 1 second</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#annotate">$annotate</a></li><li><a href="#streamannotationadd">$stream annotation add</a></li><li><a href="#streamcommentadd">$stream comment add</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="connect">$connect</a></h2><p class="version">Version 1</p><p>Connects to a specified device</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>device</code></td><td><code>STRING</code></td><td>Device ID</td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>The command is passed to QIS which will test the connection availability and suitability for streaming data returning a status of OK
+or the reason for connection failure. If connection is successful, the CCS and file dialogs should close and the chart window connected to the device should display.</p><p>$connect supports both device names and IP addresses</p><div class="examples-title">Examples</div><p><code>$connect usb::QTL1999-02-999</code></p><p><code>$connect tcp::QTL1999-02-999</code></p><p><code>$connect tcp::81.187.174.46</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#moduleconnect">$module connect</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="connected">$connected</a></h2><p class="version">Version 1</p><p>Returns the connected device ID</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#modulename">$module name</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="createchannel">$create channel</a></h2><p class="version">Version 1</p><p>Creates a new channel</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channelName</code></td><td><code>STRING</code></td><td>Channel name</td></tr><tr><td><code>2</code></td><td><code>channelGroup</code></td><td><code>STRING</code></td><td>Channel group</td></tr><tr><td><code>3</code></td><td><code>baseUnits</code></td><td><code>STRING</code></td><td>Base units</td></tr><tr><td><code>4</code></td><td><code>usePrefix</code></td><td><code>STRING</code></td><td>Indicates whether or not using a prefix; values either yes/no</td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Format: channelName channelGroup baseUnits yes/no(usePrefix)</p><p>usePrefix [yes/no] option 'no' disables the application of metric prefixes u, m, k, M etc</p><p>A custom channel group name must be distinct from device group names</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamchanneladd">$stream channel add</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="echo">$echo</a></h2><p class="version">Version 1</p><p>Echo command</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>string</code></td><td><code>STRING</code></td><td>A string of text to simply echo back</td></tr></tbody></table><br/><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="getcustomstatsrange">$get custom stats range</a></h2><p class="version">Version 1</p><p>Returns statistics for a specified range</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>startTime</code></td><td><code>STRING</code></td><td>Start time. For example: 5432.1 is 5432.1 seconds, 17d5432.1 is 17 days 5432.1 seconds, 17d200:5432.1 is 17 days 200 minutes and 5432.1 seconds etc</td></tr><tr><td><code>2</code></td><td><code>endTime_numRecords</code></td><td><code>STRING</code></td><td>End time OR number of records of form: [endTime | lnumber of records] in which letter "l" denotes that number of records is being specified</td></tr></tbody></table><br/><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamstatstable">$stream stats table</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="getstats">$get stats</a></h2><p class="version">Version 1</p><p>Returns statistics</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamstatstable">$stream stats table</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="help">$help</a></h2><p class="version">Version 1</p><p>Help command</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>type</code></td><td><code>STRING</code></td><td>The type of help to return. Options: 1) None [same as "all"], 2) "all", 3) "internal", 4) help summary of another command; eg $help $echo<p><span class="default-title">Default:&nbsp;</span><code>all</code></p></td></tr></tbody></table><br/><div class="examples-title">Examples</div><p><code>$help --&gt; returns a list of all supported commands, each with a brief description</code></p><p><code>$help all --&gt; same as $help</code></p><p><code>$help $echo --&gt; returns a help summary of the $echo command</code></p><p><code>$help $chart snapshot --&gt; returns a help summary of the $chart snapshot command</code></p><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="hidechannel">$hide channel</a></h2><p class="version">Version 1</p><p>Hides a channel</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channelInfo</code></td><td><code>STRING</code></td><td>Channel information; a string split by : and assumed the following order: #0 = name, #1 = groupName, #2+ ignore</td></tr></tbody></table><br/><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#chartchannelhide">$chart channel hide</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="list">$list</a></h2><p class="version">Version 1</p><p>Lists available devices</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#modulelist">$module list</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="list-details">$list -details</a></h2><p class="version">Version 1</p><p>Lists available device details</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#modulelistdetails">$module list details</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="log">$log</a></h2><p class="version">Version 1</p><p>Adds a channel/group value at a specified time</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channel</code></td><td><code>STRING</code></td><td>Channel name</td></tr><tr><td><code>2</code></td><td><code>group</code></td><td><code>STRING</code></td><td>Group name</td></tr><tr><td><code>3</code></td><td><code>time</code></td><td><code>INT</code></td><td>Time</td></tr><tr><td><code>4</code></td><td><code>value</code></td><td><code>FLOAT</code></td><td>Value</td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Format: channelName channelGroup time value</p><p>Time format: UNIX time in mS or exxxDxx:xx:xx.xxxx for daysDhours:minutes:seconds.xxx</p><p>To indicate the end marker of an interval then set the value to 'endSeq'; eg : myStream.addDataPoint(channelName, groupName, 'endSeq')</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamdataadd">$stream data add</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="qisstatus">$qis status</a></h2><p class="version">Version 1</p><p>Reports the connection status of QIS</p><p>No arguments</p><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="read">$read</a></h2><p class="version">Version 1</p><p>Reads data between from a given start time and either end time or number of records</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>startTime</code></td><td><code>INT</code></td><td>Start time</td></tr><tr><td><code>2</code></td><td><code>endTime_numRecords</code></td><td><code>STRING</code></td><td>Number of records of form: [endTime | lnumber of records], in which the letter "l" denotes that the number of records is being specified</td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Times are xxxDxx:xx:xx.xxxx for daysDhours:minutes:seconds.xxx, number of records is exactly what you'd expect</p><p>Returns corresponding (long) sample time and all columns in raw format separated by ' ' spaces.</p><div class="examples-title">Examples</div><p><code>$read 0 l100</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamread">$stream read</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="savecsv">$save csv</a></h2><p class="version">Version 1</p><p>Saves to CSV format</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>file</code></td><td><code>STRING</code></td><td>The optional file to save the CSV data. If the file does not have a .csv extension then one is added.</td></tr><tr><td><code>2</code></td><td><code>maxLines</code></td><td><code>INT</code></td><td>Maximum number of lines; -l[ALL|Max lines per file]<p><span class="default-title">Default:&nbsp;</span><code>-lall</code></p></td></tr><tr><td><code>3</code></td><td><code>lineTerminator</code></td><td><code>STRING</code></td><td>Indicates whether a line terminator; acceptable values: -c[yes/no]<p><span class="default-title">Default:&nbsp;</span><code>-cyes</code></p></td></tr><tr><td><code>4</code></td><td><code>delimiter</code></td><td><code>STRING</code></td><td>Value separator; acceptable values: -s[",", "\t", ";", " "]<p><span class="default-title">Default:&nbsp;</span><code>-s,</code></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Format: $save csv "file path/file name" -l[ALL|Max lines per file] -c[yes/no] -s[",", "\t", ";", " "]</p><p>If no .csv file is specified then the following is assigned: .../path to recording directory/csvExport+yyyyMMddHHmmss.csv</p><div class="examples-title">Examples</div><p><code>$save csv filePath -11000 -cyes -s,</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamexport">$stream export</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="scan">$scan</a></h2><p class="version">Version 1</p><p>Scans for available devices</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>deviceSpecifier</code></td><td><code>STRING</code></td><td>TCP/IP address to scan for devices</td></tr></tbody></table><br/><div class="examples-title">Examples</div><p><code>$scan</code></p><p><code>$scan tcp::192.168.1.90</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#modulescan">$module scan</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="showchannel">$show channel</a></h2><p class="version">Version 1</p><p>Shows a channel</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channelInfo</code></td><td><code>STRING</code></td><td>Channel information</td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Channel is a string split by ":" and assumed the following order: #0 = name, #1 = groupName, #2+ ignore</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#chartchannelshow">$chart channel show</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="shutdown">$shutdown</a></h2><p class="version">Version 1</p><p>Shuts down QPS</p><p>No arguments</p><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="startstream">$start stream</a></h2><p class="version">Version 1</p><p>Starts streaming</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>file</code></td><td><code>STRING</code></td><td>File specifier is of the form /dir/dir/dir/recordingName. Any '\' characters are replaced with '/' character</td></tr></tbody></table><br/><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamrecord">$stream record</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="statstocsv">$stats to csv</a></h2><p class="version">Version 1</p><p>Saves the statistics to CSV format</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>file</code></td><td><code>STRING</code></td><td>A single argument string specifying file path of form: *STREAM_DIR*+"statsGrid"+yyyyMMddHHmmss+".csv" - Path for data to be saved to.</td></tr></tbody></table><br/><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamstatsexport">$stream stats export</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="stopstream">$stop stream</a></h2><p class="version">Version 1</p><p>Stops streaming</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamstop">$stream stop</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamstate">$stream state</a></h2><p class="version">Version 1</p><p>The current state of streaming</p><p>No arguments</p><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="takesnapshot">$take snapshot</a></h2><p class="version">Version 1</p><p>Takes a snapshot of the chart, timeline and channels windows</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>type</code></td><td><code>STRING</code></td><td>Type of snapshot to take consisting of a comma separated list of options: [all, chart, timeline, key]<p><span class="default-title">Default:&nbsp;</span><code>all</code></p></td></tr></tbody></table><br/><div class="examples-title">Examples</div><p><code>$take snapshot --&gt; default and captures chart+timeline+key</code></p><p><code>$take snapshot all --&gt; same as default</code></p><p><code>$take snapshot chart --&gt; chart only</code></p><p><code>$take snapshot chart,key --&gt; chart+key</code></p><p><code>$take snapshot chart,timeline --&gt; chart+timeline</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#chartsnapshot">$chart snapshot</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="version">$version</a></h2><p class="version">Version 1</p><p>Version number</p><p>No arguments</p><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="chartchannelhide">$chart channel hide</a></h2><p class="version">Version 2</p><p>Hides a channel</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channel</code></td><td><code>STRING</code></td><td>Channel</td></tr><tr><td><code>2</code></td><td><code>group</code></td><td><code>STRING</code></td><td>Group</td></tr></tbody></table><br/><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#hidechannel">$hide channel</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="chartchannelshow">$chart channel show</a></h2><p class="version">Version 2</p><p>Shows a channel</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channel</code></td><td><code>STRING</code></td><td>Channel</td></tr><tr><td><code>2</code></td><td><code>group</code></td><td><code>STRING</code></td><td>Group</td></tr></tbody></table><br/><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#showchannel">$show channel</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="chartsnapshot">$chart snapshot</a></h2><p class="version">Version 2</p><p>Takes a snapshot of the chart, timeline and channels windows</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>type</code></td><td><code>STRING</code></td><td>Type of snapshot to take consisting of a comma separated list of options: [all, chart, timeline, key]<p><span class="default-title">Default:&nbsp;</span><code>all</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>all</code></li><li><code>chart</code></li><li><code>timeline</code></li><li><code>key</code></li></ul></p></td></tr><tr><td><code>2</code></td><td><code>filePath</code></td><td><code>STRING</code></td><td>Optional file path instead of using default archive path</td></tr></tbody></table><br/><div class="examples-title">Examples</div><p><code>$chart snapshot --&gt; default and captures chart+timeline+key</code></p><p><code>$chart snapshot all --&gt; same as default</code></p><p><code>$chart snapshot chart --&gt; chart only</code></p><p><code>$chart snapshot chart,key --&gt; chart+key</code></p><p><code>$chart snapshot chart,timeline --&gt; chart+timeline</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#takesnapshot">$take snapshot</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="debuglistcommands">$debug list commands</a></h2><p class="version">Version 2</p><p>Returns a list of commands</p><p>No arguments</p><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="moduleconnect">$module connect</a></h2><p class="version">Version 2</p><p>Connects to a specified device</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>device</code></td><td><code>STRING</code></td><td>Device ID</td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>$module connect supports both device names and IP addresses</p><div class="examples-title">Examples</div><p><code>$module connect usb::QTL1999-02-999</code></p><p><code>$module connect tcp::81.187.174.46</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#connect">$connect</a></li><li><a href="#moduledisconnect">$module disconnect</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="modulelist">$module list</a></h2><p class="version">Version 2</p><p>Lists available devices</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#list">$list</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="modulelistdetails">$module list details</a></h2><p class="version">Version 2</p><p>Lists available device details</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#list-details">$list -details</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="modulename">$module name</a></h2><p class="version">Version 2</p><p>Returns the connected device ID</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#connected">$connected</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="modulescan">$module scan</a></h2><p class="version">Version 2</p><p>Scans for available devices</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>deviceSpecifier</code></td><td><code>STRING</code></td><td>TCP/IP address to scan for devices</td></tr></tbody></table><br/><div class="examples-title">Examples</div><p><code>$module scan tcp::192.168.1.90</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#scan">$scan</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamannotationadd">$stream annotation add</a></h2><p class="version">Version 2</p><p>Adds an annotation</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>time</code></td><td><code>STRING</code></td><td>Annotation time</td></tr><tr><td><code>2</code></td><td><code>text</code></td><td><code>STRING</code></td><td>Annotation string</td></tr><tr><td><code>3</code></td><td><code>extraText</code></td><td><code>STRING</code></td><td>Additional annotation text</td></tr><tr><td><code>4</code></td><td><code>yPosition</code></td><td><code>INT</code></td><td>y position percentage on screen; range: [0:100]<p><span class="default-title">Default:&nbsp;</span><code>100</code></p></td></tr><tr><td><code>5</code></td><td><code>type</code></td><td><code>STRING</code></td><td>Type string used when assigning colour and text colour<p><span class="default-title">Default:&nbsp;</span><code>Type1</code></p></td></tr><tr><td><code>6</code></td><td><code>colour</code></td><td><code>STRING</code></td><td>Colour in hex format. The default is #FF0000, which equates to red<p><span class="default-title">Default:&nbsp;</span><code>#FF0000</code></p></td></tr><tr><td><code>7</code></td><td><code>textColour</code></td><td><code>STRING</code></td><td>Text colour in hex format. The default is #FF0000, which equates to red<p><span class="default-title">Default:&nbsp;</span><code>#FF0000</code></p></td></tr><tr><td><code>8</code></td><td><code>timeFormat</code></td><td><code>STRING</code></td><td>Time format ["elapsed", "unix"]. The default is "elapsed"<p><span class="default-title">Default:&nbsp;</span><code>elapsed</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>elapsed</code></li><li><code>unix</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Time can be either an elapsed time or Unix time, determined by the timeFormat argument which is set to elapsed time by default</p><div class="examples-title">Examples</div><p><code>$stream annotation add 7S Annotation1</code></p><p><code>$stream annotation add 7500mS Annotation2</code></p><p><code>$stream annotation add 00:00:08 Annotation3</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamcommentadd">$stream comment add</a></li><li><a href="#annotate">$annotate</a></li><li><a href="#comment">$comment</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamchanneladd">$stream channel add</a></h2><p class="version">Version 2</p><p>Creates a new channel</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channelName</code></td><td><code>STRING</code></td><td>Channel name</td></tr><tr><td><code>2</code></td><td><code>channelGroup</code></td><td><code>STRING</code></td><td>Channel group</td></tr><tr><td><code>3</code></td><td><code>baseUnits</code></td><td><code>STRING</code></td><td>Base units</td></tr><tr><td><code>4</code></td><td><code>usePrefix</code></td><td><code>STRING</code></td><td>Indicates whether or not using a prefix; values either yes/no<p><span class="acceptable-title">Acceptable Values</span><ul><li><code>yes</code></li><li><code>no</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>A custom channel group name must be distinct from device group names</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#createchannel">$create channel</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamchannels">$stream channels</a></h2><p class="version">Version 2</p><p>Returns details of the current channels</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#channels">$channels</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamcommentadd">$stream comment add</a></h2><p class="version">Version 2</p><p>Adds a comment</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>time</code></td><td><code>STRING</code></td><td>Comment time</td></tr><tr><td><code>2</code></td><td><code>text</code></td><td><code>STRING</code></td><td>Comment string</td></tr><tr><td><code>3</code></td><td><code>extraText</code></td><td><code>STRING</code></td><td>Additional comment text</td></tr><tr><td><code>4</code></td><td><code>yPosition</code></td><td><code>INT</code></td><td>y position percentage on screen; range: [0:100]<p><span class="default-title">Default:&nbsp;</span><code>100</code></p></td></tr><tr><td><code>5</code></td><td><code>type</code></td><td><code>STRING</code></td><td>Type string used when assigning colour and text colour<p><span class="default-title">Default:&nbsp;</span><code>Type2</code></p></td></tr><tr><td><code>6</code></td><td><code>colour</code></td><td><code>STRING</code></td><td>Colour in hex format. The default is #FFFF00, which equates to yellow<p><span class="default-title">Default:&nbsp;</span><code>#FFFF00</code></p></td></tr><tr><td><code>7</code></td><td><code>textColour</code></td><td><code>STRING</code></td><td>Text colour in hex format. The default is #FFFF00, which equates to yellow<p><span class="default-title">Default:&nbsp;</span><code>#FFFF00</code></p></td></tr><tr><td><code>8</code></td><td><code>timeFormat</code></td><td><code>STRING</code></td><td>Time format ["elapsed", "unix"]. The default is "elapsed"<p><span class="default-title">Default:&nbsp;</span><code>elapsed</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>elapsed</code></li><li><code>unix</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Time can be either an elapsed time or Unix time, determined by the timeFormat argument which is set to elapsed time by default</p><div class="examples-title">Examples</div><p><code>$stream comment add 10.25S Comment1</code></p><p><code>$stream comment add 11000mS Comment2</code></p><p><code>$stream comment add 00:00:12 Comment3</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamannotationadd">$stream annotation add</a></li><li><a href="#annotate">$annotate</a></li><li><a href="#comment">$comment</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamdataadd">$stream data add</a></h2><p class="version">Version 2</p><p>Adds a channel/group value at a specified time</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channel</code></td><td><code>STRING</code></td><td>Channel</td></tr><tr><td><code>2</code></td><td><code>group</code></td><td><code>STRING</code></td><td>Group</td></tr><tr><td><code>3</code></td><td><code>time</code></td><td><code>INT</code></td><td>Time</td></tr><tr><td><code>4</code></td><td><code>value</code></td><td><code>FLOAT</code></td><td>Value</td></tr><tr><td><code>5</code></td><td><code>timeFormat</code></td><td><code>STRING</code></td><td>Time format ["elapsed", "unix"]. The default is "elapsed"<p><span class="default-title">Default:&nbsp;</span><code>elapsed</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>elapsed</code></li><li><code>unix</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Format: channel group time value timeFormat</p><p>Time can be either an elapsed time or Unix time, determined by the timeFormat argument which is set to elapsed time by default</p><p>To indicate the end marker of an interval then set the value to 'endSeq'; eg : myStream.addDataPoint(channelName, groupName, 'endSeq')</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#log">$log</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamexport">$stream export</a></h2><p class="version">Version 2</p><p>Saves to a given format</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>file</code></td><td><code>STRING</code></td><td>The file path to save the export</td></tr><tr><td><code>2</code></td><td><code>maxLines</code></td><td><code>STRING</code></td><td>Maximum number of lines<p><span class="default-title">Default:&nbsp;</span><code>all</code></p></td></tr><tr><td><code>3</code></td><td><code>lineTerminator</code></td><td><code>STRING</code></td><td>Indicates whether a line terminator; acceptable values: [yes/no]<p><span class="default-title">Default:&nbsp;</span><code>yes</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>yes</code></li><li><code>no</code></li></ul></p></td></tr><tr><td><code>4</code></td><td><code>delimiter</code></td><td><code>STRING</code></td><td>Value separator; eg ,<p><span class="default-title">Default:&nbsp;</span><code>,</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>\t</code></li><li><code>;</code></li><li><code>,</code></li><li><code>&nbsp;</code></li></ul></p></td></tr><tr><td><code>5</code></td><td><code>fileType</code></td><td><code>STRING</code></td><td>File type; eg CSV<p><span class="default-title">Default:&nbsp;</span><code>csv</code></p></td></tr><tr><td><code>6</code></td><td><code>channels</code></td><td><code>STRING</code></td><td>List of channels to export; eg "voltage:5v,current:12v" with the default set to "all"<p><span class="default-title">Default:&nbsp;</span><code>all</code></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Format: $save csv file path/file name ALL|Max lines per file yes/no ",", "\t", ";", " "</p><p>Argument file is optional and if not specified then a file name is assigned and of the form: </p><p>If no fileType file is specified then the following is assigned: .../path to recording directory/fileType+Export+yyyyMMddHHmmss.fileType</p><p>By default all channels are exported but can be filtered using argument "channel"</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#savecsv">$save csv</a></li><li><a href="#streamimport">$stream import</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamimport">$stream import</a></h2><p class="version">Version 2</p><p>Imports from a given format</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>file</code></td><td><code>STRING</code></td><td>The file path to be imported</td></tr><tr><td><code>2</code></td><td><code>fileType</code></td><td><code>STRING</code></td><td>File type; eg CSV<p><span class="default-title">Default:&nbsp;</span><code>csv</code></p></td></tr><tr><td><code>3</code></td><td><code>delimiter</code></td><td><code>STRING</code></td><td>Value separator; eg ,<p><span class="default-title">Default:&nbsp;</span><code>,</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>\t</code></li><li><code>;</code></li><li><code>,</code></li><li><code>&nbsp;</code></li></ul></p></td></tr><tr><td><code>4</code></td><td><code>minTime</code></td><td><code>STRING</code></td><td>The minimum time value; eg 100mS. The default value of 0nS indicates reading from the start<p><span class="default-title">Default:&nbsp;</span><code>0nS</code></p></td></tr><tr><td><code>5</code></td><td><code>maxTime</code></td><td><code>STRING</code></td><td>The maximum time value; eg 800mS. The default value of -1nS indicates reading to the end<p><span class="default-title">Default:&nbsp;</span><code>-1nS</code></p></td></tr><tr><td><code>6</code></td><td><code>offsetTime</code></td><td><code>STRING</code></td><td>The offset time value; eg 10mS. The default value of 0nS indicates there is no offset<p><span class="default-title">Default:&nbsp;</span><code>0nS</code></p></td></tr><tr><td><code>7</code></td><td><code>channels</code></td><td><code>STRING</code></td><td>List of channels to import; eg "voltage:5v,current:12v" with the default set to "all"<p><span class="default-title">Default:&nbsp;</span><code>all</code></p></td></tr><tr><td><code>8</code></td><td><code>timeFormat</code></td><td><code>STRING</code></td><td>Time format ["elapsed", "unix"]. The default is "elapsed"<p><span class="default-title">Default:&nbsp;</span><code>elapsed</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>elapsed</code></li><li><code>unix</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>The file must contain an extension that matches the one specified in fileType. This is used as a check.</p><div class="examples-title">Examples</div><p><code>$stream import file="C:\Temp\data.csv"</code></p><p><code>$stream import file="C:\Temp\data.csv" channels="voltage:12v,current:12v"</code></p><p><code>$stream import file="C:\Temp\data.csv" channels="voltage:12v,current:12v" minTime=1S maxTime=10S</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamexport">$stream export</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamread">$stream read</a></h2><p class="version">Version 2</p><p>Reads data between from a given start time and either end time or number of records</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>startTime</code></td><td><code>INT</code></td><td>Start time</td></tr><tr><td><code>2</code></td><td><code>endTime</code></td><td><code>STRING</code></td><td>End time</td></tr><tr><td><code>3</code></td><td><code>timeFormat</code></td><td><code>STRING</code></td><td>Time format ["elapsed", "unix"]. The default is "elapsed"<p><span class="default-title">Default:&nbsp;</span><code>elapsed</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>elapsed</code></li><li><code>unix</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Time can be either an elapsed time or Unix time, determined by the timeFormat argument which is set to elapsed time by default</p><div class="examples-title">Examples</div><p><code>$stream read 0 l100</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#read">$read</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamrecord">$stream record</a></h2><p class="version">Version 2</p><p>Starts streaming</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>file</code></td><td><code>STRING</code></td><td>File specifier of the form /dir/dir/dir/recordingName. Any '\' characters are replaced with '/' character</td></tr></tbody></table><br/><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#startstream">$start stream</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamstatsexport">$stream stats export</a></h2><p class="version">Version 2</p><p>Saves the statistics to a given format</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>file</code></td><td><code>STRING</code></td><td>Single argument string specifying file path of form: *STREAM_DIR*+"statsGrid"+yyyyMMddHHmmss+".csv" - Path for data to be saved to.</td></tr><tr><td><code>2</code></td><td><code>fileType</code></td><td><code>STRING</code></td><td>Type of export file; eg .csv<p><span class="default-title">Default:&nbsp;</span><code>csv</code></p></td></tr></tbody></table><br/><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#statstocsv">$stats to csv</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamstatstable">$stream stats table</a></h2><p class="version">Version 2</p><p>Returns statistics</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>startTime</code></td><td><code>INT</code></td><td>Start time. Time format either a HMS or (time,unit) pair; eg 100mS</td></tr><tr><td><code>2</code></td><td><code>endTime</code></td><td><code>INT</code></td><td>End time. Time format either a HMS or (time,unit) pair; eg 100mS</td></tr><tr><td><code>3</code></td><td><code>timeFormat</code></td><td><code>STRING</code></td><td>Time format ["elapsed", "unix"]. The default is "elapsed"<p><span class="default-title">Default:&nbsp;</span><code>elapsed</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>elapsed</code></li><li><code>unix</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Time can be either an elapsed time or Unix time, determined by the timeFormat argument which is set to elapsed time by default</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#getstats">$get stats</a></li><li><a href="#getcustomstatsrange">$get custom stats range</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamstop">$stream stop</a></h2><p class="version">Version 2</p><p>Stops streaming</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#stopstream">$stop stream</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="chartreposition">$chart reposition</a></h2><p class="version">Version 2</p><p>Sets the chart main view to the specified start and end times</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>startTime</code></td><td><code>STRING</code></td><td>Start time</td></tr><tr><td><code>2</code></td><td><code>endTime</code></td><td><code>STRING</code></td><td>End time</td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>Both the start and end times are specified as a time-unit pair; for example: 100mS</p><p>startTime &gt; 0, endTime &gt; 0 and startTime &lt; endTime</p><div class="examples-title">Examples</div><p><code>$chart reposition 10S 20S</code></p><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="moduledisconnect">$module disconnect</a></h2><p class="version">Version 2</p><p>Disconnects the current connection</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#connect">$connect</a></li><li><a href="#moduleconnect">$module connect</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="openrecording">$open recording</a></h2><p class="version">Version 2</p><p>Opens a recording</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>qpsFile</code></td><td><code>STRING</code></td><td>.qps file</td></tr></tbody></table><br/><div class="examples-title">Examples</div><p><code>$open recording qpsFile="C:\quarch\recordings\AC\AC_Gen_test\AC_Gen_Test.qps"</code></p><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="progresscheck">$progress check</a></h2><p class="version">Version 2</p><p>Checks the progress of a specific QPS task</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>task</code></td><td><code>STRING</code></td><td>The task to be checked<p><span class="acceptable-title">Acceptable Values</span><ul><li><code>open&nbsp;recording</code></li></ul></p></td></tr></tbody></table><br/><div class="examples-title">Examples</div><p><code>$progress check task="open recording"</code></p><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="qisshutdown">$qis shutdown</a></h2><p class="version">Version 2</p><p>Shuts down current QIS instance</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#qislaunch">$qis launch</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="qislaunch">$qis launch</a></h2><p class="version">Version 2</p><p>Launches new QIS instance</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#qisshutdown">$qis shutdown</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="qpshide">$qps hide</a></h2><p class="version">Version 2</p><p>Hides the QPS application</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#qpsshow">$qps show</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="qpsshow">$qps show</a></h2><p class="version">Version 2</p><p>Shows the QPS application</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#qpshide">$qps hide</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamannotationslist">$stream annotations list</a></h2><p class="version">Version 2</p><p>Returns a list of all annotations</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>type</code></td><td><code>STRING</code></td><td>Specifies the type of annotations. Options: [all, annotations, comments]. The default is "all"<p><span class="default-title">Default:&nbsp;</span><code>all</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>all</code></li><li><code>annotations</code></li><li><code>comments</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>If the annotation text is empty then "Annotation ?" or "Comment ?" is used for annotations and comments respectively</p><p>Annotations are ordered by time since the start of recording</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamannotationstable">$stream annotations table</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamannotationstable">$stream annotations table</a></h2><p class="version">Version 2</p><p>Returns a table of all annotations</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>type</code></td><td><code>STRING</code></td><td>Specifies the type of annotations. Options: [all, annotations, comments]. The default is "all"<p><span class="default-title">Default:&nbsp;</span><code>all</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>all</code></li><li><code>annotations</code></li><li><code>comments</code></li></ul></p></td></tr><tr><td><code>2</code></td><td><code>timeFormat</code></td><td><code>STRING</code></td><td>Specifies the time format. Options: [nS, uS, mS, S, HMS]. The default is "S"<p><span class="default-title">Default:&nbsp;</span><code>S</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>nS</code></li><li><code>uS</code></li><li><code>mS</code></li><li><code>S</code></li><li><code>HMS</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>If the annotation text is empty then "Annotation ?" or "Comment ?" is used for annotations and comments respectively</p><p>Annotations are ordered by time since the start of recording</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamannotationslist">$stream annotations list</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamstarttime">$stream start time</a></h2><p class="version">Version 2</p><p>Returns the time that streaming started</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>timeFormat</code></td><td><code>STRING</code></td><td>Specifies the time format. Options: [nS, uS, mS, S, HMS]. The default is "S"<p><span class="default-title">Default:&nbsp;</span><code>S</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>nS</code></li><li><code>uS</code></li><li><code>mS</code></li><li><code>S</code></li><li><code>HMS</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>A value of -1 is returned if streaming has not commenced</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamstoptime">$stream stop time</a></li><li><a href="#streamrecordduration">$stream record duration</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamstoptime">$stream stop time</a></h2><p class="version">Version 2</p><p>Returns the time that streaming stopped</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>timeFormat</code></td><td><code>STRING</code></td><td>Specifies the time format. Options: [nS, uS, mS, S, HMS]. The default is "S"<p><span class="default-title">Default:&nbsp;</span><code>S</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>nS</code></li><li><code>uS</code></li><li><code>mS</code></li><li><code>S</code></li><li><code>HMS</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>A value of -1 is returned if streaming has not commenced</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamstarttime">$stream start time</a></li><li><a href="#streamrecordduration">$stream record duration</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamrecordduration">$stream record duration</a></h2><p class="version">Version 2</p><p>Returns the total recording time</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>timeFormat</code></td><td><code>STRING</code></td><td>Specifies the time format. Options: [nS, uS, mS, S, HMS]. The default is "S"<p><span class="default-title">Default:&nbsp;</span><code>S</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>nS</code></li><li><code>uS</code></li><li><code>mS</code></li><li><code>S</code></li><li><code>HMS</code></li></ul></p></td></tr></tbody></table><br/><p><span class="notes-title">Notes:&nbsp;</span>A value of -1 is returned if streaming has not commenced</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamstarttime">$stream start time</a></li><li><a href="#streamstoptime">$stream stop time</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamchannellist">$stream channel list</a></h2><p class="version">Version 2</p><p>Returns a list of created channels</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channelType</code></td><td><code>STRING</code></td><td>Defines the user or synthetic channel.  Options: [all, user, synthetic]. The default is "all"<p><span class="default-title">Default:&nbsp;</span><code>all</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>all</code></li><li><code>user</code></li><li><code>synthetic</code></li></ul></p></td></tr></tbody></table><br/><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamchanneltable">$stream channel table</a></li><li><a href="#streamchannelclearsynthetic">$stream channel clear synthetic</a></li><li><a href="#streamchanneladdsynthetic">$stream channel add synthetic</a></li><li><a href="#streamchannelremovesynthetic">$stream channel remove synthetic</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamchanneltable">$stream channel table</a></h2><p class="version">Version 2</p><p>Returns XML of function definitions</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channelType</code></td><td><code>STRING</code></td><td>Defines the user or synthetic channel.  Options: [all, user, synthetic]. The default is "all"<p><span class="default-title">Default:&nbsp;</span><code>all</code></p><p><span class="acceptable-title">Acceptable Values</span><ul><li><code>all</code></li><li><code>user</code></li><li><code>synthetic</code></li></ul></p></td></tr></tbody></table><br/><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamchannellist">$stream channel list</a></li><li><a href="#streamchannelclearsynthetic">$stream channel clear synthetic</a></li><li><a href="#streamchanneladdsynthetic">$stream channel add synthetic</a></li><li><a href="#streamchannelremovesynthetic">$stream channel remove synthetic</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamchannelclearsynthetic">$stream channel clear synthetic</a></h2><p class="version">Version 2</p><p>Clears all created functions</p><p>No arguments</p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamchannellist">$stream channel list</a></li><li><a href="#streamchanneltable">$stream channel table</a></li><li><a href="#streamchanneladdsynthetic">$stream channel add synthetic</a></li><li><a href="#streamchannelremovesynthetic">$stream channel remove synthetic</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamchanneladdsynthetic">$stream channel add synthetic</a></h2><p class="version">Version 2</p><p>Defines a new channel function</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channel</code></td><td><code>STRING</code></td><td>Defines the synthetic channel</td></tr><tr><td><code>2</code></td><td><code>function</code></td><td><code>STRING</code></td><td>Specifies the synthetic function</td></tr></tbody></table><br/><div class="examples-title">Examples</div><p><code>$stream channel add synthetic channel="chan(L1_RMS,V)" function="rms(100ms, chan(L1,V))"</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamchannellist">$stream channel list</a></li><li><a href="#streamchanneltable">$stream channel table</a></li><li><a href="#streamchannelclearsynthetic">$stream channel clear synthetic</a></li><li><a href="#streamchannelremovesynthetic">$stream channel remove synthetic</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+<div class="content-item"><h2><a name="streamchannelremovesynthetic">$stream channel remove synthetic</a></h2><p class="version">Version 2</p><p>Deletes a previously created channel function</p><table><thead><tr><th>#</th><th>Argument</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>1</code></td><td><code>channel</code></td><td><code>STRING</code></td><td>Specifies the synthetic channel</td></tr></tbody></table><br/><div class="examples-title">Examples</div><p><code>$stream channel remove synthetic channel="chan(L1_RMS,V)"</code></p><div class="see-also-title">See also</div><div class="see-also"><ul><li><a href="#streamchannellist">$stream channel list</a></li><li><a href="#streamchanneltable">$stream channel table</a></li><li><a href="#streamchannelclearsynthetic">$stream channel clear synthetic</a></li><li><a href="#streamchanneladdsynthetic">$stream channel add synthetic</a></li></ul></div><p class="backlink"><a href="#index">Back to index</a></p></div>
+<hr/>
+</div>
+</body>
+</html>

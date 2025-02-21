@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>quarchpy.qis package &#8212; quarchpy  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="quarchpy.qps package" href="quarchpy.qps.html" />
+    <link rel="prev" title="quarchpy.device package" href="quarchpy.device.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="quarchpy-qis-package">
+<h1>quarchpy.qis package<a class="headerlink" href="#quarchpy-qis-package" title="Link to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-quarchpy.qis.qisFuncs">
+<span id="quarchpy-qis-qisfuncs-module"></span><h2>quarchpy.qis.qisFuncs module<a class="headerlink" href="#module-quarchpy.qis.qisFuncs" title="Link to this heading">¶</a></h2>
+<p>Contains general functions for starting and stopping QIS processes</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.GetQisModuleSelection">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">GetQisModuleSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">QisConnection</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.GetQisModuleSelection" title="Link to this definition">¶</a></dt>
+<dd><p>Prints a list of modules for user selection</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 2.0.12: </span>Use the module selection functions of the QisInterface class instead</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.checkAndCloseQis">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">checkAndCloseQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9722</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.checkAndCloseQis" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.check_remote_qis">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">check_remote_qis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9722</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.check_remote_qis" title="Link to this definition">¶</a></dt>
+<dd><p>Checks if a local or specified instance of QIS is running and responding
+This continues to scan until qis is found or a timeout is hit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>is_running</strong> – True if QIS is running and responding</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.closeQis">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">closeQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9722</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.closeQis" title="Link to this definition">¶</a></dt>
+<dd><p>Helper function to close an instance of QIS.  By default this is the local version, but
+an address can be specified for remote systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>host</strong> (<em>str</em><em>, </em><em>optional</em>) – Host IP address if not localhost</p></li>
+<li><p><strong>port</strong> (<em>str</em><em>, </em><em>optional</em>) – QIS connection port if set to a value other than the default</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.isQisRunning">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">isQisRunning</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.isQisRunning" title="Link to this definition">¶</a></dt>
+<dd><p>Checks if a local instance of QIS is running and responding
+:returns: <strong>is_running</strong> – True if QIS is running and responding
+:rtype: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.isQisRunningAndResponding">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">isQisRunningAndResponding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.isQisRunningAndResponding" title="Link to this definition">¶</a></dt>
+<dd><p>checks if qis is running and responding to a $version</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.reader">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">reader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_flag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.reader" title="Link to this definition">¶</a></dt>
+<dd><p>Used to read output and place it in a queue for multithreaded reading
+:param stream:
+:param q:
+:param source:
+:param lock: The lock for the queue
+:param stop_flag: Flag to exit the loop and close the thread
+:return: None</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.startLocalQis">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">startLocalQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headless</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.startLocalQis" title="Link to this definition">¶</a></dt>
+<dd><p>Executes QIS on the local system, using the version contained within quarchpy</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>terminal</strong> (<em>bool</em><em>, </em><em>optional</em>) – True if QIS terminal should be shown on startup</p></li>
+<li><p><strong>headless</strong> (<em>bool</em><em>, </em><em>optional</em>) – True if app should be run in headless mode for non graphical environments</p></li>
+<li><p><strong>args</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of additional parameters to be supplied to QIS on the command line</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-quarchpy.qis">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-quarchpy.qis" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">QisInterface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9722</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectionMessage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.GetQisModuleSelection">
+<span class="sig-name descname"><span class="pre">GetQisModuleSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">favouriteOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additionalOptions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['rescan',</span> <span class="pre">'all</span> <span class="pre">con</span> <span class="pre">types',</span> <span class="pre">'ip</span> <span class="pre">scan']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.GetQisModuleSelection" title="Link to this definition">¶</a></dt>
+<dd><p>Fuction used to list the available deviced to QIS and present them to the user for selection.</p>
+<p>Returns myDeviceID - Str the connection string used to connect to the selected device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.add_header_to_buffer">
+<span class="sig-name descname"><span class="pre">add_header_to_buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outBuffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_b_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream_header_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.add_header_to_buffer" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.add_header_to_byte_array">
+<span class="sig-name descname"><span class="pre">add_header_to_byte_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">return_b_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream_header_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_digital</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.add_header_to_byte_array" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.averageStripes">
+<span class="sig-name descname"><span class="pre">averageStripes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">leftover</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamAverage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newStripes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remainingStripes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.averageStripes" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.avgStringFromPwr">
+<span class="sig-name descname"><span class="pre">avgStringFromPwr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">avgPwrTwo</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.avgStringFromPwr" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.closeConnection">
+<span class="sig-name descname"><span class="pre">closeConnection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conString</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.closeConnection" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.connect">
+<span class="sig-name descname"><span class="pre">connect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connectionMessage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.connect" title="Link to this definition">¶</a></dt>
+<dd><p>Connect() tries to open a socket  on the host and port specified in the objects variables
+If successful it returns the backends welcome string. If it fails it returns a string saying unable to connect
+The backend should be running and host and port set before running this function. Normally it should be called at the beggining
+of talking to the backend and left open until finished talking when the disconnect() function should be ran</p>
+<p>Param:
+connectionMessage: boolean, optional</p>
+<blockquote>
+<div><p>Set to False if you don’t want a warning message to appear when an instance is already running on that port. Useful when using isQisRunning() from qisFuncs</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.convertStreamAverage">
+<span class="sig-name descname"><span class="pre">convertStreamAverage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">streamAveraging</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.convertStreamAverage" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.create_dir_structure">
+<span class="sig-name descname"><span class="pre">create_dir_structure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.create_dir_structure" title="Link to this definition">¶</a></dt>
+<dd><p>Creates the QPS directory structure and (empty) files to be written to</p>
+<p>I’ve put a bunch of try-except just to be sure the directory is correctly created.
+( There’s probably a better way of doing this than this )</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param<span class="colon">:</span></dt>
+<dd class="field-odd"><p>module: String  - Module string</p>
+</dd>
+<dt class="field-even">Param<span class="colon">:</span></dt>
+<dd class="field-even"><p>directory: String  - Name of directory for QPS stream (defaults to default recording location if invalid)</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>success: Boolean - Was the file structure created successfully?</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.create_index_file">
+<span class="sig-name descname"><span class="pre">create_index_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.create_index_file" title="Link to this definition">¶</a></dt>
+<dd><p>Create the necessary index file for QPS data000.idx</p>
+<p>For future revisions, this should be updated if there are file limits on each data file
+Current implementation assumes only 1 of each data file are made.</p>
+<p>No Return./</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.create_index_file_digitals">
+<span class="sig-name descname"><span class="pre">create_index_file_digitals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.create_index_file_digitals" title="Link to this definition">¶</a></dt>
+<dd><p>Create the necessary index file for QPS data101.idx</p>
+<p>For future revisions, this should be updated if there are file limits on each data file
+Current implementation assumes only 1 of each data file are made.</p>
+<p>No Return.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.create_qps_directory">
+<span class="sig-name descname"><span class="pre">create_qps_directory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.create_qps_directory" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.create_qps_file">
+<span class="sig-name descname"><span class="pre">create_qps_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.create_qps_file" title="Link to this definition">¶</a></dt>
+<dd><p>Creates the end QPS file that is used to open QPS</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>module</strong> – Module QTL number that was used for the stream</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.deviceDictSetup">
+<span class="sig-name descname"><span class="pre">deviceDictSetup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.deviceDictSetup" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.deviceMulti">
+<span class="sig-name descname"><span class="pre">deviceMulti</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.deviceMulti" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.disconnect">
+<span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.disconnect" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.getDeviceList">
+<span class="sig-name descname"><span class="pre">getDeviceList</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.getDeviceList" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.getStreamXmlHeader">
+<span class="sig-name descname"><span class="pre">getStreamXmlHeader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.getStreamXmlHeader" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.get_list_details">
+<span class="sig-name descname"><span class="pre">get_list_details</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.get_list_details" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.interruptList">
+<span class="sig-name descname"><span class="pre">interruptList</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.interruptList" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.isXmlHeader">
+<span class="sig-name descname"><span class="pre">isXmlHeader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">headerText</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.isXmlHeader" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.qis_scan_devices">
+<span class="sig-name descname"><span class="pre">qis_scan_devices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">favouriteOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipAddress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.qis_scan_devices" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.receiveText">
+<span class="sig-name descname"><span class="pre">receiveText</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.receiveText" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.rxBytes">
+<span class="sig-name descname"><span class="pre">rxBytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.rxBytes" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.scanIP">
+<span class="sig-name descname"><span class="pre">scanIP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ipAddress</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.scanIP" title="Link to this definition">¶</a></dt>
+<dd><p>Triggers QIS to look at a specific IP address for a quarch module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>QisConnection</strong> (<a class="reference internal" href="quarchpy.connection_specific.html#quarchpy.connection_specific.connection_QPS.QpsInterface" title="quarchpy.connection_specific.connection_QPS.QpsInterface"><em>QpsInterface</em></a>) – The interface to the instance of QPS you would like to use for the scan.</p></li>
+<li><p><strong>ipAddress</strong> (<em>str</em>) – The IP address of the module you are looking for eg ‘192.168.123.123’</p></li>
+<li><p><strong>sleep</strong> (<em>int</em><em>, </em><em>optional</em>) – This optional variable sleeps to allow the network to scan for the module before allowing new commands to be sent to QIS.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.sendAndReceiveCmd">
+<span class="sig-name descname"><span class="pre">sendAndReceiveCmd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'$help'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">readUntilCursor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betweenCommandDelay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.sendAndReceiveCmd" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.sendAndReceiveText">
+<span class="sig-name descname"><span class="pre">sendAndReceiveText</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sentText</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'$help'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">readUntilCursor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.sendAndReceiveText" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.sendCmd">
+<span class="sig-name descname"><span class="pre">sendCmd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'$help'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">readUntilCursor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betweenCommandDelay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expectedResponse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.sendCmd" title="Link to this definition">¶</a></dt>
+<dd><p>Send command is used to send a command to QIS and as far as I can see it has no difference than sendAndReceiveCmd</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.sendCommand">
+<span class="sig-name descname"><span class="pre">sendCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">readUntilCursor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betweenCommandDelay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expectedResponse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.sendCommand" title="Link to this definition">¶</a></dt>
+<dd><p>Send command is used to send a command to QIS and as far as I can see it has no difference than sendAndReceiveCmd</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.sendText">
+<span class="sig-name descname"><span class="pre">sendText</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'$help'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.sendText" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.sortFavourite">
+<span class="sig-name descname"><span class="pre">sortFavourite</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foundDevices</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.sortFavourite" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.startStream">
+<span class="sig-name descname"><span class="pre">startStream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fileMaxMB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamAverage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">releaseOnData</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamDuration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inMemoryData</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.startStream" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.startStreamQPS">
+<span class="sig-name descname"><span class="pre">startStreamQPS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fileMaxMB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamAverage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">releaseOnData</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.startStreamQPS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.startStreamThread">
+<span class="sig-name descname"><span class="pre">startStreamThread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fileMaxMB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamAverage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">releaseOnData</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamDuration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inMemoryData</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.startStreamThread" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.startStreamThreadQPS">
+<span class="sig-name descname"><span class="pre">startStreamThreadQPS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fileMaxMB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streamAverage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">releaseOnData</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.startStreamThreadQPS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.stopStream">
+<span class="sig-name descname"><span class="pre">stopStream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.stopStream" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.streamBufferStatus">
+<span class="sig-name descname"><span class="pre">streamBufferStatus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.streamBufferStatus" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.streamGetStripesText">
+<span class="sig-name descname"><span class="pre">streamGetStripesText</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numStripes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4096</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipStatusCheck</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.streamGetStripesText" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.streamHeaderAverage">
+<span class="sig-name descname"><span class="pre">streamHeaderAverage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.streamHeaderAverage" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.streamHeaderFormat">
+<span class="sig-name descname"><span class="pre">streamHeaderFormat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.streamHeaderFormat" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.streamHeaderVersion">
+<span class="sig-name descname"><span class="pre">streamHeaderVersion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.streamHeaderVersion" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.streamInterrupt">
+<span class="sig-name descname"><span class="pre">streamInterrupt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.streamInterrupt" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.streamRunningStatus">
+<span class="sig-name descname"><span class="pre">streamRunningStatus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.streamRunningStatus" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.waitStop">
+<span class="sig-name descname"><span class="pre">waitStop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.waitStop" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.write_b_array_to_idx_file">
+<span class="sig-name descname"><span class="pre">write_b_array_to_idx_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_b_array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.write_b_array_to_idx_file" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.write_stripe_to_files_HD">
+<span class="sig-name descname"><span class="pre">write_stripe_to_files_HD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stripe</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.write_stripe_to_files_HD" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.QisInterface.write_stripe_to_files_PAM">
+<span class="sig-name descname"><span class="pre">write_stripe_to_files_PAM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stripe</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.write_stripe_to_files_PAM" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">StreamHeaderInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream_header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Holds the raw header information data and allows access to its various elements
+in a simple way</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo.data_valid">
+<span class="sig-name descname"><span class="pre">data_valid</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo.data_valid" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo.device_channels">
+<span class="sig-name descname"><span class="pre">device_channels</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo.device_channels" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo.device_groups">
+<span class="sig-name descname"><span class="pre">device_groups</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo.device_groups" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo.device_period">
+<span class="sig-name descname"><span class="pre">device_period</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo.device_period" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo.get_device_period">
+<span class="sig-name descname"><span class="pre">get_device_period</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo.get_device_period" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the sample rate of the stream (of the fastest group for multi-rate streams)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device_period</strong> – Sample rate time object including time unit</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>TimeValue</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo.get_header_version">
+<span class="sig-name descname"><span class="pre">get_header_version</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo.get_header_version" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the header version number</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>header_version</strong> – Version number of the stream text header data</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo.header_raw_xml">
+<span class="sig-name descname"><span class="pre">header_raw_xml</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo.header_raw_xml" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo.header_version">
+<span class="sig-name descname"><span class="pre">header_version</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo.header_version" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo.init_from_qis_device">
+<span class="sig-name descname"><span class="pre">init_from_qis_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">open_qis_device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo.init_from_qis_device" title="Link to this definition">¶</a></dt>
+<dd><p>Sets up the info class from a quaech device that is attached
+via QIS and so the header can be requested direct from the instrument</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>open_qis_device</strong> (<a class="reference internal" href="quarchpy.device.html#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><em>quarchDevice</em></a>) – Open connection to a quarch streaming device via QIS</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo.init_from_stream_header">
+<span class="sig-name descname"><span class="pre">init_from_stream_header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream_header</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo.init_from_stream_header" title="Link to this definition">¶</a></dt>
+<dd><p>Sets up the info class from stream header text, as supplied from the QIS
+stream text header command</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stream_header</strong> (<em>str</em>) – Stream header text data</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.checkAndCloseQis">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">checkAndCloseQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9722</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.checkAndCloseQis" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.closeQis">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">closeQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9722</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.closeQis" title="Link to this definition">¶</a></dt>
+<dd><p>Helper function to close an instance of QIS.  By default this is the local version, but
+an address can be specified for remote systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>host</strong> (<em>str</em><em>, </em><em>optional</em>) – Host IP address if not localhost</p></li>
+<li><p><strong>port</strong> (<em>str</em><em>, </em><em>optional</em>) – QIS connection port if set to a value other than the default</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.isQisRunning">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">isQisRunning</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.isQisRunning" title="Link to this definition">¶</a></dt>
+<dd><p>Checks if a local instance of QIS is running and responding
+:returns: <strong>is_running</strong> – True if QIS is running and responding
+:rtype: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.qis.startLocalQis">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">startLocalQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headless</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.startLocalQis" title="Link to this definition">¶</a></dt>
+<dd><p>Executes QIS on the local system, using the version contained within quarchpy</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>terminal</strong> (<em>bool</em><em>, </em><em>optional</em>) – True if QIS terminal should be shown on startup</p></li>
+<li><p><strong>headless</strong> (<em>bool</em><em>, </em><em>optional</em>) – True if app should be run in headless mode for non graphical environments</p></li>
+<li><p><strong>args</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of additional parameters to be supplied to QIS on the command line</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">quarchpy</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog (Quarchpy)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">quarchpy</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="quarchpy.html">quarchpy package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="readme.html">Quarchpy - Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licenses.html">LICENSES</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">quarchpy</a><ul>
+  <li><a href="quarchpy.html">quarchpy package</a><ul>
+      <li>Previous: <a href="quarchpy.device.html" title="previous chapter">quarchpy.device package</a></li>
+      <li>Next: <a href="quarchpy.qps.html" title="next chapter">quarchpy.qps package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2020, Quarch Technology Ltd.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../_sources/source/quarchpy.qis.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

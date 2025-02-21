@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties>
+    <lastModified>2021-08-06 10:15:38</lastModified>
+    <defaultTCPTimeout>1000</defaultTCPTimeout>
+    <localPorts>
+        <rest>9780</rest>
+        <scan>-1</scan>
+        <tcp>NA</tcp>
+        <telnet>9722</telnet>
+    </localPorts>
+</Properties>

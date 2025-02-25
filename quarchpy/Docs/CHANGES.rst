@@ -14,6 +14,10 @@ Change Log
 ----------
 
 
+2.2.7
+-----
+- Bug fix for QIS 1.47 missing lib for linux only 
+
 2.2.6
 -----
 - New QPS 1.45 and QIS 1.47

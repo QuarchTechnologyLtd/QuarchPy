@@ -1,5 +1,6 @@
 from quarchpy import *
 from quarchpy.device import *
+from quarchpy.connection_specific.jdk_j21_jres.fix_permissions import main as fix_permissions, find_java_permissions
 try:
     from importlib.metadata import distribution
 except:
@@ -48,6 +49,11 @@ def test_system_info():
         print(str(bytes(subprocess.check_output(['cat', '/etc/os-release'], stderr=subprocess.STDOUT)).decode()))
     print("Platform Release:  " + platform.release())
 
+    print("\nPYTHON\n------")
+    try:
+        print("Python Version: " + sys.version)
+    except:
+        print("Unable to detect Python version")
     try:
         print("Quarchpy Version: " + get_quarchpy_version())
     except:
@@ -57,14 +63,8 @@ def test_system_info():
     except Exception as e:
         print(e)
         print("Unable to detect Quarchpy location")
-    try:
-        print("Python Version: " + sys.version)
-    except:
-        print("Unable to detect Python version")
-    try:
-        print("QIS version number: " + get_QIS_version())
-    except:
-        print("Unable to detect QIS version")
+        
+    print("\nJAVA\n----")
     try:
         javaVersion = bytes(subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT)).decode()
         print("Java Version: " + str(javaVersion))
@@ -78,12 +78,17 @@ def test_system_info():
         print("Unable to detect java location"
               "If Java is not installed then QIS and QPS will NOT run")
     try:
-        find_java_permissions()
+        execute_permissions, message=find_java_permissions()
+        print("Execute Permissions: ",execute_permissions, "\n",message)
     except:
         print("Unable to get j21 java permissions")
+    try:
+        print("QIS version number: " + get_QIS_version())
+    except:
+        print("Unable to detect QIS version")
 
-    # Scan for all quarch devices on the system
 
+# Scan for all quarch devices on the system
 def QuarchSimpleIdentify(device1):
     """
     Prints basic identification test data on the specified module, compatible with all Quarch devices
@@ -105,6 +110,7 @@ def QuarchSimpleIdentify(device1):
     print("Module Identity Information: ")
     print(device1.sendCommand("*idn?"))
 
+
 def get_QIS_version():
     """
     Returns the version of QIS.  This is the version of QIS currenty running on the local system if one exists.
@@ -119,10 +125,15 @@ def get_QIS_version():
 
     qis_version = ""
     my_close_qis = False
-    if isQisRunning() == False:
+    try:
+        qisRunning=isQisRunning()
+    except Exception as e:
+        print("Exception occurred while checking if qis was already running. Error:\n"+str(e))
+
+    if qisRunning == False:
         my_close_qis = True
         startLocalQis(headless=True)
-        
+
     myQis = qisInterface()
     qis_version = myQis.sendAndReceiveCmd(cmd="$version")
     if "No Target Device Specified" in qis_version:
@@ -130,6 +141,7 @@ def get_QIS_version():
     if my_close_qis:
         myQis.sendAndReceiveCmd(cmd = "$shutdown")
     return qis_version
+
 
 def get_java_location():
     """
@@ -148,11 +160,13 @@ def get_java_location():
         location = "Unable to detect OS to check java version."
     return location
 
+
 def get_quarchpy_version():
     try:
        return __version__
     except:
         return "Unknown"
+
 
 def fix_usb():
     content_to_write = "SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"16d0\", MODE=\"0666\"" \
@@ -197,6 +211,7 @@ def main (args=None):
         test_system_info()
     if bool_test_communication:
         test_communication()
+
 
 
 if __name__ == "__main__":

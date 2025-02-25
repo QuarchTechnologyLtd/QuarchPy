@@ -41,9 +41,73 @@
 <section id="module-quarchpy.fio.FIO_interface">
 <span id="quarchpy-fio-fio-interface-module"></span><h2>quarchpy.fio.FIO_interface module<a class="headerlink" href="#module-quarchpy.fio.FIO_interface" title="Link to this heading">¶</a></h2>
 <dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.fio.FIO_interface.convert_qis_stream_to_unix_time">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.fio.FIO_interface.</span></span><span class="sig-name descname"><span class="pre">convert_qis_stream_to_unix_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qis_stream_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unix_stream_start_time</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.fio.FIO_interface.convert_qis_stream_to_unix_time" title="Link to this definition">¶</a></dt>
+<dd><p>Converts a QIS stream CSV file to Unix time by adding the unixStreamStartTime to the first column
+in each row, taking into account the time units provided in both the CSV header and the start time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qis_stream_file</strong> (<em>str</em>) – The path to the QIS stream CSV file.</p></li>
+<li><p><strong>unix_stream_start_time</strong> (<em>str</em>) – The starting Unix time with units (e.g., “1737374310S”, “1737374310000mS”).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the converted CSV file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.fio.FIO_interface.fio_json_to_csv">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.fio.FIO_interface.</span></span><span class="sig-name descname"><span class="pre">fio_json_to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_file</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.fio.FIO_interface.fio_json_to_csv" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="quarchpy.fio.FIO_interface.follow">
 <span class="sig-prename descclassname"><span class="pre">quarchpy.fio.FIO_interface.</span></span><span class="sig-name descname"><span class="pre">follow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thefile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.fio.FIO_interface.follow" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="quarchpy.fio.FIO_interface.merge_fio_qis_stream">
+<span class="sig-prename descclassname"><span class="pre">quarchpy.fio.FIO_interface.</span></span><span class="sig-name descname"><span class="pre">merge_fio_qis_stream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qis_stream_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fio_output_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unix_stream_start_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rounding_option</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'round'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.fio.FIO_interface.merge_fio_qis_stream" title="Link to this definition">¶</a></dt>
+<dd><p>Merge FIO and QIS data into a single CSV file.</p>
+<dl class="simple">
+<dt>For each FIO entry:</dt><dd><ul class="simple">
+<li><p>If timestamps match, append FIO data to the corresponding QIS row.</p></li>
+<li><dl class="simple">
+<dt>If no match, handle based on <cite>rounding_option</cite>:</dt><dd><ul>
+<li><p>“round”: Find the nearest QIS time and add FIO data to that row.</p></li>
+<li><p>“insert”: Add a new row with blank QIS data and only FIO data.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qis_stream_file</strong> (<em>str</em>) – Path to the QIS CSV file (converted to Unix time).</p></li>
+<li><p><strong>fio_output_file</strong> (<em>str</em>) – Path to the FIO output file (in JSON format).</p></li>
+<li><p><strong>unix_stream_start_time</strong> (<em>str</em>) – Starting Unix timestamp for the QIS stream.</p></li>
+<li><p><strong>output_file</strong> (<em>str</em><em>, </em><em>optional</em>) – Output file path for the merged CSV. If not provided, the file is saved
+with “_merged” appended to the QIS file name.</p></li>
+<li><p><strong>rounding_option</strong> (<em>str</em>) – Determines how to handle mismatched times (“round” or “insert”).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the merged CSV file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="quarchpy.fio.FIO_interface.return_data">

@@ -63,7 +63,7 @@ def test_system_info():
     except Exception as e:
         print(e)
         print("Unable to detect Quarchpy location")
-        
+
     print("\nJAVA\n----")
     try:
         javaVersion = bytes(subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT)).decode()
@@ -83,9 +83,9 @@ def test_system_info():
     except:
         print("Unable to get j21 java permissions")
     try:
-        print("QIS version number: " + get_QIS_version())
-    except:
-        print("Unable to detect QIS version")
+        print("\nQIS version number: " + get_QIS_version())
+    except Exception as e:
+        print("\nUnable to detect QIS version. Exception:" +str(e))
 
 
 # Scan for all quarch devices on the system
@@ -97,7 +97,7 @@ def QuarchSimpleIdentify(device1):
     ----------
     device1: quarchDevice
         Open connection to a quarch device
-        
+
     """
     # Print the module name
     print("MODULE IDENTIFY TEST")
@@ -120,7 +120,7 @@ def get_QIS_version():
     -------
     version: str
         String representation of the QIS version number
-        
+
     """
 
     qis_version = ""

@@ -198,8 +198,7 @@ class quarchStream:
         return (command_response)
 
 
-    def addAnnotation(self, title, annotationTime=0, extraText="", yPos="", titleColor="", annotationColor="",
-                      annotationType="", timeFormat="unix"):
+    def addAnnotation(self, title, annotationTime=0, extraText="", yPos="", titleColor="", annotationColor="", annotationType="", annotationGroup="", timeFormat="unix"):
         """
                     Adds a custom annotation to stream with given parameters.
 

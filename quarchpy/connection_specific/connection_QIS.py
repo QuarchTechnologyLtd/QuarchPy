@@ -1682,6 +1682,7 @@ class QisInterface:
 
         except Exception as e:
             #something went wrong during send qis cmd
+            logging.error("Error! Unable to retrieve response from QIS. Command: " + sentText)
             logging.error(e)
             raise e
         finally:

@@ -2,7 +2,7 @@
 Contains general functions for starting and stopping QIS processes
 """
 
-import os, sys 
+import os, sys
 import time, platform
 from threading import Thread, Lock, Event, active_count
 from queue import Queue, Empty
@@ -11,6 +11,7 @@ from quarchpy.connection_specific.jdk_j21_jres.fix_permissions import main as fi
 from quarchpy.user_interface.user_interface import printText, logDebug
 import subprocess
 import logging
+
 
 def isQisRunning():
     """
@@ -34,7 +35,7 @@ def isQisRunning():
         pass
     if (qisRunning is False):
         logging.debug("QIS is not running")
-        return False 
+        return False
     else:
         logging.debug("QIS is running")
         return True
@@ -45,7 +46,7 @@ def isQisRunningAndResponding(timeout=2):
     checks if qis is running and responding to a $version
     """
     qisRunning = isQisRunning()
-    if qisRunning ==False:
+    if qisRunning == False:
         logging.debug("QIS is not running")
         return False
 
@@ -62,7 +63,6 @@ def isQisRunningAndResponding(timeout=2):
             logging.debug("Qis returned from $version: " + str(versionResponse) + "  Expected to contain ': v'")
             time.sleep(timeout / maxCounter)  # We attempt to get QIS
             counter += 1
-
 
     if (qisRunning is False):
         logging.debug("QIS is not running")
@@ -91,10 +91,11 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     java_path = os.path.dirname(os.path.abspath(__file__))
     java_path, junk = os.path.split(java_path)
     java_path = os.path.join(java_path, "connection_specific", "jdk_j21_jres")
+    java_path = "\"" + java_path
 
     # change directory to /QPS/QIS
     qis_path = os.path.dirname(os.path.abspath(__file__))
-    qis_path,junk = os.path.split (qis_path)
+    qis_path, junk = os.path.split(qis_path)
 
     # OS
     current_os = platform.system()
@@ -108,13 +109,13 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
         return
 
     # ensure the jres folder has the required permissions
-    permissions,message= find_java_permissions()
+    permissions, message = find_java_permissions()
     if permissions is False:
         logging.warning(message)
         logging.warning("Not having correct permissions will prevent Quarch Java Programs to launch")
         logging.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
         user_input = input("Would you like to fix permissions now? (Y/N)")
-        if user_input.lower()=="y":
+        if user_input.lower() == "y":
             fix_permissions()
             permissions, message = find_java_permissions()
             time.sleep(0.5)
@@ -122,8 +123,6 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
                 logging.warning("Attempt to fix permissions was unsuccessful. Please fix these manually.")
             else:
                 logging.warning("Attempt to fix permissions was successful. Now continuing.")
-
-
 
     # if current_os != "Windows":
     #     subprocess.call(['chmod', '-R', '+rwx', java_path])
@@ -150,15 +149,13 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
 
     # Building the command
 
-
     # prefer IPV4 to IPV6
     ipv4v6_vm_args = "-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false"
 
     # Process command prefix. Needed for headless mode, to support OSs with no system tray.
-    cmd_prefix =ipv4v6_vm_args
+    cmd_prefix = ipv4v6_vm_args
     if headless is True or (args is not None and "-headless" in args):
         cmd_prefix += " -Djava.awt.headless=true"
-
 
     # Process command suffix (additional standard options for QIS).
     if terminal is True:
@@ -177,9 +174,8 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     # record current working directory
     current_dir = os.getcwd()
 
+    command = "java\" " + cmd_prefix + " -jar qis.jar" + cmd_suffix
 
-    command = "java " + cmd_prefix + " -jar qis.jar" + cmd_suffix
-    
     # different start for different OS
     if current_os == "Windows":
         command = java_path + "\\win_amd64_jdk_21_jre\\bin\\" + command
@@ -195,9 +191,10 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
         command = java_path + "\\win_amd64_jdk_21_jre\\bin\\" + command
 
     # Use the command and check QIS has launched
-    if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to view logging.
-        process = subprocess.Popen(command,shell=True)
-        startTime = time.time() #Checks for Popen launch only
+    # If logging to a terminal window is on then os.system should be used to view logging.
+    if "-logging=ON" in str(args):
+        process = subprocess.Popen(command, shell=True)
+        startTime = time.time()  # Checks for Popen launch only
         while not isQisRunning():
             if time.time() - startTime > timeout:
                 raise TimeoutError("QIS failed to launch within timelimit of " + str(timeout) + " sec.")
@@ -208,16 +205,15 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
         else:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
 
-        startTime = time.time() #Checks for Popen launch only
+        startTime = time.time()  #Checks for Popen launch only
         while not isQisRunning():
             _get_std_msg_and_err_from_QIS_process(process)
             if time.time() - startTime > timeout:
                 raise TimeoutError("QIS failed to launch within timelimit of " + str(timeout) + " sec.")
             pass
 
-
         if isQisRunningAndResponding(timeout=timeout):
-            logDebug("QPS running and responding")
+            logDebug("QIS running and responding")
         else:
             logDebug("QIS running but not responding")
 
@@ -225,7 +221,7 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     os.chdir(current_dir)
 
 
-def reader(stream, q, source, lock,stop_flag):
+def reader(stream, q, source, lock, stop_flag):
     '''
     Used to read output and place it in a queue for multithreaded reading
     :param stream:
@@ -261,7 +257,7 @@ def _get_std_msg_and_err_from_QIS_process(process):
     t2.start()
     counter = 0
     # check for stderr or stdmsg from the queue
-    while counter <= 3: # If 3 empty reads from the queue then move on to see if QPS is running.
+    while counter <= 3:  # If 3 empty reads from the queue then move on to see if QPS is running.
         try:
             source, line = q.get(timeout=1)  # Wait for 1 second for new lines
             counter = 0
@@ -271,7 +267,7 @@ def _get_std_msg_and_err_from_QIS_process(process):
                 printText(f"{source}: {line}")
         except Empty:
             counter += 1
-    stop_flag.set() #Close the threads and return to the main loop where QPS is check to see if its started yet
+    stop_flag.set()  #Close the threads and return to the main loop where QPS is check to see if its started yet
 
 
 def check_remote_qis(host='127.0.0.1', port=9722, timeout=0):
@@ -311,6 +307,7 @@ def check_remote_qis(host='127.0.0.1', port=9722, timeout=0):
         logging.debug("QIS is running")
         return True
 
+
 def checkAndCloseQis(host='127.0.0.1', port=9722):
     if isQisRunning() is True:
         closeQis()
@@ -329,53 +326,53 @@ def closeQis(host='127.0.0.1', port=9722):
         QIS connection port if set to a value other than the default
         
     """
-    
+
     myQis = QisInterface(host, port)
-    retVal=myQis.sendAndReceiveCmd(cmd = "$shutdown")
+    retVal = myQis.sendAndReceiveCmd(cmd="$shutdown")
     myQis.disconnect()
     time.sleep(1)
     return retVal
 
+
 #DEPRICATED
-def GetQisModuleSelection (QisConnection):
+def GetQisModuleSelection(QisConnection):
     """
     Prints a list of modules for user selection
     
     .. deprecated:: 2.0.12
         Use the module selection functions of the QisInterface class instead
     """
-    
+
     # Request a list of all USB and LAN accessible power modules
     devList = QisConnection.getDeviceList()
     # Removes rest devices
-    devList = [ x for x in devList if "rest" not in x ]
+    devList = [x for x in devList if "rest" not in x]
 
     # Print the devices, so the user can choose one to connect to
-    printText ("\n ########## STEP 1 - Select a Quarch Module. ########## \n")
-    printText (' --------------------------------------------')
-    printText (' |  {:^5}  |  {:^30}|'.format("INDEX", "MODULE"))
-    printText (' --------------------------------------------')
-        
+    printText("\n ########## STEP 1 - Select a Quarch Module. ########## \n")
+    printText(' --------------------------------------------')
+    printText(' |  {:^5}  |  {:^30}|'.format("INDEX", "MODULE"))
+    printText(' --------------------------------------------')
+
     try:
         for idx in xrange(len(devList)):
-            printText (' |  {:^5}  |  {:^30}|'.format(str(idx+1), devList[idx]))
+            printText(' |  {:^5}  |  {:^30}|'.format(str(idx + 1), devList[idx]))
             printText(' --------------------------------------------')
     except:
         for idx in range(len(devList)):
-            printText (' |  {:^5}  |  {:^30}|'.format(str(idx+1), devList[idx]))
+            printText(' |  {:^5}  |  {:^30}|'.format(str(idx + 1), devList[idx]))
             printText(' --------------------------------------------')
 
     # Get the user to select the device to control
     try:
-        moduleId = int(raw_input ("\n>>> Enter the index of the Quarch module: "))
+        moduleId = int(raw_input("\n>>> Enter the index of the Quarch module: "))
     except NameError:
-        moduleId = int(input ("\n>>> Enter the index of the Quarch module: "))
+        moduleId = int(input("\n>>> Enter the index of the Quarch module: "))
 
     # Verify the selection
     if (moduleId > 0 and moduleId <= len(devList)):
-        myDeviceID = devList[moduleId-1]
+        myDeviceID = devList[moduleId - 1]
     else:
         myDeviceID = None
 
     return myDeviceID
-

@@ -169,7 +169,7 @@ def get_quarchpy_version():
 
 
 def fix_usb():
-    content_to_write = "SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"16d0\", MODE=\"0666\"" \
+    content_to_write = "SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"16d0\", MODE=\"0666\"\n" \
                        "SUBSYSTEM==\"usb_device\", ATTRS{idVendor}==\"16d0\", MODE=\"0666\""
 
     if "centos" in str(platform.platform()).lower():

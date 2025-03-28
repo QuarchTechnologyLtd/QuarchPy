@@ -145,6 +145,8 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
         else:  # default to windows
             qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
 
+    # record current working directory
+    current_dir = os.getcwd()
     os.chdir(os.path.dirname(qis_path))
 
     # Building the command
@@ -171,8 +173,6 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
             if option != "-headless":
                 cmd_suffix = cmd_suffix + " " + option
 
-    # record current working directory
-    current_dir = os.getcwd()
 
     command = "java\" " + cmd_prefix + " -jar qis.jar" + cmd_suffix
 

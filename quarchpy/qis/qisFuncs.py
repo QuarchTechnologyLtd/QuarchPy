@@ -1,5 +1,7 @@
 """
+
 Contains general functions for starting and stopping QIS processes
+
 """
 
 import os, sys

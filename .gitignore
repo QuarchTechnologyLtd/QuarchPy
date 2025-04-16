@@ -173,6 +173,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 /.idea
-/quarchpy/connection_specific
-/quarchpy/connection_specific
-/quarchpy/config_files
+quarchpy/config_files
+/quarchpy/config_files/Cable_Modules
+/connection_specific
+quarchpy/config_files/Drive_Modules/.svn/format
+quarchpy/config_files/Cable_Modules/.svn/entries

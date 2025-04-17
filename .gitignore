@@ -178,3 +178,4 @@ quarchpy/config_files
 /connection_specific
 quarchpy/config_files/Drive_Modules/.svn/format
 quarchpy/config_files/Cable_Modules/.svn/entries
+QpsRecordingExample.py

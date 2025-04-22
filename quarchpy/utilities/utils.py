@@ -1,5 +1,9 @@
 # utils.py
 from enum import Enum
+import logging
+import time
+
+
 # -------------------------------------
 #  Constants/Enums
 # -------------------------------------
@@ -7,12 +11,16 @@ class Status(Enum):
     IN_PROGRESS = "IN PROGRESS"
     COMPLETE = "COMPLETE"
 
+
 # -------------------------------------
 #  API Utility Functions
 # -------------------------------------
+def current_milli_time():
+    return int(round(time.time() * 1000))
 
-import time
-import logging
+def current_second_time():
+    return int(round(time.time()))
+
 
 # -------------------------------------
 #  Stream API Utility Functions
@@ -27,6 +35,7 @@ def check_stream_status(stream_status):
         else:
             return "\tStopped for unknown reason"
 
+
 def check_stream_stopped_status(stream_status):
     # Check the stream status, so we know if anything went wrong during the capture period
     if "stopped" in stream_status:
@@ -34,6 +43,7 @@ def check_stream_stopped_status(stream_status):
             return 'Stream interrupted due to internal device buffer has filled up'
         else:
             return 'OK'
+
 
 # -------------------------------------
 #  QPS API Utility Functions

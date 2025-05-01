@@ -1,0 +1,45 @@
+name: Run Python tests and lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        pip install --upgrade pip
+        pip install -r .github/workflows/requirements.txt
+        pip install pytest coverage flake8
+
+    - name: Run tests with coverage
+      run: |
+        coverage run -m pytest
+        coverage report
+        coverage xml
+
+#    - name: Upload coverage to Codecov
+#      uses: codecov/codecov-action@v4
+#      with:
+#        token: ${{ secrets.CODECOV_TOKEN }}  # optional if public repo
+#        files: ./coverage.xml
+#        flags: unittests
+#        name: codecov-coverage-report
+
+
+#    - name: Lint with flake8
+#      run: |
+#        flake8 quarchpy tests

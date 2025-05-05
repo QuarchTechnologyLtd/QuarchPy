@@ -108,7 +108,14 @@ def QuarchSimpleIdentify(device1):
     print("")
     # Print the module identify and version information
     print("Module Identity Information: ")
-    print(device1.sendCommand("*idn?"))
+    idn_info = device1.sendCommand("*idn?")
+    print(idn_info)
+    if "fixture" in idn_info.lower():
+        print("\nFixture Identity Information: ")
+
+        fixture_info = device1.sendCommand("fix idn?")
+        print(fixture_info)
+
 
 
 def get_QIS_version():

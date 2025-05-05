@@ -1,0 +1,129 @@
+@CONFIG Version=1
+
+# Torridon High Speed Drive Module
+@HEADER
+DeviceClass=TorridonModule
+DeviceNumbers=QTL1623-04
+DeviceNumbersExclude=
+MinFirmwareRequired=4.001
+MinFpgaRequired=0
+DeviceDescription=12G HS Lite Drive Control Module
+
+#Describes general module abilities
+@GENERAL
+HotPlugRead_Present = true
+GlitchStateRead_Present = false
+SourceUserBounce_Present = false
+
+#Describes all signals on the module
+@SIGNALS
+Name=POWER_DISABLE,GlitchEnable_Present=false
+Name=5v_CHARGE,GlitchEnable_Present=false
+Name=5v_POWER,GlitchEnable_Present=false
+Name=12v_CHARGE,GlitchEnable_Present=false
+Name=12v_POWER,GlitchEnable_Present=false
+Name=MATED,GlitchEnable_Present=false
+Name=PRI_OUT_PL,GlitchEnable_Present=false
+Name=PRI_OUT_MN,GlitchEnable_Present=false
+Name=PRI_IN_PL,GlitchEnable_Present=false
+Name=PRI_IN_MN,GlitchEnable_Present=false
+Name=SEC_OUT_PL,GlitchEnable_Present=false
+Name=SEC_OUT_MN,GlitchEnable_Present=false
+Name=SEC_IN_PL,GlitchEnable_Present=false
+Name=SEC_IN_MN,GlitchEnable_Present=false
+
+
+@SIGNAL_GROUPS
+Name=ALL,Signals="PRI_OUT_PL,PRI_OUT_MN,PRI_IN_PL,PRI_IN_MN,SEC_OUT_PL,SEC_OUT_MN,SEC_IN_PL,SEC_IN_MN,POWER_DISABLE,5v_CHARGE,5v_POWER,12v_CHARGE,12v_POWER,MATED"
+Name=PRIMARY,Signals="PRI_OUT_PL,PRI_OUT_MN,PRI_IN_PL,PRI_IN_MN"
+Name=SECONDARY,Signals="SEC_OUT_PL,SEC_OUT_MN,SEC_IN_PL,SEC_IN_MN"
+
+# Describes all sources on the module
+@SOURCES
+
+# Describes basic source parameters
+@SOURCE_START
+Number=0
+Type=ALWAYS_OFF
+Name=Source 0
+SourceEnable_Present=false
+@SOURCE_END
+
+
+# Describes basic source parameters
+@SOURCE_START
+Number=1
+Type=TIMED
+Name=Source 1
+SourceDelay_Limits=ms,0,1270,1
+SourceEnable_Present=true
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=2
+Type=TIMED
+Name=Source 2
+SourceDelay_Limits=ms,0,1270,1
+SourceEnable_Present=true
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=3
+Type=TIMED
+Name=Source 3
+SourceDelay_Limits=ms,0,1270,1
+SourceEnable_Present=true
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=4
+Type=TIMED
+Name=Source 4
+SourceDelay_Limits=ms,0,1270,1
+SourceEnable_Present=true
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=5
+Type=TIMED
+Name=Source 5
+SourceDelay_Limits=ms,0,1270,1
+SourceEnable_Present=true
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=6
+Type=TIMED
+Name=Source 6
+SourceDelay_Limits=ms,0,1270,1
+SourceEnable_Present=true
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=7
+Type=IMMEDIATE_CHANGE
+Name=Source 7
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=8
+Type=ALWAYS_ON
+Name=Source 8
+SourceEnable_Present=false
+@SOURCE_END
+
+@MEASURE
+Name=5vin,Type=Voltage
+Name=5vout,Type=Voltage
+Name=12vin,Type=Voltage
+Name=12vout,Type=Voltage
+Name=3v3,Type=SelfVoltage
+Name=5v,Type=SelfVoltage

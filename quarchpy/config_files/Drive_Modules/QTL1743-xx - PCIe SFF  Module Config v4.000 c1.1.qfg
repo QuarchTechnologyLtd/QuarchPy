@@ -1,0 +1,222 @@
+@CONFIG Version=1
+
+# PCIe SFF HS Drive Module
+@HEADER
+DeviceClass=TorridonModule
+DeviceNumbers=QTL1743-xx
+DeviceNumbersExclude=
+MinFirmwareRequired=4.000
+MinFpgaRequired=1.1
+DeviceDescription=PCIe SFF Drive Control Module
+
+#Describes general module abilities
+@GENERAL
+HotPlugRead_Present = true
+GlitchStateRead_Present = true
+SourceUserBounce_Present = true
+
+#Describes all signals on the module
+@SIGNALS
+Name=12v_CHARGE,GlitchEnable_Present=true
+Name=12v_POWER,GlitchEnable_Present=true
+Name=3v3_AUX,GlitchEnable_Present=true
+Name=DUALPORT_EN,GlitchEnable_Present=true
+Name=EPE_RST_0,GlitchEnable_Present=true
+Name=EPE_RST_1,GlitchEnable_Present=true
+Name=IF_DETECT,GlitchEnable_Present=true
+Name=REF_CLK_0_MN,GlitchEnable_Present=true
+Name=REF_CLK_0_PL,GlitchEnable_Present=true
+Name=REF_CLK_1_MN,GlitchEnable_Present=true
+Name=REF_CLK_1_PL,GlitchEnable_Present=true
+Name=SM_CLK,GlitchEnable_Present=true
+Name=SM_DAT,GlitchEnable_Present=true
+Name=PERN_0,GlitchEnable_Present=true
+Name=PERN_1,GlitchEnable_Present=true
+Name=PERN_2,GlitchEnable_Present=true
+Name=PERN_3,GlitchEnable_Present=true
+Name=PERP_0,GlitchEnable_Present=true
+Name=PERP_1,GlitchEnable_Present=true
+Name=PERP_2,GlitchEnable_Present=true
+Name=PERP_3,GlitchEnable_Present=true
+Name=PETN_0,GlitchEnable_Present=true
+Name=PETN_1,GlitchEnable_Present=true
+Name=PETN_2,GlitchEnable_Present=true
+Name=PETN_3,GlitchEnable_Present=true
+Name=PETP_0,GlitchEnable_Present=true
+Name=PETP_1,GlitchEnable_Present=true
+Name=PETP_2,GlitchEnable_Present=true
+Name=PETP_3,GlitchEnable_Present=true
+
+@SIGNAL_GROUPS
+Name=ALL,Signals="IF_DETECT,DUALPORT_EN,12V_CHARGE,12V_POWER,3V3_AUX,SM_CLK,SM_DAT,EPE_RST_0,REF_CLK_0_PL,REF_CLK_0_MN,PETP_0,PETN_0,PERP_0,PERN_0,PETP_1,PETN_1,PERP_1,PERN_1,PETP_2,PETN_2,PERP_2,PERN_2,PETP_3,PETN_3,PERP_3,PERN_3,REF_CLK_1_PL,REF_CLK_1_MN,EPE_RST_1"
+Name=DRIVE_POWER,Signals="12v_CHARGE,12v_POWER"
+Name=SM_BUS,Signals="SM_CLK,SM_DAT,3v3_AUX"
+Name=PORT_A,Signals="EPE_RST_0,REF_CLK_0_PL,REF_CLK_0_MN,PETP_0,PETN_0,PERP_0,PERN_0,PETP_1,PETN_1,PERP_1,PERN_1"
+Name=PORT_B,Signals="EPE_RST_1,REF_CLK_1_PL,REF_CLK_1_MN,PETP_2,PETN_2,PERP_2,PERN_2,PETP_3,PETN_3,PERP_3,PERN_3"
+Name=DATA_A,Signals="PETP_0,PETN_0,PERP_0,PERN_0,PETP_1,PETN_1,PERP_1,PERN_1"
+Name=DATA_B,Signals="PETP_2,PETN_2,PERP_2,PERN_2,PETP_3,PETN_3,PERP_3,PERN_3"
+Name=CLK_A,Signals="REF_CLK_0_PL,REF_CLK_0_MN"
+Name=CLK_B,Signals="REF_CLK_1_PL,REF_CLK_1_MN"
+Name=LANE0,Signals="PETP_0,PETN_0,PERP_0,PERN_0"
+Name=LANE1,Signals="PETP_1,PETN_1,PERP_1,PERN_1"
+Name=LANE2,Signals="PETP_2,PETN_2,PERP_2,PERN_2"
+Name=LANE3,Signals="PETP_3,PETN_3,PERP_3,PERN_3"
+
+
+# Describes all sources on the module
+@SOURCES
+
+# Describes basic source parameters
+@SOURCE_START
+Number=0
+Type=ALWAYS_OFF
+Name=Source 0
+SourceEnable_Present=false
+@SOURCE_END
+
+
+# Describes basic source parameters
+@SOURCE_START
+Number=1
+Type=TIMED
+Name=Source 1
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=2
+Type=TIMED
+Name=Source 2
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=3
+Type=TIMED
+Name=Source 3
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=4
+Type=TIMED
+Name=Source 4
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=5
+Type=TIMED
+Name=Source 5
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=6
+Type=TIMED
+Name=Source 6
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=7
+Type=IMMEDIATE_CHANGE
+Name=Source 7
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=8
+Type=ALWAYS_ON
+Name=Source 8
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes glitching module
+@GLITCH
+GlitchSignals_present=true
+GlitchSignals_Version=2
+GlitchLength_Limits=int,0,255,1
+GlitchMultiplier_Settings=50ns,500ns,5us,50us,500us,5ms,50ms,500ms
+GlitchPrbs_Settings=1:2,1:4,1:8,1:16,1:32,1:64,1:128,1:256,1:512,1:1024,1:2048,1:4096,1:8192,1:16384,1:32768,1:65536
+
+@MEASURE
+Name=12vin_chg,Type=Voltage
+Name=12vout_chg,Type=Voltage
+Name=12vin,Type=Voltage
+Name=12vout,Type=Voltage
+Name=5v,Type=SelfVoltage
+Name=3v3,Type=SelfVoltage

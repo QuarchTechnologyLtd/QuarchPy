@@ -43,3 +43,30 @@ jobs:
 #    - name: Lint with flake8
 #      run: |
 #        flake8 quarchpy tests
+
+
+    - name: Show ref
+      run: echo "Ref is ${{ github.ref }}"
+
+    - name: Install build tools
+      if: github.ref == 'refs/heads/DevRelease' || github.ref == 'refs/heads/Release'
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine
+
+    - name: Build wheel
+      if: github.ref == 'refs/heads/DevRelease' || github.ref == 'refs/heads/Release'
+      run: python setup.py bdist_wheel --universal
+
+    - name: Upload to TestPyPI
+      if: github.ref == 'refs/heads/DevRelease'
+      run: |
+        twine upload --repository testpypi dist/* -u __token__ -p ${{ secrets.TEST_PYPI_TOKEN }}
+        echo "Upload to TestPyPI"
+
+    - name: Upload to PyPI
+      if: github.ref == 'refs/heads/Release'
+      run: |
+        twine upload dist/* -u __token__ -p ${{ secrets.PYPI_TOKEN }}
+        echo "Upload to PyPI"
+

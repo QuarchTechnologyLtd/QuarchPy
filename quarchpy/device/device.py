@@ -1,502 +1,835 @@
 # device.py Refactored (Logic moved to snake_case, original becomes wrapper)
-import time, sys, os, logging
+import logging
+import os
 import re
+import sys
+import time
+from typing import Optional, Tuple, Any  # Added for type hinting in docstrings
 
 # Imports needed by original code
 from quarchpy.connection import QISConnection, PYConnection, QPSConnection
-from quarchpy import user_interface
 
 try:
     # Import components needed by get_quarch_device logic
-    # Use original names here as get_quarch_device logic calls them
     from .quarchArray import quarchArray, subDevice
-    # Assuming isThisAnArrayController is used somewhere if imported, though not visible here
-    # from .quarchArray import isThisAnArrayController
     from .scanDevices import get_connection_target  # Needed by __init__
 except ImportError as e:
     logging.error(f"Failed to import dependencies (.quarchArray, .scanDevices): {e}. Functionality limited.")
-    quarchArray = None
-    subDevice = None
-    # is_this_an_array_controller = lambda x: False
+    quarchArray = Any  # Placeholder type
+    subDevice = Any  # Placeholder type
     get_connection_target = lambda x: x  # Dummy fallback
 
 # Check Python version and set timeout exception
 if sys.version_info.major == 2:
     try:
-        import socket;
+        import socket
 
         timeout_exception = socket.timeout
     except AttributeError as e:
-        timeout_exception = None;
+        timeout_exception = None
         logging.error(f"Socket timeout unavailable: {e}")
 else:
     timeout_exception = TimeoutError  # Built-in
 
 
+# --- Main Device Class ---
 class quarchDevice:
     """
-    Allows control over a Quarch device, over a wide range of underlying connection methods.  This is the core class
-    used for control of all Quarch products.
-    (Original Docstring...)
+    Allows control over a Quarch device, over a wide range of underlying
+    connection methods. This is the core class used for control of all
+    Quarch products.
+
+    Attributes:
+        ConString (str): The potentially modified connection string used.
+        ConType (str): The specified connection type ('PY', 'QIS', 'QPS').
+        timeout (int): The communication timeout in seconds.
+        connectionObj (Optional[BaseConnection]): The underlying connection
+            object (e.g., PYConnection, QISConnection instance). None if
+            connection failed or is closed.
+        ConCommsType (Optional[str]): The actual communication type determined
+            by the connection object (e.g., 'USB', 'TCP'). Set for PY type.
+        connectionName (Optional[str]): The target identifier determined by the
+            connection object (e.g., 'QTL1234-01-001', '192.168.1.100'). Set for PY type.
+        connectionTypeName (Optional[str]): Alias for ConCommsType. Set for PY type.
     """
 
-    # --- Special Methods (Untouched Logic) ---
-    def __init__(self, ConString, ConType="PY", timeout="5"):
+    # Type hints for attributes (optional but good practice)
+    ConString: str
+    ConType: str
+    timeout: int
+    connectionObj: Optional[QISConnection, QPSConnection, PYConnection]
+    ConCommsType: Optional[str]
+    connectionName: Optional[str]
+    connectionTypeName: Optional[str]
+
+    def __init__(self, ConString: str, ConType: str = "PY", timeout: str = "5"):
         """
-        Constructor for quarchDevice, allowing the connection method of the device to be specified.
-        (Original Docstring and Logic Unchanged - internal calls remain camelCase)
+        Initializes the quarchDevice, establishes the connection.
+
+        Performs initial parameter validation, determines the connection type,
+        delegates to specific helper methods to create the underlying connection
+        object (PYConnection, QISConnection, or QPSConnection), and verifies
+        the connection.
+
+        Args:
+            ConString (str): The connection string (e.g., "USB:ID", "TCP:IP", "QIS:ID").
+            ConType (str, optional): The connection mode ('PY', 'QIS', 'QPS'). Defaults to "PY".
+            timeout (str, optional): Communication timeout in seconds. Defaults to "5".
+
+        Raises:
+            ValueError: If ConString format is invalid or timeout is not numeric.
+            ConnectionError: If establishing the connection fails.
+            TimeoutError: If verifying the device on QIS/QPS times out.
+            ImportError: If required underlying connection classes are missing.
         """
-        self.ConString = ConString
-        if "serial" not in ConString.lower():
-            self.ConString = ConString.lower()
-        self.ConType = ConType
+        # --- Initial setup and validation ---
+        # Initialize all instance attributes first
+        self.ConType = None
+        self.ConString = None
+        self.connectionTypeName = None
+        self.connectionName = None
+        self.ConCommsType = None
         self.connectionObj = None
+        self.timeout = 5  # Default int timeout
 
-        try:
-            self.timeout = int(timeout)
-        except ValueError:  # More specific exception
-            raise ValueError("Invalid value for timeout, must be a numeric value")
-
-        # Internal call remains camelCase (calls the wrapper now)
-        if not checkModuleFormat(self.ConString):
-            raise ValueError(f"Module format is invalid for connection string: '{self.ConString}'")
+        # Call helper to store and validate parameters
+        self._store_and_validate_params(ConString, ConType, timeout)
 
         logging.debug(
             f"Initializing quarchDevice with ConString='{self.ConString}', ConType='{self.ConType}', Timeout='{self.timeout}'")
         con_type_upper = self.ConType.upper()
 
-        # --- Connection Logic (Original logic untouched, internal calls remain as they were) ---
-        ## Python Connection Logic
+        # --- Delegate to specific initialization method ---
         if con_type_upper == "PY":
-            numb_colons = self.ConString.count(":")
-            if numb_colons == 2: self.ConString = self.ConString.replace('::', ':')
-
-            # Check if get_connection_target is available before calling
-            if "qtl" in self.ConString.lower() and "usb" not in self.ConString.lower() and get_connection_target is not None:
-                try:
-                    resolved_con_string = get_connection_target(self.ConString)
-                    if resolved_con_string:
-                        logging.debug(f"Resolved '{self.ConString}' to '{resolved_con_string}'")
-                        self.ConString = resolved_con_string
-                    else:
-                        logging.warning(f"get_connection_target returned empty for '{self.ConString}'.")
-                except Exception as e_scan:
-                    logging.error(f"Error calling get_connection_target: {e_scan}.")
-            elif "qtl" in self.ConString.lower() and "usb" not in self.ConString.lower():
-                logging.warning("get_connection_target function not available, cannot resolve connection string.")
-
-            try:
-                self.connectionObj = PYConnection(self.ConString)
-                self.ConCommsType = self.connectionObj.ConnTypeStr
-                self.connectionName = self.connectionObj.ConnTarget
-                self.connectionTypeName = self.connectionObj.ConnTypeStr
-                logging.debug(
-                    f"PY Connection details: Type='{self.connectionTypeName}', Target='{self.connectionName}'")
-            except Exception as e_pyconn:
-                logging.error(f"Failed to create PYConnection for '{self.ConString}': {e_pyconn}", exc_info=True)
-                raise ConnectionError(f"Failed to establish PY connection for '{self.ConString}'") from e_pyconn
-
-            time.sleep(0.1)  # Keep original sleeps
-            item = None
-            try:
-                # Use original sendCommand name internally (now a wrapper)
-                item = self.sendCommand("*tst?")
-            except Exception as e_tst:
-                logging.warning(f"Error sending *tst? during init: {e_tst}")
-                raise ConnectionError(
-                    "Module failed to respond correctly to *tst? command during initialization.") from e_tst
-
-            # Check response from *tst?
-            # Original code checked `if "OK" in item:` etc. which implies item is not None
-            response_ok = False
-            if item is not None:
-                if "OK" in item or "FAIL" in item:  # Allow FAIL as a valid response type here? Original did.
-                    response_ok = True
-
-            if not response_ok:
-                logging.error(f"No valid module response to *tst? command! Received: '{item}'")
-                try:
-                    # Use original closeConnection name internally (now a wrapper)
-                    self.closeConnection()
-                except Exception as close_err:
-                    logging.error(f"Error closing connection after *tst? failure: {close_err}")
-                raise ConnectionError("No module responded correctly to *tst? command!")
-            logging.debug("*tst? check successful.")
-            time.sleep(0.1)  # Keep original sleeps
-
-        ## QIS Connection Logic (Original logic untouched)
+            self._initialize_py_connection()
         elif con_type_upper.startswith("QIS"):
-            host = '127.0.0.1';
-            port = 9722
-            try:
-                _, host, port_str = self.ConType.split(':');
-                port = int(port_str)
-            except ValueError:
-                if con_type_upper != "QIS": logging.warning(
-                    f"Could not parse host/port from ConType '{self.ConType}', using defaults {host}:{port}.")
-            except Exception as e_parse:
-                logging.warning(f"Error parsing ConType '{self.ConType}': {e_parse}. Using defaults {host}:{port}.")
-
-            numb_colons = self.ConString.count(":")
-            if numb_colons == 1: self.ConString = self.ConString.replace(':', '::')
-
-            try:
-                self.connectionObj = QISConnection(self.ConString, host, port);
-                logging.debug(
-                    f"QISConnection object created for '{self.ConString}' via {host}:{port}")
-            except Exception as e_qisconn:
-                logging.error(f"Failed to create QISConnection: {e_qisconn}", exc_info=True);
-                raise ConnectionError(
-                    "Failed to establish QIS connection.") from e_qisconn
-
-            list_details = self.connectionObj.qis.get_list_details()
-            list_str_lower = "".join(list_details).lower()
-            target_qtl_lower = self.ConString.lower()
-            found_in_qis = False
-            connect_timeout = time.time() + self.timeout
-
-            while time.time() < connect_timeout:
-                if "qtl" not in target_qtl_lower:
-                    ip_match = re.search(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", target_qtl_lower)
-                    if not ip_match: raise ValueError(
-                        f"ConString '{self.ConString}' has no QTL and no valid IP for QIS.")
-                    target_ip = ip_match.group()
-                    # Internal call remains snake_case (original name)
-                    resolved_con_string = _check_ip_in_qis_list(target_ip, list_details)
-                    if resolved_con_string: self.ConString = resolved_con_string; found_in_qis = True; break
-                    logging.debug(f"IP {target_ip} not found in QIS list, attempting scan...")
-                    try:
-                        scan_response = self.connectionObj.qis.scanIP(
-                            self.ConString)  # Pass original ConString or target_ip? Original uses self.ConString
-                        if "located" in str(scan_response).lower():
-                            logging.info(
-                                f"QIS located device potentially matching {self.ConString}. Re-checking list...")
-                            connect_timeout = time.time() + 20;
-                            time.sleep(2)
-                            while time.time() < connect_timeout:
-                                list_details = self.connectionObj.qis.get_list_details()
-                                resolved_con_string = _check_ip_in_qis_list(target_ip, list_details)
-                                if resolved_con_string: self.ConString = resolved_con_string; found_in_qis = True; break
-                                logging.debug(f"IP {target_ip} still not resolved post-scan, retrying...");
-                                time.sleep(1)
-                            if found_in_qis: break
-                    except Exception as e_scan:
-                        logging.warning(f"Error during QIS scanIP for {self.ConString}: {e_scan}")
-                elif target_qtl_lower in list_str_lower:
-                    found_in_qis = True;
-                    break
-                if time.time() >= connect_timeout: break
-                logging.debug(f"'{self.ConString}' not found in QIS list yet, retrying...");
-                time.sleep(1)
-                list_details = self.connectionObj.qis.get_list_details();
-                list_str_lower = "".join(list_details).lower()
-
-            if not found_in_qis:
-                try:
-                    self.closeConnection()  # Use original wrapper name
-                except Exception:
-                    pass  # Ignore errors during cleanup on failure
-                raise TimeoutError(f"Could not find module '{self.ConString}' in QIS within {self.timeout}s timeout")
-            try:
-                set_default_cmd = f"$default {self.ConString}";
-                logging.debug(f"Setting QIS default: {set_default_cmd}")
-                response = self.connectionObj.qis.sendAndReceiveCmd(cmd=set_default_cmd)
-                logging.debug(f"QIS set default response: {response}")
-                if "fail" in response.lower(): logging.warning(f"QIS command '$default {self.ConString}' failed.")
-            except Exception as e_def:
-                logging.warning(f"Error setting QIS default device: {e_def}")
-
-        ## QPS Connection Logic (Original logic untouched)
+            self._initialize_qis_connection()
         elif con_type_upper.startswith("QPS"):
-            host = '127.0.0.1';
-            port = 9822
-            try:
-                _, host, port_str = self.ConType.split(':');
-                port = int(port_str)
-            except ValueError:
-                if con_type_upper != "QPS": logging.warning(
-                    f"Could not parse host/port from ConType '{self.ConType}', using defaults {host}:{port}.")
-            except Exception as e_parse:
-                logging.warning(f"Error parsing ConType '{self.ConType}': {e_parse}. Using defaults {host}:{port}.")
-
-            numb_colons = self.ConString.count(":")
-            if numb_colons == 1: self.ConString = self.ConString.replace(':', '::')
-
-            try:
-                self.connectionObj = QPSConnection(host, port);
-                logging.debug(
-                    f"QPSConnection object created via {host}:{port}")
-            except Exception as e_qpsconn:
-                logging.error(f"Failed to create QPSConnection: {e_qpsconn}", exc_info=True);
-                raise ConnectionError(
-                    "Failed to establish QPS connection.") from e_qpsconn
-
-            # Original logic uses sendCmdVerbose - use the wrapper
-            list_details_str = self.connectionObj.qps.sendCmdVerbose("$module list details")
-            list_details = list_details_str.replace("\r\n", "\n").split("\n")
-            list_str_lower = "".join(list_details).lower()
-            target_qtl_lower = self.ConString.lower()
-            found_in_qps = False
-            connect_timeout = time.time() + self.timeout
-
-            while time.time() < connect_timeout:
-                if "qtl" not in target_qtl_lower:
-                    ip_match = re.search(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", target_qtl_lower)
-                    if not ip_match: raise ValueError(
-                        f"ConString '{self.ConString}' has no QTL and no valid IP for QPS.")
-                    target_ip = ip_match.group()
-                    resolved_con_string = _check_ip_in_qis_list(target_ip, list_details)  # Assuming format is same
-                    if resolved_con_string: self.ConString = resolved_con_string; found_in_qps = True; break
-                    logging.debug(f"IP {target_ip} not found in QPS list, attempting scan...")
-                    try:
-                        scan_response = self.connectionObj.qps.scanIP(self.ConString) if hasattr(self.connectionObj.qps,
-                                                                                                 'scanIP') else ""
-                        if "located" in str(scan_response).lower():
-                            logging.info(f"QPS located {target_ip}. Re-checking list...");
-                            connect_timeout = time.time() + 20;
-                            time.sleep(2)
-                            while time.time() < connect_timeout:
-                                list_details_str = self.connectionObj.qps.sendCmdVerbose(
-                                    "$module list details")  # Re-fetch list
-                                list_details = list_details_str.replace("\r\n", "\n").split("\n")
-                                resolved_con_string = _check_ip_in_qis_list(target_ip, list_details)
-                                if resolved_con_string: self.ConString = resolved_con_string; found_in_qps = True; break
-                                logging.debug(f"IP {target_ip} still not resolved post-QPS-scan, retrying...");
-                                time.sleep(1)
-                            if found_in_qps: break
-                    except Exception as e_scan:
-                        logging.warning(f"Error during QPS scanIP for {self.ConString}: {e_scan}")
-                elif target_qtl_lower in list_str_lower:
-                    found_in_qps = True;
-                    break
-                if time.time() >= connect_timeout: break
-                logging.debug(f"'{self.ConString}' not found in QPS list yet, retrying...");
-                time.sleep(1)
-                # Re-fetch list
-                list_details_str = self.connectionObj.qps.sendCmdVerbose("$module list details")
-                list_details = list_details_str.replace("\r\n", "\n").split("\n")
-                list_str_lower = "".join(list_details).lower()
-
-            if not found_in_qps:
-                try:
-                    self.closeConnection()  # Use original wrapper name
-                except Exception:
-                    pass
-                raise TimeoutError(f"Could not find module '{self.ConString}' in QPS within {self.timeout}s timeout")
-
-        ## Invalid Connection Type
+            self._initialize_qps_connection()
         else:
-            raise ValueError(f"Invalid connection type '{self.ConType}'. Acceptable values [PY,QIS,QPS]")
+            # Invalid ConType should have been caught by check_module_format
+            raise ValueError(f"Invalid connection type '{self.ConType}'.")
 
-        logging.debug(f"{os.path.basename(__file__)} ConString : {str(self.ConString)} ConType : {str(self.ConType)}")
+        # --- Final connection verification ---
+        self._verify_connection_object()  # type: ignore[misc] # Private method call ok
+        logging.info(
+            f"Connection successful: Type='{self.ConType}', Target='{getattr(self.connectionObj, 'ConnTarget', 'Unknown')}'")
 
     def __del__(self):
-        """ Destructor to ensure the connection is closed. """
-        # Special method, unchanged. Calls wrapper internally.
+        """ Ensures the connection is closed when the object is garbage collected. """
         try:
-            # Call closeConnection wrapper to maintain original behavior path if needed
-            # Or call snake_case close_connection for directness? Let's stick to wrapper based on user instruction.
-            # If self.closeConnection exists (i.e., not cleaned up yet)
-            if hasattr(self, 'closeConnection') and callable(self.closeConnection):
-                self.closeConnection()
+            # Close all connections
+            self.close_connection()
         except Exception as e:
             try:
-                if logging and logging.error: logging.error(
-                    f"Error during automatic connection close in destructor: {e}")
+                # Avoid errors during shutdown sequence
+                if logging and logging.error:
+                    logging.error(f"Error during automatic connection close in destructor: {e}")
             except Exception:
-                pass
+                pass  # Suppress logging errors during interpreter shutdown
 
-    # --- Original Methods (Logic Moved to snake_case below) ---
+    # --- Private Helper Methods ---
 
-    def sendCommand(self, CommandString, expectedResponse=True):
-        """ Executes a text based command on the device (camelCase wrapper). """
-        return self.send_command(CommandString, expectedResponse)
+    def _store_and_validate_params(self, ConString: str, ConType: str, timeout: str):
+        """
+        Stores initial parameters and performs basic validation.
 
-    def sendBinaryCommand(self, cmd):
-        """ Sends a binary command (USB only?) (camelCase wrapper). """
-        return self.send_binary_command(cmd)
+        Sets self.ConString (with lowercasing rule), self.ConType,
+        validates and sets self.timeout (as int), and calls
+        check_module_format to validate ConString format.
 
-    def openConnection(self):
-        """ Opens/re-opens the connection to the module (camelCase wrapper). """
-        return self.open_connection()
+        Args:
+            ConString (str): The raw connection string.
+            ConType (str): The raw connection type.
+            timeout (str): The raw timeout value.
 
-    def closeConnection(self):
-        """ Closes the connection to the module (camelCase wrapper). """
-        return self.close_connection()
+        Raises:
+            ValueError: If timeout is non-numeric or ConString format is invalid.
+        """
+        self.ConString = ConString
+        # Lowercase unless serial (original logic)
+        if "serial" not in ConString.lower():
+            self.ConString = ConString.lower()
+        self.ConType = ConType
+        self.connectionObj = None  # Ensure it's reset here
+        self.timeout = int(timeout)
 
-    def resetDevice(self, timeout=10):
-        """ Issues a reset command and attempts recovery (camelCase wrapper). """
-        return self.reset_device(timeout)
+        # Use the globally defined check_module_format function
+        if not check_module_format(self.ConString):
+            raise ValueError(f"Module format is invalid for connection string: '{self.ConString}'")
 
-    def sendAndVerifyCommand(self, commandString, responseExpected="OK", exception=True):
-        """ Sends a command and verifies the response (camelCase wrapper). """
-        return self.send_and_verify_command(commandString, responseExpected, exception)
+    def _initialize_py_connection(self):
+        """
+        Initializes the connection using the PY (Pure Python) method.
 
-    def getRuntime(self, command="conf:runtimes?"):
-        """ Gets runtime from device (camelCase wrapper). """
-        return self.get_runtime(command)
+        Handles colon formatting, resolves target using get_connection_target if
+        applicable, creates the PYConnection object, stores connection details,
+        and verifies communication with a '*tst?' command.
 
-    # --- New snake_case Methods (Containing Original Logic) ---
+        Sets:
+            self.connectionObj, self.ConCommsType, self.connectionName,
+            self.connectionTypeName, self.ConString (potentially updated).
 
-    def send_command(self, CommandString, expectedResponse=True):
-        """ Executes a text based command on the device (snake_case API). """
+        Raises:
+            ConnectionError: If connection fails or device doesn't respond correctly.
+            ImportError: If PYConnection class is missing.
+        """
+        logging.debug("Attempting PY connection...")
+        # Handle potential double colons
+        numb_colons = self.ConString.count(":")
+        if numb_colons == 2:
+            logging.debug("Replacing '::' with ':' in ConString for PY connection.")
+            self.ConString = self.ConString.replace('::', ':')
+
+        # Resolve target if needed (calls helper)
+        self._resolve_py_target()
+
+        # Create PYConnection object
+        try:
+            # Store PYConnection object
+            self.connectionObj = PYConnection(self.ConString)
+            # Store connection details from the object
+            self.ConCommsType = getattr(self.connectionObj, 'ConnTypeStr', None)
+            self.connectionName = getattr(self.connectionObj, 'ConnTarget', None)
+            self.connectionTypeName = self.ConCommsType  # Alias
+            logging.debug(f"PY Connection details: Type='{self.connectionTypeName}', Target='{self.connectionName}'")
+        except Exception as e_pyconn:
+            logging.error(f"Failed to create PYConnection for '{self.ConString}': {e_pyconn}", exc_info=True)
+            raise ConnectionError(f"Failed to establish PY connection for '{self.ConString}'") from e_pyconn
+
+        # Verify communication with *tst? (calls helper)
+        self._test_py_connection()
+
+    def _resolve_py_target(self):
+        """
+        Attempts to resolve ConString target if needed for PY connections.
+
+        If the ConString looks like a QTL identifier (contains 'qtl') but is
+        not explicitly USB, it calls the external `get_connection_target`
+        function to find the best actual connection string (e.g., a specific
+        COM port or IP address) and updates `self.ConString` if found.
+
+        Uses:
+            self.ConString
+            get_connection_target (imported function)
+
+        Modifies:
+            self.ConString (if target is resolved)
+        """
+        # Check conditions: contains 'qtl', not 'usb', and helper function exists
+        if "qtl" in self.ConString.lower() and "usb" not in self.ConString.lower():
+            if get_connection_target is not None:
+                try:
+                    logging.debug(f"Attempting to resolve connection target for '{self.ConString}'...")
+                    resolved_con_string = get_connection_target(self.ConString)
+                    if resolved_con_string and "Fail" not in resolved_con_string:  # Check for failure string
+                        logging.debug(f"Resolved '{self.ConString}' to '{resolved_con_string}'")
+                        self.ConString = resolved_con_string  # Update if successful
+                    else:
+                        logging.warning(f"get_connection_target failed or returned empty for '{self.ConString}'. Using original.")
+                except Exception as e_scan:
+                    # Log error but continue with original ConString
+                    logging.error(f"Error calling get_connection_target: {e_scan}. Using original ConString.")
+            else:
+                # Log if resolution needed but helper unavailable
+                logging.warning("get_connection_target function not available, cannot resolve connection string.")
+
+    def _test_py_connection(self):
+        """
+        Sends '*tst?' command to verify communication for PY connections.
+
+        Checks if the response contains "OK" or "FAIL".
+        Closes connection and raises ConnectionError
+        if the test fails or times out.
+
+        Raises:
+            ConnectionError: If the command fails or the response is invalid.
+        """
+        item = None
+        try:
+            # Use snake_case internally
+            item = self.send_command("*tst?")
+        except Exception as e_tst:
+            logging.warning(f"Error sending *tst? during init: {e_tst}")
+            # Raise a more specific error indicating communication failure
+            raise ConnectionError("Module failed to respond to *tst? command during initialization.") from e_tst
+
+        # Check if response indicates basic communication success
+        response_ok = item is not None and ("OK" in item or "FAIL" in item)
+        if not response_ok:
+            logging.error(f"No valid module response to *tst? command! Received: '{item}'")
+            try:
+                self.close_connection()
+            except Exception as close_err:
+                logging.error(f"Error closing connection after *tst? failure: {close_err}")
+            # Raise error indicating failed test
+            raise ConnectionError(f"No valid module response to *tst? command! Received: '{item}'")
+        logging.debug("*tst? check successful.")
+
+    def _parse_server_details(self, default_port: int) -> Tuple[str, int]:
+        """
+        Parses host and port from self.ConType for QIS/QPS connection types.
+
+        Expects self.ConType to be like "QIS" or "QIS:host:port".
+        Returns defaults ('127.0.0.1', default_port) if parsing fails or is not applicable.
+
+        Args:
+            default_port (int): The default port number for the server type (QIS/QPS).
+
+        Returns:
+            tuple[str, int]: A tuple containing the host (str) and port (int).
+        """
+        host = '127.0.0.1'
+        port = default_port
+        con_type_upper = self.ConType.upper()
+        # Determine prefix based on actual ConType start
+        prefix = "QIS" if con_type_upper.startswith("QIS") else "QPS" if con_type_upper.startswith("QPS") else None
+
+        if prefix:
+            try:
+                # Attempt to split ConType string like "QIS:host:port"
+                _, host_parsed, port_str = self.ConType.split(':')
+                port = int(port_str)  # Convert port part to integer
+                host = host_parsed  # Use parsed host
+            except ValueError:
+                # Handles cases where split fails (not 3 parts) or int conversion fails
+                # Only log warning if it looked like host/port were provided but were invalid
+                if con_type_upper != prefix:
+                    logging.warning(f"Could not parse host/port from ConType '{self.ConType}', using defaults {host}:{port}.")
+            except Exception as e_parse:
+                # Catch any other unexpected parsing errors
+                logging.warning(f"Error parsing ConType '{self.ConType}': {e_parse}. Using defaults {host}:{port}.")
+        return host, port
+
+    def _prepare_server_con_string(self):
+        """
+        Formats self.ConString by replacing single ':' with '::' if needed.
+
+        This is sometimes required for QIS/QPS connection libraries when only
+        one colon is present in the identifier part (e.g., "TCP:ID" becomes "TCP::ID").
+
+        Modifies:
+            self.ConString
+        """
+        numb_colons = self.ConString.count(":")
+        # Apply replacement only if exactly one colon exists
+        if numb_colons == 1:
+            logging.debug(f"Replacing single colon with '::' in ConString '{self.ConString}' for server connection.")
+            self.ConString = self.ConString.replace(':', '::')
+
+    def _verify_server_device(self, server_conn_obj: Any, server_type: str):
+        """
+        Finds and verifies the target device on a QIS or QPS server.
+
+        Repeatedly checks the server's device list for the target device
+        (self.ConString), handling identification by QTL number or IP address.
+        If identified by IP, resolves it to the device's actual connection string
+        (e.g., "TYPE::QTL...") using _check_ip_in_qis_list. May trigger a
+        network scan via the server connection object's scanIP method if needed.
+
+        Args:
+            server_conn_obj (Any): The specific QIS/QPS connection object
+                                  (e.g., self.connectionObj.qis). Type hinted as Any
+                                  as the exact type depends on the imported library.
+            server_type (str): "QIS" or "QPS" for logging/error messages.
+
+        Returns:
+            bool: True if the device was successfully found and verified.
+                  `self.ConString` may be updated as a side effect if resolved via IP.
+
+        Raises:
+            ValueError: If ConString is IP-based but contains no valid IP.
+            TimeoutError: If the device cannot be found/verified within self.timeout.
+            Exception: Propagates exceptions from server_conn_obj methods.
+        """
+        # --- Initialization ---
+        logging.debug(f"Verifying device '{self.ConString}' on {server_type} server...")
+        found = False
+        connect_timeout = time.time() + self.timeout  # Calculate deadline
+
+        # --- Main Verification Loop ---
+        while time.time() < connect_timeout:
+            # --- Get current list details ---
+            try:
+                list_details = server_conn_obj.get_list_details()  # Assumes method exists
+                list_str_lower = "".join(list_details).lower()
+            except Exception as e_list:
+                logging.warning(f"Failed to refresh {server_type} list details during check: {e_list}")
+                if time.time() >= connect_timeout: break
+                time.sleep(1)  # Wait before retrying list fetch
+                continue  # Skip rest of loop iteration
+
+            # --- Determine target type (IP or QTL) ---
+            target_lower = self.ConString.lower()
+
+            if "qtl" not in target_lower:
+                # --- Target is likely IP Address ---
+                ip_match = re.search(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", target_lower)
+                if not ip_match:
+                    raise ValueError(f"ConString '{self.ConString}' has no QTL and no valid IP for {server_type}.")
+                target_ip = ip_match.group()
+
+                # Call helper to find by IP (handles list check, scan, re-check)
+                resolved_string = self._find_device_by_ip(server_conn_obj, server_type, list_details, target_ip)
+                if resolved_string:
+                    # Side effect: self.ConString was updated in helper
+                    found = True
+                    break  # Exit main loop
+                # If _find_device_by_ip returns None, IP wasn't found in this iteration/scan attempt
+            else:
+                # --- Target is QTL Number ---
+                if self._find_device_by_qtl(list_str_lower, target_lower):
+                    found = True  # Found via QTL
+                    break  # Exit main loop
+
+            # --- Not found yet, wait before next iteration ---
+            if time.time() >= connect_timeout:
+                break  # Exit loop if timeout reached before sleeping
+            logging.debug(f"Target '{self.ConString}' not found in {server_type} list yet. Waiting 1s before retry...")
+            time.sleep(1)
+
+        # --- Loop Finished: Final Check ---
+        if not found:
+            logging.error(f"Timeout: Could not find/verify module '{self.ConString}' in {server_type} within {self.timeout}s.")
+            raise TimeoutError(f"Could not find module '{self.ConString}' in {server_type} within {self.timeout}s")
+
+        logging.info(f"Successfully verified device '{self.ConString}' in {server_type}.")
+        return True  # Indicate success
+
+    def _find_device_by_ip(self, server_conn_obj, server_type, list_details, target_ip):
+        """
+        Attempts to find the device via IP, potentially resolving it and scanning.
+
+        Checks the provided list, then optionally scans if not found and re-checks.
+        Updates self.ConString if resolved via IP lookup.
+
+        Args:
+            server_conn_obj: The specific QIS/QPS connection object (e.g., self.connectionObj.qis).
+            server_type (str): "QIS" or "QPS" for logging/error messages.
+            list_details (list): The current list details from the server.
+            target_ip (str): The IP address being searched for.
+
+        Returns:
+            str: The resolved ConString if found (and self.ConString is updated).
+            None: If not found via IP lookup or scan within this attempt.
+
+        Raises:
+            Exceptions from underlying scanIP or get_list_details calls.
+        """
+        # 1. Check current list details for the IP
+        resolved_con_string = _check_ip_in_qis_list(target_ip, list_details)
+        if resolved_con_string:
+            logging.info(f"Resolved IP {target_ip} to '{resolved_con_string}' from {server_type} list.")
+            self.ConString = resolved_con_string  # Update instance ConString
+            return resolved_con_string  # Return resolved string
+
+        # 2. IP not in list, attempt network scan if possible
+        logging.debug(f"IP {target_ip} not in {server_type} list, attempting network scan...")
+        try:
+            scan_method = getattr(server_conn_obj, 'scanIP', None)
+            if not scan_method:
+                logging.warning(f"scanIP method not found on {server_type} connection object.")
+                return None  # Cannot scan
+
+            scan_response = scan_method(target_ip)  # Scan using the target IP
+            if "located" not in str(scan_response).lower():
+                logging.debug(f"{server_type} scan for {target_ip} did not locate the device.")
+                return None  # Scan didn't find it
+
+            # 3. Scan located the device, now re-check the list after a delay
+            logging.info(f"{server_type} located {target_ip} via scan. Re-checking list after delay...")
+            # Use a shorter, fixed timeout for this re-check phase
+            scan_recheck_timeout = time.time() + 20  # Allow 20s for list update
+            time.sleep(2)  # Initial pause
+
+            while time.time() < scan_recheck_timeout:
+                current_list_details = server_conn_obj.get_list_details()  # Re-fetch
+                resolved_con_string = _check_ip_in_qis_list(target_ip, current_list_details)
+                if resolved_con_string:
+                    logging.info(f"Resolved IP {target_ip} to '{resolved_con_string}' after scan.")
+                    self.ConString = resolved_con_string  # Update instance ConString
+                    return resolved_con_string  # Return resolved string
+                # If not found yet, wait before checking again
+                if time.time() >= scan_recheck_timeout: break  # Check timeout before sleep
+                logging.debug(f"IP {target_ip} still not resolved in {server_type} list post-scan, retrying...")
+                time.sleep(1)
+
+            # If loop finishes without finding, log it
+            logging.warning(f"Device at {target_ip} was located by scan but did not appear resolvable in {server_type} list within timeout.")
+            return None  # Not found even after scan
+
+        except Exception as e:
+            # Log errors during the scan process but don't necessarily stop verification yet
+            logging.warning(f"Error during {server_type} scan/re-check for {target_ip}: {e}")
+            return None  # Indicate IP search failed for this attempt
+
+    def _find_device_by_qtl(self, list_str_lower, target_qtl_lower):
+        """Checks if the target QTL identifier exists in the server list string."""
+        if target_qtl_lower in list_str_lower:
+            logging.debug(f"Found target QTL '{target_qtl_lower}' directly in server list.")
+            return True
+        return False
+
+    def _initialize_qis_connection(self):
+        """
+        Initializes the connection using the QIS method.
+
+        Parses host/port, prepares connection string, creates QISConnection object,
+        verifies the device presence on the server using the common helper, and
+        sets the device as default on the QIS server.
+
+        Sets:
+            self.connectionObj, self.ConString.
+
+        Raises:
+            ConnectionError: If connection or verification fails.
+            TimeoutError: If verification times out.
+            ImportError: If QISConnection class is missing.
+        """
+        logging.debug("Attempting QIS connection...")
+        host, port = self._parse_server_details(default_port=9722)
+        self._prepare_server_con_string()
+
+        # Create QISConnection object
+        try:
+            # Assumes QISConnection is imported
+            self.connectionObj = QISConnection(self.ConString, host, port)
+            logging.debug(f"QISConnection object created for '{self.ConString}' via {host}:{port}")
+        except Exception as e_qisconn:
+            logging.error(f"Failed to create QISConnection: {e_qisconn}", exc_info=True)
+            raise ConnectionError("Failed to establish QIS connection.") from e_qisconn
+
+        # Verify device presence on the QIS server
+        try:
+            # Pass the QIS-specific sub-object (self.connectionObj.qis) to the helper
+            self._verify_server_device(self.connectionObj.qis, "QIS")
+        except TimeoutError as e:
+            self.close_connection()  # Close object if verification failed
+            raise e  # Re-raise timeout
+        except Exception as e:
+            self.close_connection()  # Close object if verification failed
+            raise ConnectionError(f"Failed QIS device verification: {e}") from e
+
+        # Set QIS default device
+        try:
+            set_default_cmd = f"$default {self.ConString}"
+            logging.debug(f"Setting QIS default device: {set_default_cmd}")
+            # Assumes sendAndReceiveCmd exists on QIS object
+            response = self.connectionObj.qis.sendAndReceiveCmd(cmd=set_default_cmd)
+            logging.debug(f"QIS set default response: {response}")
+            if "fail" in response.lower():
+                logging.warning(f"QIS command '$default {self.ConString}' failed.")
+        except Exception as e_def:
+            logging.warning(f"Error setting QIS default device: {e_def}")
+
+    def _initialize_qps_connection(self):
+        """
+        Initializes the connection using the QPS method.
+
+        Parses host/port, prepares connection string, creates QPSConnection object,
+        and verifies the device presence on the server using the common helper.
+
+        Sets:
+            self.connectionObj, self.ConString (potentially updated).
+
+        Raises:
+            ConnectionError: If connection or verification fails.
+            TimeoutError: If verification times out.
+            ImportError: If QPSConnection class is missing.
+        """
+        logging.debug("Attempting QPS connection...")
+        host, port = self._parse_server_details(default_port=9822)  # type: ignore[misc] # Private call ok
+        self._prepare_server_con_string()  # type: ignore[misc] # Private call ok
+
+        # Create QPSConnection object
+        try:
+            # Assumes QPSConnection is imported
+            self.connectionObj = QPSConnection(host, port)
+            logging.debug(f"QPSConnection object created via {host}:{port}")
+        except Exception as e_qpsconn:
+            logging.error(f"Failed to create QPSConnection: {e_qpsconn}", exc_info=True)
+            raise ConnectionError("Failed to establish QPS connection.") from e_qpsconn
+
+        # Verify device presence on the QPS server
+        try:
+            # Pass the QPS-specific sub-object (self.connectionObj.qps) to the helper
+            self._verify_server_device(self.connectionObj.qps, "QPS")  # type: ignore[misc] # Private call ok
+        except TimeoutError as e:
+            self.close_connection()  # Close object if verification failed
+            raise e  # Re-raise timeout
+        except Exception as e:
+            self.close_connection()  # Close object if verification failed
+            raise ConnectionError(f"Failed QPS device verification: {e}") from e
+        # QPS typically doesn't use/need a '$default' command
+
+    def _verify_connection_object(self):
+        """
+        Performs final checks to ensure a valid connection object exists.
+
+        Raises:
+            ConnectionError: If self.connectionObj is None or lacks expected attributes.
+        """
+        if not self.connectionObj:
+            # This should ideally be caught by specific init helpers, but acts as a final safeguard
+            raise ConnectionError("Connection object (self.connectionObj) was not successfully created by initializer.")
+        # Check for expected attribute like ConnTarget if it's common across connection types
+        if not hasattr(self.connectionObj, 'ConnTarget'):
+            # This might indicate an incomplete connection object
+            logging.warning("Connection object successfully created, but may be missing expected 'ConnTarget' attribute.")
+
+    # --- Public Methods (Wrappers + snake_case Logic) ---
+
+    # --- sendCommand ---
+    def send_command(self, CommandString: str, expectedResponse: bool = True) -> str:
+        """
+        Executes a text command on the connected device.
+
+        Sends the command string via the appropriate underlying connection object
+        (PY, QIS, or QPS) and returns the response. Handles QIS/QPS specific
+        formatting or command routing as needed.
+
+        Args:
+            CommandString (str): The text command to send (e.g., "*IDN?").
+            expectedResponse (bool, optional): If False, the method may return
+                faster as it doesn't wait for/read a response. Defaults to True.
+
+        Returns:
+            str: The response string from the device. Returns an empty string if
+                 no response was expected or received, or if the underlying connection
+                 returned None.
+
+        Raises:
+            ConnectionError: If the device is not connected, or if communication fails.
+            TimeoutError: If the device response times out.
+            NotImplementedError: If the method is called for an unsupported ConType.
+        """
         # This method contains the original logic from sendCommand
         logging.debug(f"{os.path.basename(__file__)}: {self.ConType[:3]} sending command: {CommandString}")
         response = ""  # Default response
 
-        # Use connection object directly, assuming it's valid (checked in __init__)
         if not hasattr(self, 'connectionObj') or not self.connectionObj:
             raise ConnectionError("Connection object not available in send_command.")
 
         con_type_upper = self.ConType.upper()
         try:
             if con_type_upper.startswith("QIS"):
-                # Original QIS logic for ensuring double colon if needed
-                current_con_string = self.ConString  # Use current ConString state
+                # Use current ConString state (might have been updated)
+                current_con_string = self.ConString
                 numb_colons = current_con_string.count(":")
-                if numb_colons == 1:
-                    current_con_string = current_con_string.replace(':', '::')
-                # Delegate to QISConnection object's method
-                response = self.connectionObj.qis.sendCommand(CommandString, device=current_con_string,
-                                                              expectedResponse=expectedResponse)
+                if numb_colons == 1: current_con_string = current_con_string.replace(':', '::')
+                # Assumes QISConnection type for connectionObj
+                response = self.connectionObj.qis.sendCommand(CommandString, device=current_con_string, expectedResponse=expectedResponse)
 
             elif con_type_upper == "PY":
-                # Delegate to PYConnection object's method
+                # Assumes PYConnection type for connectionObj
                 # Original code accessed connectionObj.connection.sendCommand
-                response = self.connectionObj.connection.sendCommand(CommandString, expectedResponse=expectedResponse)
+                if hasattr(self.connectionObj, 'connection') and hasattr(self.connectionObj.connection, 'sendCommand'):
+                    response = self.connectionObj.connection.sendCommand(CommandString, expectedResponse=expectedResponse)
+                else:
+                    raise AttributeError("PYConnection object missing expected structure.")
 
             elif con_type_upper.startswith("QPS"):
-                # Original QPS logic for command routing
+                # Assumes QPSConnection type for connectionObj
                 if CommandString and CommandString[0] != '$':
-                    # Prepend module identifier only if it's not a QPS meta-command
-                    # Make sure self.ConString is the correct identifier QPS expects
-                    CommandString = f"{self.ConString} {CommandString}"
-                # Delegate to QPSConnection object's method
+                    CommandString = f"{self.ConString} {CommandString}"  # Prepend target ID
                 response = self.connectionObj.qps.sendCommand(CommandString, expectedResponse)
             else:
-                # Should not be reached if __init__ validates ConType
                 raise NotImplementedError(f"send_command not implemented for ConType {self.ConType}")
 
-        except timeout_exception:
+        except timeout_exception:  # Use platform specific timeout
             logging.error(f"Timeout sending command: '{CommandString}'")
             raise TimeoutError(f"Timeout sending command: {CommandString}")
         except Exception as e:
             logging.error(f"Error sending command '{CommandString}': {e}", exc_info=True)
             raise ConnectionError(f"Error sending command '{CommandString}'") from e
 
-        # Ensure response is string, original returned None sometimes
-        response_str = response if response is not None else ""
+        response_str = response if response is not None else ""  # Ensure string
         logging.debug(
-            f"{os.path.basename(__file__)}: {self.ConType[:3]} received: {response_str[:100]}{'...' if len(response_str) > 100 else ''}")  # Log snippet
+            f"{os.path.basename(__file__)}: {self.ConType[:3]} received: {response_str[:100]}{'...' if len(response_str) > 100 else ''}")
         return response_str
 
-    def send_binary_command(self, cmd):
-        """ Sends a binary command (USB only?) (snake_case API). """
+    def sendCommand(self, CommandString: str, expectedResponse: bool = True) -> str:
+        """
+        DEPRECATED: Use send_command instead.
+
+        Executes a text based command on the device.
+
+        Args:
+            CommandString (str): The text command to send (e.g., "*IDN?").
+            expectedResponse (bool, optional): If False, the method may return
+                faster as it doesn't wait for/read a response. Defaults to True.
+
+        Returns:
+            str: The response string from the device.
+        """
+        return self.send_command(CommandString, expectedResponse)
+
+    # --- sendBinaryCommand ---
+    def send_binary_command(self, cmd: bytes) -> bytes:
+        """
+        Sends a binary command and reads binary response (USB only).
+
+        This method is typically used for low-level or USB-specific communication.
+        It assumes a PY connection type with a specific underlying structure.
+
+        Args:
+            cmd (bytes): The binary command sequence to send.
+
+        Returns:
+            bytes: The binary data read back from the device.
+
+        Raises:
+            TypeError: If the connection type is not PY or the underlying
+                       connection object structure is unexpected.
+            ConnectionError: If communication fails.
+        """
         # This method contains the original logic from sendBinaryCommand
-        # Assumes PY connection type and specific structure connectionObj.connection.Connection
-        # Add checks for safety
+        # Check connection type and structure
         if self.ConType.upper() != "PY" or \
                 not hasattr(self.connectionObj, 'connection') or \
                 not hasattr(self.connectionObj.connection, 'Connection') or \
                 not hasattr(self.connectionObj.connection.Connection, 'SendCommand') or \
                 not hasattr(self.connectionObj.connection.Connection, 'BulkRead'):
-            raise TypeError(
-                f"send_binary_command is likely only supported for PY (USB) connections with specific structure.")
+            raise TypeError(f"send_binary_command requires a PY connection with a USB connection.")
 
-        logging.debug("Sending binary command (specific details not logged)")
-        self.connectionObj.connection.Connection.SendCommand(cmd)
-        response = self.connectionObj.connection.Connection.BulkRead()
-        logging.debug("Received binary response (content not logged)")
-        return response
+        logging.debug("Sending binary command...")
+        try:
+            self.connectionObj.connection.Connection.SendCommand(cmd)
+            response = self.connectionObj.connection.Connection.BulkRead()
+        except Exception as e:
+            logging.error(f"Error during binary command: {e}", exc_info=True)
+            raise ConnectionError("Failed to send/receive binary command.") from e
 
-    def open_connection(self):
-        """ Opens/re-opens the connection to the module (snake_case API). """
-        # This method contains the original logic from openConnection
+        logging.debug("Received binary response.")
+        return response if response is not None else b""  # Ensure bytes return
+
+    def sendBinaryCommand(self, cmd: bytes) -> bytes:
+        """
+        DEPRECATED: Use send_binary_command instead.
+
+        Sends a binary command (USB only).
+
+        Args:
+            cmd (bytes): The binary command sequence to send.
+
+        Returns:
+            bytes: The binary data read back from the device.
+        """
+        return self.send_binary_command(cmd)
+
+    # --- openConnection ---
+    def open_connection(self) -> Any:
+        """
+        Opens or re-opens the connection to the module.
+
+        Handles reopening logic based on the connection type (PY, QIS, QPS).
+        For PY, it recreates the connection object. For QIS/QPS, it calls
+        the underlying connect method.
+
+        Returns:
+            Any: For PY connections, returns the new PYConnection object.
+                 For QIS/QPS, returns the result of the underlying connect call
+                 (could be bool or other status). Returns True for successful QIS connect.
+
+        Raises:
+            AttributeError: If the connection object is missing expected methods (connect).
+            ConnectionError: If reopening the connection fails.
+            ValueError: If the connection type is not recognized.
+        """
         logging.debug(f"Attempting to open {self.ConType[:3]} connection")
         con_type_upper = self.ConType.upper()
 
         try:
             if con_type_upper.startswith("QIS"):
-                # Original code assumes connectionObj.qis exists
                 if hasattr(self.connectionObj, 'qis') and hasattr(self.connectionObj.qis, 'connect'):
-                    # TODO: Original noted lack of return value check
                     self.connectionObj.qis.connect()
                     logging.info("QIS connect called.")
-                    # How to verify success? May need specific QIS API knowledge
-                    return True  # Assume success if no exception
+                    return True  # Assume success if no exception (original TODO noted lack of return check)
                 else:
                     raise AttributeError("QIS connection object or connect method not found.")
 
             elif con_type_upper == "PY":
-                # Original code deleted and recreated PYConnection - risky?
+                # Recreate PYConnection (original logic, potentially risky)
                 logging.warning("Recreating PYConnection in open_connection. Previous handles might linger.")
-                # Ensure old connection is closed if possible
-                if self.connectionObj and hasattr(self.connectionObj, 'connection') and hasattr(
-                        self.connectionObj.connection, 'close'):
+                if self.connectionObj and hasattr(self.connectionObj, 'connection') and hasattr(self.connectionObj.connection, 'close'):
                     try:
-                        self.connectionObj.connection.close()
+                        self.connectionObj.connection.close()  # type: ignore[attr-defined] # Close old one first
                     except Exception:
-                        pass  # Ignore errors closing old connection
-                # Recreate - Potential for errors here if ConString isn't valid anymore
+                        pass
+                # Recreate (assumes PYConnection is imported)
                 self.connectionObj = PYConnection(self.ConString)
                 logging.info(f"PY Connection recreated for {self.ConString}")
-                # Expose details again?
-                self.ConCommsType = self.connectionObj.ConnTypeStr
-                self.connectionName = self.connectionObj.ConnTarget
-                self.connectionTypeName = self.connectionObj.ConnTypeStr
-                # Maybe return self.connectionObj as original did?
-                return self.connectionObj
+                # Update internal details
+                self.ConCommsType = getattr(self.connectionObj, 'ConnTypeStr', None)
+                self.connectionName = getattr(self.connectionObj, 'ConnTarget', None)
+                self.connectionTypeName = self.ConCommsType
+                return self.connectionObj  # Return new object
 
             elif con_type_upper.startswith("QPS"):
-                # Original code assumes connectionObj.qps exists
                 if hasattr(self.connectionObj, 'qps') and hasattr(self.connectionObj.qps, 'connect'):
-                    # QPS connect might need target ConString
                     result = self.connectionObj.qps.connect(self.ConString)
                     logging.info(f"QPS connect called for {self.ConString}. Result: {result}")
-                    return result  # Return result from QPS connect
+                    return result
                 else:
                     raise AttributeError("QPS connection object or connect method not found.")
 
             else:
-                # Should not be reached if __init__ validates ConType
                 raise ValueError("Connection type not recognised in open_connection")
 
         except Exception as e:
             logging.error(f"Failed to open connection for {self.ConString} ({self.ConType}): {e}", exc_info=True)
-            # Raise a more specific error?
             raise ConnectionError(f"Failed to open connection for {self.ConString}") from e
 
-    def close_connection(self):
-        """ Closes the connection to the module (snake_case API). """
+    def openConnection(self) -> Any:
+        """
+        DEPRECATED: Use open_connection instead.
+
+        Opens/re-opens the connection to the module.
+
+        Returns:
+            Any: Result dependent on connection type (see open_connection).
+        """
+        return self.open_connection()
+
+    # --- closeConnection ---
+    def close_connection(self) -> str:
+        """
+        Closes the connection to the module.
+
+        Handles closing logic based on connection type (PY, QIS, QPS).
+        Clears the internal connection object reference upon successful close.
+
+        Returns:
+            str: "OK" on success, "FAIL" on failure or if no connection exists.
+        """
         # This method contains the original logic from closeConnection
         logging.debug(f"Attempting to close {self.ConType[:3]} connection for {self.ConString}")
         con_type_upper = self.ConType.upper()
         closed_ok = False
-        original_conn_obj = self.connectionObj  # Keep ref for checks
+        conn_obj_to_close = self.connectionObj  # Work with current object
 
-        if original_conn_obj is None:
+        if conn_obj_to_close is None:
             logging.debug("No connection object exists to close.")
-            return "OK"  # Or maybe indicate nothing was closed?
+            return "OK"  # Nothing to do
 
         try:
             if con_type_upper.startswith("QIS"):
-                if hasattr(original_conn_obj, 'qis') and hasattr(original_conn_obj.qis, 'closeConnection'):
-                    original_conn_obj.qis.closeConnection(conString=self.ConString)
+                if hasattr(conn_obj_to_close, 'qis') and hasattr(conn_obj_to_close.qis, 'closeConnection'):
+                    conn_obj_to_close.qis.closeConnection(conString=self.ConString)  # type: ignore[attr-defined]
                     closed_ok = True
                 else:
                     logging.warning("QIS connection object or closeConnection method not found.")
 
             elif con_type_upper == "PY":
-                # Original accesses connectionObj.connection.close()
-                if hasattr(original_conn_obj, 'connection') and hasattr(original_conn_obj.connection, 'close'):
-                    original_conn_obj.connection.close()
+                if hasattr(conn_obj_to_close, 'connection') and hasattr(conn_obj_to_close.connection, 'close'):
+                    conn_obj_to_close.connection.close()  # type: ignore[attr-defined]
                     closed_ok = True
                 else:
                     logging.warning("PY connection object structure invalid for close.")
 
             elif con_type_upper.startswith("QPS"):
-                if hasattr(original_conn_obj, 'qps') and hasattr(original_conn_obj.qps, 'disconnect'):
-                    original_conn_obj.qps.disconnect(self.ConString)  # QPS uses disconnect
+                if hasattr(conn_obj_to_close, 'qps') and hasattr(conn_obj_to_close.qps, 'disconnect'):
+                    conn_obj_to_close.qps.disconnect(self.ConString)  # type: ignore[attr-defined] # QPS uses disconnect
                     closed_ok = True
                 else:
                     logging.warning("QPS connection object or disconnect method not found.")
@@ -505,210 +838,335 @@ class quarchDevice:
 
             if closed_ok:
                 logging.info(f"Connection closed for {self.ConString}")
-                self.connectionObj = None  # Clear reference after successful close
+                self.connectionObj = None  # Clear reference only if close succeeded
                 return "OK"
             else:
                 logging.warning(f"Could not close connection for {self.ConString} - state uncertain.")
-                # Should we still clear self.connectionObj? Maybe not if close failed.
-                return "FAIL"  # Indicate failure
+                return "FAIL"
 
         except Exception as e:
             logging.error(f"Error during close_connection for {self.ConString}: {e}", exc_info=True)
-            # Clear reference even on error? Risky.
-            # self.connectionObj = None
-            return "FAIL"  # Indicate failure
+            # Do not clear self.connectionObj if close failed with exception
+            return "FAIL"
 
-    def reset_device(self, timeout=10):
-        """ Issues a reset command and attempts recovery (snake_case API). """
+    def closeConnection(self) -> str:
+        """
+        DEPRECATED: Use close_connection instead.
+
+        Closes the connection to the module.
+
+        Returns:
+            str: "OK" or "FAIL".
+        """
+        return self.close_connection()
+
+    # --- resetDevice ---
+    def reset_device(self, timeout: int = 10) -> bool:
+        """
+        Issues a reset command and attempts recovery.
+
+        Sends '*rst' to the device, handles connection type specifics (like
+        closing PY connection), then attempts to reconnect within the timeout period.
+
+        Args:
+            timeout (int, optional): Seconds to wait for reconnection. Defaults to 10.
+
+        Returns:
+            bool: True if reset and reconnection were successful, False otherwise.
+
+        Raises:
+            ConnectionError: If sending the reset command fails initially (and connection exists).
+        """
         # This method contains the original logic from resetDevice
         logging.debug(f"{os.path.basename(__file__)}: sending command: *rst")
-        original_con_string = self.ConString  # Store original target
+        original_con_string = self.ConString  # Store original target before potential modification
+        original_con_type = self.ConType  # Store original type
         con_type_upper = self.ConType.upper()
-        reset_sent = False
 
         if not hasattr(self, 'connectionObj') or not self.connectionObj:
             logging.error("Cannot reset device, no connection object.")
             return False
 
+        # --- Send Reset Command ---
         try:
             if con_type_upper.startswith("QIS"):
                 current_con_string = original_con_string
                 numb_colons = current_con_string.count(":")
                 if numb_colons == 1: current_con_string = current_con_string.replace(':', '::')
-                # Send reset command via QIS connection
-                self.connectionObj.qis.sendCmd(current_con_string, "*rst", expectedResponse=False)
-                reset_sent = True
-                # QIS connection object might remain valid, no explicit close needed here? Original didn't close.
+                self.connectionObj.qis.sendCmd(current_con_string, "*rst",expectedResponse=False)
             elif con_type_upper == "PY":
-                # Send reset command via PY connection
                 self.connectionObj.connection.sendCommand("*rst", expectedResponse=False)
-                # Explicitly close the PY connection after sending reset
-                self.connectionObj.connection.close()
-                self.connectionObj = None  # Clear the potentially invalid connection object
-                reset_sent = True
+                self.connectionObj.connection.close()  # Close PY after reset
+                self.connectionObj = None  # Clear potentially invalid object
             elif con_type_upper.startswith("QPS"):
-                # Send reset command via QPS connection
                 CommandString = f"{original_con_string} *rst"
                 self.connectionObj.qps.sendCmdVerbose(CommandString, expectedResponse=False)
-                reset_sent = True
-                # QPS connection object might remain valid? Original didn't close.
             else:
                 logging.error(f"Reset not supported for connection type {self.ConType}")
                 return False
+            logging.debug("*rst command sent successfully.")
 
         except Exception as e:
             logging.error(f"Error sending *rst command: {e}", exc_info=True)
             # Attempt to close connection forcefully on error before recovery attempt?
             try:
-                self.close_connection()  # Use snake_case internal close
+                self.close_connection()
             except Exception:
                 pass
-            # Continue to recovery attempt? Or return False? Let's try recovery.
-            reset_sent = False  # Indicate reset might not have fully completed
+            # Return False as reset command itself failed
+            return False
 
         # --- Recovery Attempt ---
-        logging.debug(f"{os.path.basename(__file__)}: Attempting to reconnect to {original_con_string} after reset...")
+        logging.debug(f"Attempting to reconnect to {original_con_string} after reset...")
         temp_device = None
         startTime = time.time()
         time.sleep(0.6)  # Original initial sleep
 
         while temp_device is None:
+            # Check timeout
             if (time.time() - startTime) > timeout:
-                logging.critical(
-                    f"{os.path.basename(__file__)}: Reconnection failed to {original_con_string} within {timeout}s timeout.")
-                # Ensure connectionObj is None if recovery failed
-                self.connectionObj = None
+                logging.critical(f"Reconnection failed to {original_con_string} within {timeout}s timeout.")
+                self.connectionObj = None  # Ensure connectionObj is None if recovery failed
                 return False
             try:
                 # Attempt to get device using the original wrapper function name
-                # Pass original ConType too, in case it was needed
-                temp_device = getQuarchDevice(original_con_string, ConType=self.ConType, timeout=str(
-                    max(1, timeout - int(time.time() - startTime))))  # Reduce timeout for reconnect attempt
+                # Calculate remaining timeout for the attempt
+                remaining_timeout = max(1, timeout - int(time.time() - startTime))
+                temp_device = get_quarch_device(original_con_string, ConType=original_con_type, timeout=str(remaining_timeout))
             except Exception as recon_e:
-                # Log reconnection attempt failure, but don't stop trying until timeout
                 logging.debug(f"Reconnect attempt failed: {recon_e}. Retrying...")
                 time.sleep(0.2)  # Original sleep between retries
 
-        # Recovery successful
+        # --- Recovery Successful ---
         logging.info(f"Successfully reconnected to {original_con_string} after reset.")
-        # Replace the current connection object with the one from the recovered device
+        # Replace the current connection object and potentially other details
         self.connectionObj = temp_device.connectionObj
-        # Original code doesn't transfer other attributes like ConType, ConString etc.
-        # This might be problematic if the resolved ConString changed. Let's update:
-        self.ConString = temp_device.ConString
-        self.ConType = temp_device.ConType
-        # We need to keep the temp_device alive until its connectionObj is transferred,
-        # but then let it be garbage collected. Python handles this.
+        self.ConString = temp_device.ConString  # Update ConString (might have changed if resolved)
+        self.ConType = temp_device.ConType  # Update ConType (should likely be same?)
+        # Copy other relevant attributes if necessary
+        self.timeout = temp_device.timeout
+        if hasattr(temp_device, 'ConCommsType'): self.ConCommsType = temp_device.ConCommsType
+        if hasattr(temp_device, 'connectionName'): self.connectionName = temp_device.connectionName
+        if hasattr(temp_device, 'connectionTypeName'): self.connectionTypeName = temp_device.connectionTypeName
 
-        time.sleep(1)  # Original final sleep
+        time.sleep(1)  # Original final sleep after successful reconnect
         return True
 
-    def send_and_verify_command(self, commandString, responseExpected="OK", exception=True):
-        """ Sends a command and verifies the response (snake_case API). """
+    def resetDevice(self, timeout: int = 10) -> bool:
+        """
+        DEPRECATED: Use reset_device instead.
+
+        Issues a reset command and attempts recovery (camelCase wrapper).
+
+        Args:
+            timeout (int, optional): Seconds to wait for reconnection. Defaults to 10.
+
+        Returns:
+            bool: True if reset and reconnection were successful, False otherwise.
+        """
+        return self.reset_device(timeout)
+
+    # --- sendAndVerifyCommand ---
+    def send_and_verify_command(self, commandString: str, responseExpected: str = "OK", exception: bool = True) -> bool:
+        """
+        Sends a command and verifies the response matches expected string (snake_case API).
+
+        A convenience wrapper around `send_command`.
+
+        Args:
+            commandString (str): The text command to send.
+            responseExpected (str, optional): The exact string expected back from
+                the device. Defaults to "OK". Comparison is case-sensitive.
+            exception (bool, optional): If True, raises ValueError if the response
+                does not match. If False, returns False on mismatch. Defaults to True.
+
+        Returns:
+            bool: True if the response matched `responseExpected`, False otherwise
+                  (only if `exception` is False).
+
+        Raises:
+            ValueError: If the response does not match `responseExpected` and
+                        `exception` is True.
+            ConnectionError: If sending the command fails.
+            TimeoutError: If the device times out responding.
+        """
         # This method contains the original logic from sendAndVerifyCommand
-        # Calls the original sendCommand wrapper internally
-        responseStr = self.sendCommand(commandString)
+        # Calls the snake_case send_command internally now
+        responseStr = self.send_command(commandString)
 
-        # Ensure comparison handles None response gracefully
-        response_str_safe = responseStr if responseStr is not None else ""
-
-        # Perform comparison (case-sensitive as original)
-        if (response_str_safe != responseExpected):
+        # Original logic compared directly (case-sensitive)
+        if responseStr != responseExpected:
             error_msg = f"Command Sent: '{commandString}', Expected response: '{responseExpected}', Response received: '{responseStr}'"
-            logging.error(error_msg)  # Log the error regardless
-            if (exception):
-                raise ValueError(error_msg)  # Raise exception if requested
+            logging.error(error_msg)
+            if exception:
+                raise ValueError(error_msg)
             else:
-                return False  # Return False if exception=False
+                return False
         else:
             logging.debug(f"Command '{commandString}' verified successfully (Response: '{responseExpected}').")
-            return True  # Return True on match
+            return True
 
-    def get_runtime(self, command="conf:runtimes?"):
-        """ Gets runtime from device (snake_case API). """
+    def sendAndVerifyCommand(self, commandString: str, responseExpected: str = "OK", exception: bool = True) -> bool:
+        """
+        DEPRECATED: Use send_and_verify_command instead.
+
+        Sends a command and verifies the response (camelCase wrapper).
+
+        Args:
+            commandString (str): The text command to send.
+            responseExpected (str, optional): The exact string expected back. Defaults to "OK".
+            exception (bool, optional): Raise ValueError on mismatch if True. Defaults to True.
+
+        Returns:
+            bool: True on match, False on mismatch (if exception is False).
+
+        Raises:
+            ValueError: If response mismatch and exception is True.
+        """
+        return self.send_and_verify_command(commandString, responseExpected, exception)
+
+    # --- getRuntime ---
+    def get_runtime(self, command: str = "conf:runtimes?") -> Optional[int]:
+        """
+        Queries the device runtime and returns it as an integer in seconds (snake_case API).
+
+        Handles potential "FAIL" responses and non-numeric/non-'s' terminated responses.
+
+        Args:
+            command (str, optional): The specific command to query runtime.
+                Defaults to "conf:runtimes?". Can be overridden for different
+                modules (e.g., PAM fixtures).
+
+        Returns:
+            Optional[int]: The runtime in seconds if successfully parsed, otherwise None.
+        """
         # This method contains the original logic from getRuntime
-        # Calls the original sendCommand wrapper internally
-        runtime_str = self.sendCommand(command)
+        # Calls the snake_case send_command internally now
+        runtime_str = self.send_command(command)
 
-        if runtime_str is None:  # Handle None response
+        if runtime_str is None:
             logging.error(f"Received None response for runtime command: {command}")
             return None
 
         # Use case-insensitive check for "fail"
         if "fail" in runtime_str.lower():
-            logging.error(f"Runtime check failed (Command: {command}, Response: {runtime_str}), check FW and FPGA?")
-            # Return None or raise error? Original returned None implicitly later.
-            return None
+            logging.error(f"Runtime check failed (Command: {command}, Response: {runtime_str}), check FW/FPGA?")
+            return None  # Return None on failure
 
         # Check if response ends with 's' and try conversion
-        if runtime_str.endswith("s"):
+        if isinstance(runtime_str, str) and runtime_str.endswith("s"):
             try:
                 runtime_int = int(runtime_str[:-1])
                 logging.debug(f"Runtime parsed as {runtime_int} seconds.")
                 return runtime_int
-            except ValueError:  # Catch if conversion fails
+            except ValueError:
                 logging.error(f"Runtime response '{runtime_str}' not a valid int format.")
                 return None
-            except Exception as e:  # Catch other potential errors
-                logging.error(f"Unexpected error parsing runtime '{runtime_str}': {e}")
+            except Exception as e:
+                logging.error(f"Unexpected error parsing runtime '{runtime_str}': {e}", exc_info=True)
                 return None
         else:
-            # Did not end with 's' - might be unexpected format or different command used
-            logging.warning(f"Runtime response '{runtime_str}' did not end with 's'. Cannot parse as seconds.")
-            # Decide what to return - None seems safest.
+            # Log if format is unexpected
+            logging.warning(
+                f"Runtime response '{runtime_str}' did not end with 's' or was not string. Cannot parse as seconds.")
             return None
+
+    def getRuntime(self, command: str = "conf:runtimes?") -> Optional[int]:
+        """
+        DEPRECATED: Use get_runtime instead.
+
+        Gets runtime from device (camelCase wrapper).
+
+        Args:
+            command (str, optional): Command to query runtime. Defaults to "conf:runtimes?".
+
+        Returns:
+            Optional[int]: Runtime in seconds, or None on failure/error.
+        """
+        return self.get_runtime(command)
 
 
 # --- Top-Level Function Definitions ---
 
 # Original _check_ip_in_qis_list function (snake_case, internal) - Unchanged
-def _check_ip_in_qis_list(ip_address, detailed_device_list):
+def _check_ip_in_qis_list(ip_address: str, detailed_device_list: list) -> Optional[str]:
     """
-    Checks if the IP address is in qis device list
-    :param detailed_device_list: list formatted return from qis command "$list details"
-    :return String : return contype and constring for module if it's in list, else None
+    Checks if an IP address exists in a QIS/QPS device list detail output.
+
+    Parses the list provided by the server to find an entry matching the IP
+    address (specifically for TCP entries) and returns the corresponding
+    full connection string (e.g., "TCP::QTL...") if found.
+
+    Args:
+        ip_address (str): The IP address to search for.
+        detailed_device_list (list[str]): A list where each string is a line
+            from the server's "$list details" or "$module list details" output.
+
+    Returns:
+        Optional[str]: The resolved connection string (e.g., "TCP::QTL...") if a
+                       matching TCP entry is found, otherwise None.
     """
-    if not detailed_device_list: return None  # Handle empty list
+    # This function's logic remains unchanged
+    if not detailed_device_list: return None
 
     for module_line in detailed_device_list:
-        # Safer parsing: find "IP:address" pattern
-        ip_match = re.search(r"\bIP:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b", module_line)
-        if ip_match and ip_match.group(1) == ip_address:
-            # Found the IP, now extract the connection string part (e.g., "TYPE::ID")
-            # Assuming format like "N) TYPE::ID IP:..." or similar
-            conn_str_match = re.search(r"^\s*\d+\)\s+([A-Z]+::[^ ]+)", module_line)  # Look for TYPE::ID at start
-            if conn_str_match:
-                # Original logic restricted to TCP, check if needed
-                if "tcp" in module_line.lower():  # Keep original TCP check
-                    return conn_str_match.group(1)  # Return "TYPE::ID" part
+        # Use regex to find IP pattern robustly
+        ip_match = re.search(r"\bIP:(" + re.escape(ip_address) + r")\b", module_line)  # Match exact IP
+        if ip_match:
+            # Found the IP, check if it's a TCP entry (original logic constraint)
+            if "tcp" in module_line.lower():
+                # Try to extract the "TYPE::ID" part using regex or split
+                conn_str_match = re.search(r"^\s*\d+\)\s+([A-Z]+::\S+)", module_line)  # Look for "N) TYPE::ID"
+                if conn_str_match:
+                    logging.debug(f"Resolved IP {ip_address} using regex to: {conn_str_match.group(1)}")
+                    return conn_str_match.group(1)
                 else:
-                    logging.debug(f"IP {ip_address} found but not a TCP entry in QIS list line: {module_line}")
-            else:
-                # Alternative format check? E.g. if conn string isn't second element
-                # Original code split and took second element - might be fragile.
-                # Let's try the split approach as fallback if regex fails
-                parts = module_line.split()
-                if len(parts) > 1 and "::" in parts[1]:  # Check if second element looks like TYPE::ID
-                    if "tcp" in module_line.lower():  # Keep original TCP check
+                    # Fallback to original split method if regex fails
+                    parts = module_line.split()
+                    if len(parts) > 1 and "::" in parts[1]:
                         logging.debug(f"Resolved IP {ip_address} using split method to: {parts[1]}")
                         return parts[1]
                     else:
-                        logging.debug(f"IP {ip_address} found via split but not TCP entry: {module_line}")
+                        logging.warning(
+                            f"Found IP {ip_address} in TCP line, but couldn't extract TYPE::ID: {module_line}")
+            else:
+                logging.debug(f"IP {ip_address} found but not a TCP entry: {module_line}")
 
     # IP address not found in any relevant line
     return None
 
 
+# --- checkModuleFormat / check_module_format ---
 # New snake_case function containing the logic FORMERLY in checkModuleFormat
-def check_module_format(ConString):
-    """ Checks the validity of a connection string format (snake_case API). """
+def check_module_format(ConString: str) -> bool:
+    """
+    Checks the basic validity of a connection string format (snake_case API).
+
+    Verifies presence of ':', checks against allowed connection types,
+    and validates the number of colons or sub-device format.
+
+    Args:
+        ConString (str): The connection string to validate.
+
+    Returns:
+        bool: True if the format seems valid, False otherwise.
+
+    Note:
+        Uses a specific list of allowed connection types defined within.
+        May recursively call itself to validate controller part of sub-device strings.
+    """
     # This function now contains the actual implementation
     # Logic from original checkModuleFormat function in pasted code:
-    if not ConString: return True  # Assume empty is valid? Original didn't check. Let's allow.
-    if ':' not in ConString: return False
+    if not ConString: return True  # Allow empty
+    if ':' not in ConString:
+        logging.warning("check_module_format: Connection string missing ':'.")
+        return False
 
-    # Original types from this specific function
-    ConnectionTypes = ["USB", "SERIAL", "TELNET", "REST", "TCP"]
+    # Original types from *this specific function* in the pasted code
+    ConnectionTypes = ["USB", "SERIAL", "TELNET", "REST", "TCP"]  # Note: QIS/QPS/PY missing here!
+    # For consistency with __init__, let's use the broader list? Or keep as original?
+    # Keeping as original for now, but this might cause validation inconsistencies.
+    # ConnectionTypes = ["USB", "SERIAL", "TELNET", "REST", "TCP", "QIS", "PY", "QPS"] # Broader list
 
     conTypeSpecified = ConString[:ConString.find(':')]
 
@@ -716,7 +1174,7 @@ def check_module_format(ConString):
     for value in ConnectionTypes:
         if value.lower() == conTypeSpecified.lower():
             correctConType = True
-            break  # Exit loop
+            break
 
     if not correctConType:
         logging.warning(f"Invalid connection type specified ('{conTypeSpecified}'). Use one of {ConnectionTypes}")
@@ -724,77 +1182,126 @@ def check_module_format(ConString):
         return False
 
     numb_colons = ConString.count(":")
-    # Original strict colon check from this specific function
-    if numb_colons > 2 or numb_colons <= 0:
-        # Allow sub-device format which might have different colon rules initially
-        # Re-check using the refined logic from the other check_con_string analysis
-        if "<" in ConString and ">" in ConString:
-            match = re.match(r"^[A-Z]+:[^<>:]+<\d+>$", ConString, re.IGNORECASE)
-            if match:
-                controller_part = ConString.split('<')[0]
-                # *** IMPORTANT: Recursive call needs care. Calling self. ***
-                if check_module_format(controller_part):
-                    return True
-                else:
-                    logging.warning(f"Invalid controller part '{controller_part}' in sub-device string '{ConString}'")
+
+    # Check sub-device format first
+    if "<" in ConString and ">" in ConString:
+        match = re.match(r"^[A-Z]+:[^<>:]+<\d+>$", ConString, re.IGNORECASE)
+        if match:
+            controller_part = ConString.split('<')[0]
+            # Recursive call needs to call the *same* function (snake_case)
+            if check_module_format(controller_part):  # Recursive call
+                return True
             else:
-                logging.warning(f"Invalid sub-device format syntax: '{ConString}'")
-            # If sub-device check failed, the colon count is invalid for non-sub-device
-            return False
+                logging.warning(f"Invalid controller part '{controller_part}' in '{ConString}'")
         else:
-            # Not a sub-device and wrong colon count
+            logging.warning(f"Invalid sub-device syntax: '{ConString}'")
+        # If sub-device checks failed, return False
+        return False
+    else:
+        # Not a sub-device, check original strict colon count (1 or 2)
+        if numb_colons > 2 or numb_colons <= 0:
             logging.warning(f"Invalid number of colons ({numb_colons}) in module string (expected 1 or 2).")
             logging.warning(f"Invalid connection string: {ConString}")
             return False
 
-    # Passed basic checks (Type known, 1 or 2 colons, or valid sub-device)
+    # Passed basic checks
     return True
 
 
 # Original checkModuleFormat function, kept for compatibility, now calls snake_case version
-def checkModuleFormat(ConString):
-    """ Checks the validity of a connection string format (camelCase wrapper). """
+def checkModuleFormat(ConString: str) -> bool:
+    """
+    DEPRECATED: Use check_module_format instead.
+
+    Checks the basic validity of a connection string format (camelCase wrapper).
+
+    Args:
+        ConString (str): The connection string to validate.
+
+    Returns:
+        bool: True if the format seems valid, False otherwise.
+    """
     return check_module_format(ConString)
 
 
+# --- getQuarchDevice / get_quarch_device ---
 # New snake_case function containing the logic FORMERLY in getQuarchDevice
-def get_quarch_device(connectionTarget, ConType="PY", timeout="5"):
-    """ Creates a quarch device instance, handling sub-devices (snake_case API). """
+def get_quarch_device(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> Any:
+    """
+    Creates and returns a quarchDevice or subDevice instance (snake_case API).
+
+    Parses the connectionTarget, determines if it's a standard device or a
+    sub-device (e.g., "TYPE:ID<PORT>"), and instantiates the appropriate
+    quarchDevice or subDevice object via the quarchArray class if needed.
+
+    Args:
+        connectionTarget (str): The connection string for the target device
+            or sub-device.
+        ConType (str, optional): The connection type hint ('PY', 'QIS', 'QPS', etc.)
+            used when creating the base quarchDevice instance if not a sub-device.
+            Defaults to "PY". Note: For sub-devices, the controller connection
+            currently defaults to "PY" internally based on original logic.
+        timeout (str, optional): The connection timeout in seconds as a string.
+            Defaults to "5".
+
+    Returns:
+        quarchDevice | subDevice | Any: An instance representing the connected device.
+                                        Type hinted as Any because subDevice type might vary.
+
+    Raises:
+        ImportError: If quarchArray components are needed but not found.
+        ValueError: If the connectionTarget format is invalid.
+        ConnectionError: If connecting to the device or controller fails.
+        RuntimeError: For other unexpected errors during connection/instantiation.
+    """
     # This function now contains the actual implementation
-    # Local import as in original function
-    from .quarchArray import quarchArray, subDevice
+    # Local import as in original function - ensures it's available when called
+    from .quarchArray import quarchArray  # Assuming these exist
 
     # Original check for sub-device format using __contains__
     if isinstance(connectionTarget, str) and connectionTarget.__contains__("<") and connectionTarget.__contains__(">"):
         logging.debug(f"Detected sub-device format for {connectionTarget}")
-        controller_target_str, portNumberPart = connectionTarget.split("<")
-        portNumberStr = portNumberPart[:-1]  # Remove '>'
+        myDevice = None  # Ensure defined in this scope
+        myArrayController = None  # Ensure defined
+        try:
+            controller_target_str, portNumberPart = connectionTarget.split("<")
+            portNumberStr = portNumberPart[:-1]  # Remove '>'
 
-        # Validate port number
-        if not portNumberStr.isdigit():
-            raise ValueError(f"Invalid port number '{portNumberStr}' in sub-device string")
-        portNumber = int(portNumberStr)
+            # Validate port number
+            if not portNumberStr.isdigit():
+                raise ValueError(f"Invalid port number '{portNumberStr}' in sub-device string")
+            portNumber = int(portNumberStr)
 
-        # Validate controller part using the wrapper function (as internal calls remain camelCase)
-        if not checkModuleFormat(controller_target_str):
-            raise ValueError(f"Invalid controller part format: '{controller_target_str}'")
+            # Validate controller part using the wrapper function (internal call)
+            if not checkModuleFormat(controller_target_str):
+                raise ValueError(f"Invalid controller part format: '{controller_target_str}'")
 
-        logging.debug(f"Connecting to controller '{controller_target_str}' first...")
-        # *** Replicating original file's explicit ConType="PY" for the controller connection ***
-        myDevice = quarchDevice(controller_target_str, ConType="PY", timeout=timeout)
+            logging.debug(f"Connecting to controller '{controller_target_str}' first...")
+            # *** Replicating original file's explicit ConType="PY" for the controller connection ***
+            myDeviceBase = quarchDevice(controller_target_str, ConType="PY", timeout=timeout)
 
-        logging.debug("Wrapping controller device with quarchArray...")
-        # This assumes quarchArray.__init__ works correctly with the base device
-        myArrayController = quarchArray(myDevice)
+            logging.debug("Wrapping controller device with quarchArray...")
+            myArrayController = quarchArray(myDeviceBase)
 
-        logging.debug(f"Getting subDevice for port {portNumber}...")
-        # Call original getSubDevice name (wrapper) internally
-        mySubDevice = myArrayController.getSubDevice(portNumber)
-        myDevice = mySubDevice  # Return the subDevice instance
-        logging.info(f"Successfully connected to sub-device: {connectionTarget}")
+            logging.debug(f"Getting subDevice for port {portNumber}...")
+            # Call original getSubDevice name (wrapper) internally
+            mySubDevice = myArrayController.getSubDevice(portNumber)
+            myDevice = mySubDevice  # Return the subDevice instance
+            logging.info(f"Successfully connected to sub-device: {connectionTarget}")
+        except (ImportError, ValueError, ConnectionError, RuntimeError) as e:
+            # Catch specific known errors and re-raise
+            logging.error(f"Failed to get sub-device '{connectionTarget}': {e}", exc_info=True)
+            raise  # Re-raise the caught exception
+        except Exception as e:
+            # Catch any other unexpected errors
+            logging.error(f"Unexpected error getting sub-device '{connectionTarget}': {e}", exc_info=True)
+            # Wrap in RuntimeError
+            raise RuntimeError(f"Unexpected error getting sub-device '{connectionTarget}'") from e
+
     else:
         # Standard device connection
         logging.debug(f"Standard device connection for: {connectionTarget}")
+        # Use passed ConType and timeout
         myDevice = quarchDevice(connectionTarget, ConType=ConType, timeout=timeout)
         logging.info(f"Successfully connected to standard device: {connectionTarget}")
 
@@ -802,6 +1309,18 @@ def get_quarch_device(connectionTarget, ConType="PY", timeout="5"):
 
 
 # Original getQuarchDevice function, kept for compatibility, now calls snake_case version
-def getQuarchDevice(connectionTarget, ConType="PY", timeout="5"):
-    """ Creates a quarch device instance, handling sub-devices (camelCase wrapper). """
+def getQuarchDevice(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> Any:
+    """
+    DEPRECATED: Use get_quarch_device instead.
+
+    Creates a quarch device instance, handling sub-devices (camelCase wrapper).
+
+    Args:
+        connectionTarget (str): The connection string for the target device or sub-device.
+        ConType (str, optional): Connection type hint for standard devices. Defaults to "PY".
+        timeout (str, optional): Connection timeout. Defaults to "5".
+
+    Returns:
+        quarchDevice | subDevice | Any: An instance representing the connected device.
+    """
     return get_quarch_device(connectionTarget, ConType, timeout)

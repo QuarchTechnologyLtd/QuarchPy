@@ -1052,11 +1052,6 @@ def listDevices(scanDictionary):
         printText("-" * 50)
 
 
-'''
-Requests the user to select one of the devices in the given list via console interaction.
-'''
-
-
 def userSelectDevice(scanDictionary=None, scanFilterStr=None, favouriteOnly=True, message=None, title=None, nice=False,
                      additionalOptions=None, target_conn="all"):
     """

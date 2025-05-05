@@ -154,7 +154,6 @@ class quarchPPM(quarchDevice):
     def send_synthetic_channels(self, channels):
         """
         Sends the set of synthetic channels to the device.
-        (Original Logic Unchanged - internal calls remain camelCase)
         """
         if not isinstance(channels, list):
             logging.error("send_synthetic_channels requires a list of channels.")
@@ -186,7 +185,6 @@ class quarchPPM(quarchDevice):
     def create_default_synthetic_channels(self):
         """
         Creates the default synthetic channels based on the fixture XML.
-        (Original Logic Unchanged - internal calls remain original names)
         """
         logging.info("Parsing and sending default synthetic channels...")
         try:
@@ -207,7 +205,7 @@ class quarchPPM(quarchDevice):
 
     def start_stream(self, fileName='streamData.txt', fileMaxMB=200000, streamName='Stream With No Name',
                      streamDuration=None, streamAverage=None, releaseOnData=False, separator=",", inMemoryData=None):
-        """ Starts a data stream using the QIS connection (snake_case API). """
+        """ Starts a data stream using the QIS connection . """
         # This method now contains the original logic from startStream
         # Assumes self.connectionObj is a QIS connection object with a 'qis' attribute
         if hasattr(self.connectionObj, 'qis') and hasattr(self.connectionObj.qis, 'startStream'):
@@ -223,7 +221,7 @@ class quarchPPM(quarchDevice):
             raise AttributeError("QIS connection object or startStream method not found.")
 
     def get_stream_running_status(self):
-        """ Checks the running status of the QIS stream (snake_case API). """
+        """ Checks the running status of the QIS stream """
         # This method now contains the original logic from streamRunningStatus
         if hasattr(self.connectionObj, 'qis') and hasattr(self.connectionObj.qis, 'streamRunningStatus'):
             try:
@@ -236,7 +234,7 @@ class quarchPPM(quarchDevice):
             raise AttributeError("QIS connection object or streamRunningStatus method not found.")
 
     def get_stream_buffer_status(self):
-        """ Checks the buffer status of the QIS stream (snake_case API). """
+        """ Checks the buffer status of the QIS stream """
         # This method now contains the original logic from streamBufferStatus
         if hasattr(self.connectionObj, 'qis') and hasattr(self.connectionObj.qis, 'streamBufferStatus'):
             try:
@@ -249,7 +247,7 @@ class quarchPPM(quarchDevice):
             raise AttributeError("QIS connection object or streamBufferStatus method not found.")
 
     def stream_interrupt(self):
-        """ Interrupts the QIS stream (snake_case API). """
+        """ Interrupts the QIS stream """
         # This method now contains the original logic from streamInterrupt
         if hasattr(self.connectionObj, 'qis') and hasattr(self.connectionObj.qis, 'streamInterrupt'):
             try:
@@ -262,7 +260,7 @@ class quarchPPM(quarchDevice):
             raise AttributeError("QIS connection object or streamInterrupt method not found.")
 
     def wait_stop(self):
-        """ Waits for the QIS stream to stop (snake_case API). """
+        """ Waits for the QIS stream to stop """
         # This method now contains the original logic from waitStop
         if hasattr(self.connectionObj, 'qis') and hasattr(self.connectionObj.qis, 'waitStop'):
             try:
@@ -277,8 +275,7 @@ class quarchPPM(quarchDevice):
             raise AttributeError("QIS connection object or waitStop method not found.")
 
     def set_stream_resample_mode(self, streamCom, group=None):
-        """ Sets the resample mode for the QIS stream (snake_case API). """
-        # This method now contains the original logic from streamResampleMode
+        """ Sets the resample mode for the QIS stream . """
         retVal = "FAIL: Invalid arguments or connection issue"  # Default fail
         valid_format = False
         streamCom_lower = str(streamCom).lower()
@@ -322,7 +319,7 @@ class quarchPPM(quarchDevice):
         return retVal
 
     def stop_stream(self):
-        """ Stops the currently running QIS stream (snake_case API). """
+        """ Stops the currently running QIS stream . """
         # This method now contains the original logic from stopStream
         # *** Correcting parameter passed to qis.stopStream from self to self.ConString ***
         if hasattr(self.connectionObj, 'qis') and hasattr(self.connectionObj.qis, 'stopStream'):
@@ -343,7 +340,7 @@ class quarchPPM(quarchDevice):
 def setup_power_output(myModule):
     """
     Simple function to check the output mode of the power module, setting it if required
-    then enabling the outputs if not already done. (snake_case API)
+    then enabling the outputs if not already done. 
     """
     # This function now contains the actual implementation
     # Input validation

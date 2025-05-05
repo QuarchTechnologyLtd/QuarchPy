@@ -57,9 +57,10 @@ class quarchQPS(quarchDevice):
         self.port_number = quarchDevice.connectionObj.qps.port
 
     def startStream(self, directory, unserInput=True, streamDuration=""):
-        """DEPRECATED or ALIAS: Use start_stream instead.
+        """
+        DEPRECATED: Use start_stream instead.
 
-        Starts a stream by calling the start_stream method.
+        Initializes and starts a Quarch data stream.
 
         Args:
             directory (str): The desired directory for the stream output.
@@ -75,28 +76,28 @@ class quarchQPS(quarchDevice):
         """
         return self.start_stream(directory, unserInput, streamDuration)
 
-    def start_stream(self, directory, unserInput=True, streamDuration=""):
+    def start_stream(self, directory, user_input=True, stream_duration=""):
         """
         Initializes and starts a Quarch data stream.
 
         This method creates a quarchStream object, which handles the setup
-        and management of the data stream from the QPS device to the specified
+        and management of the data stream for the QPS application to the specified
         directory.
 
         Args:
             directory (str): The target directory where stream data will be saved.
-            unserInput (bool, optional): Controls user interaction on failure
+            user_input (bool, optional): Controls user interaction on failure
                 during stream initiation. If True (default), prompts the user.
                 If False, suppresses interaction and raises an Exception on failure.
                 Defaults to True.
-            streamDuration (str, optional): Defines the requested duration for the
+            stream_duration (str, optional): Defines the requested duration for the
                 stream. An empty string (default) signifies an indefinite stream.
 
         Returns:
             quarchStream: An instance of the quarchStream class representing and
             managing the active stream.
         """
-        return quarchStream(self, directory, unserInput, streamDuration)
+        return quarchStream(self, directory, user_input, stream_duration)
 
 
 class quarchStream:
@@ -108,15 +109,14 @@ class quarchStream:
 
     def __init__(self, quarchQPS, directory, unserInput=True, streamDuration=""):
         """
-        Initializes and attempts to start a data stream from the QPS device.
+        Initializes and attempts to start a data stream from the connected device.
 
         Copies necessary connection details from the quarchQPS object and
         calls the internal startQPSStream method. Handles initial failure
         based on the unserInput flag.
 
         Args:
-            quarchQPS (quarchQPS): The quarchQPS object representing the
-                device to stream from.
+            quarchQPS (quarchQPS): The quarchQPS object representing the device to stream from.
             directory (str): The target directory for the stream data.
             unserInput (bool, optional): Controls user interaction if the initial
                 stream start command fails. If False, raises Exception on failure.
@@ -134,16 +134,16 @@ class quarchStream:
         self.ConType = quarchQPS.ConType
 
         response = self.start_qps_stream(directory, streamDuration)
-        if "fail:" not in response.lower():
-            return
-        else:
+        if "fail:" in response.lower():
             if unserInput is False:
                 raise Exception(response)
             else:
                 self.failCheck(response, streamDuration)
 
     def startQPSStream(self, newDirectory, streamDuration=""):
-        """DEPRECATED or ALIAS: use start_qps_stream instead
+        """
+        DEPRECATED: use start_qps_stream instead
+
         Starts the QPS stream and directs the output to a specified directory.
 
         Args:

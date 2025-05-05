@@ -139,7 +139,7 @@ class quarchDevice:
             ValueError: If timeout is non-numeric or ConString format is invalid.
         """
         self.ConString = ConString
-        # Lowercase unless serial (original logic)
+        # Lowercase unless serial
         if "serial" not in ConString.lower():
             self.ConString = ConString.lower()
         self.ConType = ConType
@@ -305,7 +305,7 @@ class quarchDevice:
         numb_colons = self.ConString.count(":")
         # Apply replacement only if exactly one colon exists
         if numb_colons == 1:
-            logging.debug(f"Replacing single colon with '::' in ConString '{self.ConString}' for server connection.")
+            logging.debug(f"Replacing single colon ':' with '::' in ConString '{self.ConString}' for server connection.")
             self.ConString = self.ConString.replace(':', '::')
 
     def _verify_server_device(self, server_conn_obj: Any, server_type: str):
@@ -597,7 +597,6 @@ class quarchDevice:
             TimeoutError: If the device response times out.
             NotImplementedError: If the method is called for an unsupported ConType.
         """
-        # This method contains the original logic from sendCommand
         logging.debug(f"{os.path.basename(__file__)}: {self.ConType[:3]} sending command: {CommandString}")
 
         if not hasattr(self, 'connectionObj') or not self.connectionObj:
@@ -675,7 +674,6 @@ class quarchDevice:
                        connection object structure is unexpected.
             ConnectionError: If communication fails.
         """
-        # This method contains the original logic from sendBinaryCommand
         # Check connection type and structure
         if self.ConType.upper() != "PY" or \
                 not hasattr(self.connectionObj, 'connection') or \
@@ -747,7 +745,7 @@ class quarchDevice:
                     try:
                         self.connectionObj.connection.close()  # Close old one first
                     except Exception as e_connection_exception:
-                        logging.warning(f"Unable to close old PY Connection.\n{e_connection_exception}")
+                        logging.warning(f"Unable to close old PY Connection: {e_connection_exception}")
                         pass
                 # Recreate (assumes PYConnection is imported)
                 self.connectionObj = PYConnection(self.ConString)
@@ -870,7 +868,6 @@ class quarchDevice:
         Raises:
             ConnectionError: If sending the reset command fails initially (and connection exists).
         """
-        # This method contains the original logic from resetDevice
         logging.debug(f"{os.path.basename(__file__)}: sending command: *rst")
         original_con_string = self.ConString  # Store original target before potential modification
         original_con_type = self.ConType  # Store original type
@@ -915,7 +912,7 @@ class quarchDevice:
         logging.debug(f"Attempting to reconnect to {original_con_string} after reset...")
         temp_device = None
         startTime = time.time()
-        time.sleep(0.6)  # Original initial sleep
+        time.sleep(0.6)
 
         while temp_device is None:
             # Check timeout
@@ -929,7 +926,7 @@ class quarchDevice:
                 temp_device = get_quarch_device(original_con_string, ConType=original_con_type, timeout=str(remaining_timeout))
             except Exception as recon_e:
                 logging.debug(f"Reconnect attempt failed: {recon_e}. Retrying...")
-                time.sleep(0.2)  # Original sleep between retries
+                time.sleep(0.2)
 
         # --- Recovery Successful ---
         logging.info(f"Successfully reconnected to {original_con_string} after reset.")
@@ -946,7 +943,7 @@ class quarchDevice:
         if hasattr(temp_device, 'connectionTypeName'):
             self.connectionTypeName = temp_device.connectionTypeName
 
-        time.sleep(1)  # Original final sleep after successful reconnect
+        time.sleep(1)
         return True
 
     def resetDevice(self, timeout: int = 10) -> bool:
@@ -963,7 +960,7 @@ class quarchDevice:
         """
         return self.reset_device(timeout)
 
-    # --- sendAndVerifyCommand ---
+    # --- send_and_verify_command/sendAndVerifyCommand ---
     def send_and_verify_command(self, commandString: str, responseExpected: str = "OK", exception: bool = True) -> bool:
         """
         Sends a command and verifies the response matches expected string.
@@ -987,11 +984,8 @@ class quarchDevice:
             ConnectionError: If sending the command fails.
             TimeoutError: If the device times out responding.
         """
-        # This method contains the original logic from sendAndVerifyCommand
-        # Calls the snake_case send_command internally now
         responseStr = self.send_command(commandString)
 
-        # Original logic compared directly (case-sensitive)
         if responseStr != responseExpected:
             error_msg = f"Command Sent: '{commandString}', Expected response: '{responseExpected}', Response received: '{responseStr}'"
             logging.error(error_msg)
@@ -1022,7 +1016,7 @@ class quarchDevice:
         """
         return self.send_and_verify_command(commandString, responseExpected, exception)
 
-    # --- getRuntime ---
+    # --- get_runtime/getRuntime ---
     def get_runtime(self, command: str = "conf:runtimes?") -> Optional[int]:
         """
         Queries the device runtime and returns it as an integer in seconds.
@@ -1037,8 +1031,6 @@ class quarchDevice:
         Returns:
             Optional[int]: The runtime in seconds if successfully parsed, otherwise None.
         """
-        # This method contains the original logic from getRuntime
-        # Calls the snake_case send_command internally now
         runtime_str = self.send_command(command)
 
         if runtime_str is None:
@@ -1064,8 +1056,7 @@ class quarchDevice:
                 return None
         else:
             # Log if format is unexpected
-            logging.warning(
-                f"Runtime response '{runtime_str}' did not end with 's' or was not string. Cannot parse as seconds.")
+            logging.warning(f"Runtime response '{runtime_str}' did not end with 's' or was not string. Cannot parse as seconds.")
             return None
 
     def getRuntime(self, command: str = "conf:runtimes?") -> Optional[int]:
@@ -1110,7 +1101,7 @@ def _check_ip_in_qis_list(ip_address: str, detailed_device_list: list) -> Option
         # Use regex to find IP pattern robustly
         ip_match = re.search(r"\bIP:(" + re.escape(ip_address) + r")\b", module_line)  # Match exact IP
         if ip_match:
-            # Found the IP, check if it's a TCP entry (original logic constraint)
+            # Found the IP, check if it's a TCP entry
             if "tcp" in module_line.lower():
                 # Try to extract the "TYPE::ID" part using regex or split
                 conn_str_match = re.search(r"^\s*\d+\)\s+([A-Z]+::\S+)", module_line)  # Look for "N) TYPE::ID"

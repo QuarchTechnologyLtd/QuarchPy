@@ -65,7 +65,7 @@ def main(filepath=None):
 
     # Create a device using the module connection string
     logText("\n\nConnecting to the selected device")
-    my_device = getQuarchDevice(moduleStr)
+    my_device = get_quarch_device(moduleStr)
 
     file = None
     try:
@@ -74,7 +74,7 @@ def main(filepath=None):
         file = get_config_path_for_module(module_connection=my_device)
     except FileNotFoundError as err:
         logging.error(f"Config file not found for module : {moduleStr}\nExiting Script")
-        my_device.closeConnection()
+        my_device.close_connection()
         return
 
     # Parse the file to get the device capabilities
@@ -82,7 +82,7 @@ def main(filepath=None):
 
     if not dev_caps:
         logging.error(f"Could not parse config file for {moduleStr}\nExiting Script")
-        my_device.closeConnection()
+        my_device.close_connection()
         return
     logText("\nCONFIG FILE LOCATED:")
     logText(file)
@@ -93,34 +93,34 @@ def main(filepath=None):
 
     # Print the module identify and version information
     logText("\nModule Identity Information:\n")
-    logText(my_device.sendCommand("*IDN?"))
+    logText(my_device.send_command("*IDN?"))
     logText("\n")
 
     # Print the test state of the module
     logText("\nModule Self Test:")
-    logText(my_device.sendCommand("*TST?"))
+    logText(my_device.send_command("*TST?"))
     logText("\n")
 
     # Print the power state of the module
     logText("Power State of Module:")
-    logText(my_device.sendCommand("RUN:POWER?"))
+    logText(my_device.send_command("RUN:POWER?"))
     logText("\n")
 
     for key, value in dev_caps.get_general_capabilities().items():
         if key == "GlitchState_Read_Present" and value == "true":
             # Print glitch status of the module
             logText("Glitch Status:")
-            logText(my_device.sendCommand("run:glitch?"))
+            logText(my_device.send_command("run:glitch?"))
             logText("\n")
 
             # Print additional glitch information
             logText("\nGlitch Engine\n===================\n")
             logText("Glitch Length: ", "end")
-            logText(my_device.sendCommand("glitch:length?"))
+            logText(my_device.send_command("glitch:length?"))
             logText("\nGlitch Cycle Length: ", "end")
-            logText(my_device.sendCommand("glitch:cycle:length?"))
+            logText(my_device.send_command("glitch:cycle:length?"))
             logText("\nPRBS Ratio: ", "end")
-            logText(my_device.sendCommand("glitch:prbs?"))
+            logText(my_device.send_command("glitch:prbs?"))
             logText("\n")
         if key == "SignalMonitor_Present" and value == "true":
             logText("\nSignal Monitoring\n===================\n")
@@ -128,8 +128,8 @@ def main(filepath=None):
                 for key, value in sig.parameters.items():
                     if key == "SignalMonitor_Present" and value == "true":
                         logText(sig.name, "end")
-                        logText(", Host Monitor: " + my_device.sendCommand("sig:{}:stat:host?".format(sig.name)), "end")
-                        logText(", Device Monitor: " + my_device.sendCommand("sig:{}:stat:dev?".format(sig.name)), "end")
+                        logText(", Host Monitor: " + my_device.send_command("sig:{}:stat:host?".format(sig.name)), "end")
+                        logText(", Device Monitor: " + my_device.send_command("sig:{}:stat:dev?".format(sig.name)), "end")
                         logText("\n")
 
     # Print the list of signals on the module, and the capability flags for each signal
@@ -138,21 +138,21 @@ def main(filepath=None):
     for sig in dev_caps.get_signals():
         logText(sig.name, "end")
         for key, value in sig.parameters.items():
-            logText(", Source:" + my_device.sendCommand("sig:{}:sour?".format(sig.name)), "end")
+            logText(", Source:" + my_device.send_command("sig:{}:sour?".format(sig.name)), "end")
             if key == "GlitchEnable_Present" and value == "true":
-                logText(", Glitch Enable: " + my_device.sendCommand("sig:{}:glit:ena?".format(sig.name)), "end")
+                logText(", Glitch Enable: " + my_device.send_command("sig:{}:glit:ena?".format(sig.name)), "end")
             if key == "SignalDrive_Present" and value == "true":
-                logText(", Drive Open:" + my_device.sendCommand("sig:{}:dri:ope?".format(sig.name)), "end")
-                logText(", Drive Closed:" + my_device.sendCommand("sig:{}:dri:clo?".format(sig.name)), "end")
+                logText(", Drive Open:" + my_device.send_command("sig:{}:dri:ope?".format(sig.name)), "end")
+                logText(", Drive Closed:" + my_device.send_command("sig:{}:dri:clo?".format(sig.name)), "end")
         logText("\n")
     logText("\n")
 
     logText("\nVoltage Measurements\n===================\n")
     for volt in dev_caps.get_voltage_measurements():
         if volt.type == "Voltage":
-            logText(volt.name + ": " + my_device.sendCommand("meas:volt {}".format(volt.name + "?")), "end")
+            logText(volt.name + ": " + my_device.send_command("meas:volt {}".format(volt.name + "?")), "end")
         else:
-            logText(volt.name + " Self Test: " + my_device.sendCommand("meas:volt:self {}".format(volt.name + "?")), "end")
+            logText(volt.name + " Self Test: " + my_device.send_command("meas:volt:self {}".format(volt.name + "?")), "end")
         logText("\n")
     logText("\n")
 
@@ -162,20 +162,20 @@ def main(filepath=None):
         for key, value in source.parameters.items():
             sourcename = source.name[7:]
             if key == "Type" and value == "TIMED":
-                logText(", Delay: " + my_device.sendCommand("sour:" + sourcename + ":delay?"), "end")
+                logText(", Delay: " + my_device.send_command("sour:" + sourcename + ":delay?"), "end")
             if key == "SourceEnable_Present" and value == "true":
-                logText(", Source: " + my_device.sendCommand("sour:" + sourcename + ":state?"), "end")
+                logText(", Source: " + my_device.send_command("sour:" + sourcename + ":state?"), "end")
             if key == "SourceBounce_Present" and value == "true":
-                logText(", Bounce: " + my_device.sendCommand("sour:" + sourcename + ":boun:mode?"), "end")
-                logText(", Bounce-Length: " + my_device.sendCommand("sour:" + sourcename + ":boun:len?"), "end")
-                logText(", Bounce-Period: " + my_device.sendCommand("sour:" + sourcename + ":boun:per?"), "end")
-                logText(", Bounce-Duty: " + my_device.sendCommand("sour:" + sourcename + ":boun:duty?"), "end")
+                logText(", Bounce: " + my_device.send_command("sour:" + sourcename + ":boun:mode?"), "end")
+                logText(", Bounce-Length: " + my_device.send_command("sour:" + sourcename + ":boun:len?"), "end")
+                logText(", Bounce-Period: " + my_device.send_command("sour:" + sourcename + ":boun:per?"), "end")
+                logText(", Bounce-Duty: " + my_device.send_command("sour:" + sourcename + ":boun:duty?"), "end")
         logText("\n")
 
     logText("Finished script. \nClosing module connection.")
     if fp != "":
         f.close()
-    my_device.closeConnection()
+    my_device.close_connection()
 
 """
     Logs text to terminal and file (if specified)

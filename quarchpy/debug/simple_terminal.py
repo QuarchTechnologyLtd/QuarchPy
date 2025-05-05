@@ -33,7 +33,7 @@ def main():
         # moduleStr = "REST:1995-05-005"
         myDevice = get_quarch_device(moduleStr)
 
-        while myDevice is not None and myDevice is not "shutdown":  # CMD parsing loop
+        while myDevice is not None and myDevice != "shutdown":  # CMD parsing loop
             user_input = requestDialog("", "Send command to " + str(moduleStr) + " :")
             # Dollar commands are to be handled by the terminal
             if user_input.startswith("$"):

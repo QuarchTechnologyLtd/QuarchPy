@@ -7,15 +7,8 @@ from typing import Optional, Tuple, Any, Union  # Added for type hinting in docs
 
 from quarchpy.connection import QISConnection, PYConnection, QPSConnection
 
-try:
-    # Import components needed by get_quarch_device logic
-    from .quarchArray import quarchArray, subDevice
-    from .scanDevices import get_connection_target  # Needed by __init__
-except ImportError as e:
-    logging.error(f"Failed to import dependencies (.quarchArray, .scanDevices): {e}. Functionality limited.")
-    quarchArray = Any  # Placeholder type
-    subDevice = Any  # Placeholder type
-    def get_connection_target(x): return x  # Dummy Fallback if import fails.
+quarchArray = Any  # Placeholder type
+subDevice = Any  # Placeholder type
 
 # Check Python version and set timeout exception
 if sys.version_info.major == 2:
@@ -210,6 +203,7 @@ class quarchDevice:
         """
         # Check conditions: contains 'qtl', not 'usb', and helper function exists
         if "qtl" in self.ConString.lower() and "usb" not in self.ConString.lower():
+            from quarchpy.device import get_connection_target
             if get_connection_target is not None:
                 try:
                     logging.debug(f"Attempting to resolve connection target for '{self.ConString}'...")
@@ -1262,7 +1256,7 @@ def checkModuleFormat(ConString: str) -> bool:
 
 
 # --- getQuarchDevice / get_quarch_device ---
-def get_quarch_device(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> Optional[quarchDevice, subDevice]:
+def get_quarch_device(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> Union[quarchDevice, subDevice]:
     """
     Creates and returns a quarchDevice or subDevice instance.
 
@@ -1343,7 +1337,7 @@ def get_quarch_device(connectionTarget: str, ConType: str = "PY", timeout: str =
 
 
 # Original getQuarchDevice function, kept for compatibility, now calls snake_case version
-def getQuarchDevice(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> Optional[quarchDevice, subDevice]:
+def getQuarchDevice(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> Union[quarchDevice, subDevice]:
     """
     DEPRECATED - Use get_quarch_device instead.
 

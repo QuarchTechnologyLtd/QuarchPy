@@ -21,7 +21,6 @@ class PYConnection:
         self.ConnTarget = ConString[(Pos+1):]
         if "SERIAL" not in self.ConnTypeStr:
             self.ConnTarget = ConString[(Pos + 1):].upper()
-
         
         if self.ConnTypeStr.lower() == 'rest': 
             from quarchpy.connection_specific.connection_ReST import ReSTConn

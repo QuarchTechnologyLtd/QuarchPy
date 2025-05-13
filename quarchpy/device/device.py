@@ -617,7 +617,7 @@ class quarchDevice:
             elif con_type_upper.startswith("QPS"):
                 # Assumes QPSConnection type for connectionObj
                 if command_string and command_string[0] != '$':
-                    CommandString = f"{self.ConString} {command_string}"  # Prepend target ID
+                    command_string = f"{self.ConString} {command_string}"  # Prepend target ID
                 response = self.connectionObj.qps.sendCommand(command_string, is_response_expected)
             else:
                 raise NotImplementedError(f"send_command not implemented for ConType {self.ConType}")

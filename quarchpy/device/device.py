@@ -1,15 +1,12 @@
+from __future__ import annotations
+from typing import Optional, Tuple, Any, Union  # Added for type hinting in docstrings
 import logging
 import os
 import re
 import sys
 import time
-from typing import Optional, Tuple, Any, Union  # Added for type hinting in docstrings
 
 from quarchpy.connection import QISConnection, PYConnection, QPSConnection
-
-quarchArray = Any  # Placeholder type
-subDevice = Any  # Placeholder type
-
 # Check Python version and set timeout exception
 if sys.version_info.major == 2:
     try:
@@ -20,8 +17,7 @@ if sys.version_info.major == 2:
         timeout_exception = None
         logging.error(f"Socket timeout unavailable: {e}")
 else:
-    timeout_exception = TimeoutError  # Built-in
-
+    timeout_exception = TimeoutError  # Python 3: Use built-in TimeoutError
 
 # --- Main Device Class ---
 class quarchDevice:
@@ -42,15 +38,6 @@ class quarchDevice:
             connection object (e.g., 'QTL1234-01-001', '192.168.1.100'). Set for PY type.
         connectionTypeName (Optional[str]): Alias for ConCommsType. Set for PY type.
     """
-
-    # Type hints for attributes
-    ConString: str
-    ConType: str
-    timeout: int
-    connectionObj: Union[QISConnection, QPSConnection, PYConnection, None]
-    ConCommsType: Optional[str]
-    connectionName: Optional[str]
-    connectionTypeName: Optional[str]
 
     def __init__(self, ConString: str, ConType: str = "PY", timeout: str = "5"):
         """
@@ -102,16 +89,6 @@ class quarchDevice:
         # --- Final connection verification ---
         self._verify_connection_object()
         logging.info(f"Connection successful: Type='{self.ConType}', Target='{getattr(self.connectionObj, 'ConnTarget', 'Unknown')}'")
-
-    def __del__(self):
-        """ Ensures the connection is closed when the object is garbage collected. """
-        try:
-            # Close all connections
-            self.close_connection()
-        except Exception as e_close:
-            # Avoid errors during shutdown sequence
-            if logging and logging.error:
-                logging.error(f"Error during automatic connection close in destructor: {e_close}")
 
     # --- Private Helper Methods ---
 
@@ -560,10 +537,6 @@ class quarchDevice:
         if not self.connectionObj:
             # This should ideally be caught by specific init helpers, but acts as a final safeguard
             raise ConnectionError("Connection object (self.connectionObj) was not successfully created by initializer.")
-        # Check for expected attribute like ConnTarget if it's common across connection types
-        if not hasattr(self.connectionObj, 'ConnTarget'):
-            # This might indicate an incomplete connection object
-            logging.warning("Connection object successfully created, but may be missing expected 'ConnTarget' attribute.")
 
     # --- Public Methods (Wrappers + snake_case) ---
 
@@ -1256,7 +1229,7 @@ def checkModuleFormat(ConString: str) -> bool:
 
 
 # --- getQuarchDevice / get_quarch_device ---
-def get_quarch_device(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> Union[quarchDevice, subDevice]:
+def get_quarch_device(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> 'Union[quarchDevice, subDevice]':
     """
     Creates and returns a quarchDevice or subDevice instance.
 
@@ -1337,7 +1310,7 @@ def get_quarch_device(connectionTarget: str, ConType: str = "PY", timeout: str =
 
 
 # Original getQuarchDevice function, kept for compatibility, now calls snake_case version
-def getQuarchDevice(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> Union[quarchDevice, subDevice]:
+def getQuarchDevice(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> 'Union[quarchDevice, subDevice]':
     """
     DEPRECATED - Use get_quarch_device instead.
 

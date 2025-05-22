@@ -145,3 +145,19 @@ def endTestBlock (stack_level=1):
 
     # Read the response from STDIN
     return sys.stdin.readline().strip()
+
+def GetVariable(Package, VarName):
+    """
+    Allows access to the testecenter variable user variable mechanism and request a value
+    """
+
+    # Get caller file and line number
+    caller = getframeinfo(stack()[stack_level][0])
+
+    # Write the command and params to STDOUT
+    print(f"GET_VARIABLE,{str(caller.filename)},{str(caller.lineno)},{VarName}")
+
+    # Read the response from STDIN
+    Response = sys.stdin.readline().strip()
+
+    return Response

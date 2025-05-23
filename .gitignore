@@ -3,3 +3,4 @@
 /dist
 /quarchpy.egg-info
 /quarchpy/docs/_build
+*.pyc

@@ -87,7 +87,7 @@ class QisInterface:
                 logging.error('Is backend running and host accessible?')
             self.deviceDict['QIS'][0:3] = [True, 'Disconnected', 'Unable to connect to QIS']
             raise e
-    
+
     # Tries to close the socket to specified host and port.
     def disconnect(self):
         res = 'Disconnecting from backend'
@@ -104,15 +104,18 @@ class QisInterface:
         return res
 
     def closeConnection(self, sock=None, conString=None):
-        if sock == None:
+        if sock is None:
             sock = self.sock
         if conString is None:
-           cmd="close"
+            cmd = "close"
         else:
-            cmd =conString+" close"
-
-        response = self.sendAndReceiveText(sock, cmd)
-        return response
+            cmd = conString + " close"
+        try:
+            response = self.sendAndReceiveText(sock, cmd)
+            return response
+        except ConnectionResetError:
+            logging.warning('Unable to close connection to QIS, QIS may be already closed')
+            return None
 
     def startStream(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration = None, inMemoryData = None):
         self.StreamRunSentSemaphore.acquire()
@@ -614,7 +617,7 @@ class QisInterface:
                         x = struct.pack(">d", int(stripe[counter]))
                         # logging.debug(item, x)
                         file1.write(x)
-    
+
     # Query the backend for a list of connected modules. A $scan command is sent to refresh the list of devices,
     # Then a wait occurs while the backend discovers devices (network ones can take a while) and then a list of device name strings is returned
     # The objects connection needs to be opened (connect()) before this is used
@@ -623,7 +626,7 @@ class QisInterface:
         if sock == None:
             sock = self.sock
         devString = self.sendAndReceiveText(sock, '$list')
-        devString = devString.replace('>', '')            
+        devString = devString.replace('>', '')
         devString = devString.replace(r'\d+\) ', '')
         devString = devString.split('\r\n')
         devString = filter(None, devString) #remove empty elements
@@ -793,7 +796,7 @@ class QisInterface:
         streamStatus = streamStatus.split('\r\n')
         streamStatus[index] = re.sub(r'^Stripes Buffered: ', '', streamStatus[index])
         return streamStatus[index]
-    
+
     # TODO: MD - This function should be replaced with a more generic method of accessing the header
     # The return of a string with concatenated value and units should be replaced with something easier to parse
     #
@@ -837,7 +840,7 @@ class QisInterface:
         except Exception as e:
             logging.error(device + ' Unable to get stream average.' + self.host + ':' + str(self.port))
             raise e
-    
+
     # Get the version of the stream and convert to string for the specified device
     # The objects connection needs to be opened (connect()) before this is used
     def streamHeaderVersion(self, device, sock=None):
@@ -864,7 +867,7 @@ class QisInterface:
         except Exception as e:
             logging.error(device + ' Unable to get stream version.' + self.host + ':' + str(self.port))
             raise e
-    
+
     # Get a header string giving which measurements are returned in the string for the specified device
     # The objects connection needs to be opened (connect()) before this is used
     def streamHeaderFormat(self, device, sock=None):
@@ -877,7 +880,7 @@ class QisInterface:
             if (self.isXmlHeader (streamStatus)):
                # Get the basic averaging rate (V3 header)
                xml_root = self.getStreamXmlHeader (device=device, sock=sock)
-               # Return the time based averaging string               
+               # Return the time based averaging string
                device_period = xml_root.find('.//devicePeriod')
                time_unit = 'uS'
                if device_period == None:
@@ -887,7 +890,7 @@ class QisInterface:
                        if ('ns' in  device_period.text):
                         time_unit = 'nS'
                averageStr = device_period.text
-               
+
                # Time column always first
                formatHeader = 'Time ' + time_unit + ','
                # Find the channels section of each group and iterate through it to add the channel columns
@@ -925,7 +928,7 @@ class QisInterface:
                         formatHeader = formatHeader +  ' 3V3_I,'
                     else:
                         formatHeader = formatHeader +  ' 5V_I,'
-                
+
                 if format & b1:
                     formatHeader = formatHeader + ' 12V_V,'
                 if format & b0:
@@ -990,7 +993,7 @@ class QisInterface:
             return '32k'
         else:
             return 'Invalid Average Value'
-    
+
     # TODO: MD Thinks this implements software averaging, is unused and now performed in QIS
     # Works out average values of timescales longer than max device averaging
     def averageStripes(self, leftover, streamAverage, newStripes, f, remainingStripes = []):
@@ -1037,7 +1040,7 @@ class QisInterface:
             self.stopFlagList.append(True)
             self.listSemaphore.release()
             return self.deviceList.index(device)
-    
+
     def deviceDictSetup(self, module):
         if module in self.deviceDict.keys():
             return
@@ -1049,23 +1052,23 @@ class QisInterface:
             self.dictSemaphore.acquire()
             self.deviceDict[module] = [False, 'Stopped', "User hasn't started stream"]
             self.dictSemaphore.release()
-    
+
     def streamInterrupt(self):
         for key in self.deviceDict.keys():
             if self.deviceDict[key][0]:
                 return True
         return False
-    
+
     def interruptList(self):
         streamIssueList = []
         for key in self.deviceDict.keys():
             if self.deviceDict[key][0]:
-                streamIssue = [key] 
+                streamIssue = [key]
                 streamIssue.append(self.deviceDict[key][1])
                 streamIssue.append(self.deviceDict[key][2])
                 streamIssueList.append(streamIssue)
         return streamIssueList
-    
+
     def waitStop(self):
         running = 1
         while running != 0:
@@ -1087,7 +1090,7 @@ class QisInterface:
             returnValue = streamAveraging
 
         return returnValue
-        
+
     # Pass in a stream header and we check if it is XML or legacy format
     def isXmlHeader (self, headerText):
         if('?xml version=' not in headerText):
@@ -1120,17 +1123,17 @@ class QisInterface:
 
                 break
             # Parse XML into structured format
-            xml_root = ET.fromstring(headerData)            
-            
+            xml_root = ET.fromstring(headerData)
+
             # Check header format is supported by quarchpy
             versionStr = xml_root.find('.//version').text
             if ('V3' not in versionStr):
                 logging.error(device + ' Stream header version not compatible: ' + xml_root['version'].text + '.' + self.host + ':' + str(self.port))
                 raise Exception ("Stream header version not supported");
-                
+
             # Return the XML structure for the code to use
             return xml_root
-            
+
         except Exception as e:
             logging.error(device + ' Exception while parsing stream header XML.' + self.host + ':' + str(self.port))
             raise e

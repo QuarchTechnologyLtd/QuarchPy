@@ -6,6 +6,9 @@ import re
 import sys
 import time
 
+from quarchpy.qps import isQpsRunning
+from quarchpy.qis import isQisRunning
+
 from quarchpy.connection import QISConnection, PYConnection, QPSConnection
 # Check Python version and set timeout exception
 if sys.version_info.major == 2:
@@ -538,6 +541,16 @@ class quarchDevice:
             # This should ideally be caught by specific init helpers, but acts as a final safeguard
             raise ConnectionError("Connection object (self.connectionObj) was not successfully created by initializer.")
 
+    def __del__(self):
+        """ Ensures the connection is closed when the object is garbage collected. """
+        try:
+            # Close all connections
+            self.close_connection()
+        except Exception as e_close:
+            # Avoid errors during shutdown sequence
+            if logging and logging.error:
+                logging.error(f"Error during automatic connection close in destructor: {e_close}")
+
     # --- Public Methods (Wrappers + snake_case) ---
 
     # --- sendCommand ---
@@ -803,7 +816,8 @@ class quarchDevice:
         try:
             if con_type_upper.startswith("QIS"):
                 if hasattr(conn_obj_to_close, 'qis') and hasattr(conn_obj_to_close.qis, 'closeConnection'):
-                    conn_obj_to_close.qis.closeConnection(conString=self.ConString)
+                    if isQisRunning():
+                        conn_obj_to_close.qis.closeConnection(conString=self.ConString)
                     closed_ok = True
                 else:
                     logging.warning("QIS connection object or closeConnection method not found.")
@@ -817,7 +831,8 @@ class quarchDevice:
 
             elif con_type_upper.startswith("QPS"):
                 if hasattr(conn_obj_to_close, 'qps') and hasattr(conn_obj_to_close.qps, 'disconnect'):
-                    conn_obj_to_close.qps.disconnect(self.ConString)  # QPS uses disconnect
+                    if isQpsRunning():
+                        conn_obj_to_close.qps.disconnect(self.ConString)  # QPS uses disconnect
                     closed_ok = True
                 else:
                     logging.warning("QPS connection object or disconnect method not found.")

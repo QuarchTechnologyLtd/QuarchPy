@@ -9,7 +9,7 @@ as such, communication is based on simple strings
 from inspect import getframeinfo, stack
 import sys
 
-def setup (interface_name, *command_params, stack_level=1):
+def setup (interface_name, stack_level=1, *command_params):
     """
     Sets up a test interface, passing the interface parameters onto TestCenter to process
     
@@ -45,7 +45,7 @@ def setup (interface_name, *command_params, stack_level=1):
     return sys.stdin.readline().strip();
 	
 # Runs an interface setup function
-def testPoint (command_name, *command_params, stack_level=1):
+def testPoint (command_name, stack_level=1, *command_params):
     """
     Runs a test point from the testcenter library functions
     

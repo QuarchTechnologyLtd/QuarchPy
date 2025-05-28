@@ -1,7 +1,9 @@
 import platform  # For getting the operating system name
 import subprocess  # For executing a shell command
 import logging
-from zeroconf import Zeroconf
+import sys
+if sys.version_info[0] >= 3:
+    from zeroconf import Zeroconf
 
 
 def ping(host):

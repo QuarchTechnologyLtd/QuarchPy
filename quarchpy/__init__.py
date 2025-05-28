@@ -45,7 +45,7 @@ from debug.versionCompare import requiredQuarchpyVersion
 #importing legacy API functions to the root module in the package.  This is to avoid
 #breacking back-compatibility with old scripts.  Avoid using these direct imports
 #and use the managed sub module format instead (from quarchpy.device import *)
-from device import quarchDevice, getQuarchDevice, get_quarch_device
+from device import quarchDevice, getQuarchDevice
 from connection_specific.connection_QIS import QisInterface, QisInterface as qisInterface
 from connection_specific.connection_QPS import QpsInterface, QpsInterface as qpsInterface
 from qis.qisFuncs import isQisRunning, startLocalQis, GetQisModuleSelection

@@ -14,7 +14,7 @@ sys.path.insert(0, parent_dir) #It must be added at the start of the list so it 
 
 # Import the various functions which need to be called from the command line options
 from quarchpy.debug.SystemTest import main as systemTestMain
-from quarchpy.debug.module_debug import parse_arguments as moduleDebugMain
+# from quarchpy.debug.module_debug import parse_arguments as moduleDebugMain
 from quarchpy.qis.qisFuncs import startLocalQis, isQisRunning, closeQis as closeQIS
 from quarchpy.qps.qpsFuncs import startLocalQps, isQpsRunning, closeQps as closeQPS
 from quarchpy.debug.upgrade_quarchpy import main as uprade_quarchpy_main
@@ -127,8 +127,8 @@ def _run_module_debug_function(args=None):
         List of sub arguments to process
 
     """
-
-    moduleDebugMain(args)
+    printText("This argument is not supported in Python2.")
+    # moduleDebugMain(args)
 
 def _run_show_drives_function(args=None):
     """

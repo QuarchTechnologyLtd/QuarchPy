@@ -504,9 +504,9 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
     # Setup mdns with zeroconf
     # Ensure listener/zeroconf instance stay persistent (ensures only one thread is used for each scan cycle)
     mdns_listener = MyListener().get_instance()
-    zeroconf = mdns_listener.get_zeroconf()
+    # zeroconf = mdns_listener.get_zeroconf()
     # Setup new mdns discovery service for every scan cycle
-    browser = scan_mDNS(mdns_listener, zeroconf)
+    # browser = scan_mDNS(mdns_listener, zeroconf)
     # Set target_conn
     mdns_listener.target_conn = target_conn.lower()
     # Setup mdns discovery that stays persistent in the background - (could be removed)
@@ -547,7 +547,7 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
                         myArrayControler = quarchArray(myQuarchDevice)
                         scanDevices = myArrayControler.scanSubModules()
                         foundDevices = mergeDict(foundDevices, scanDevices)
-                        myArrayControler.close_connection()
+                        myArrayControler.closeConnection()
                     except Exception as e:
                         logging.debug(e, exc_info=True)
                         logging.debug("Cannot get serial number. Quarch device may be in use by another program.")
@@ -590,7 +590,7 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
     if module_type_filter:
         foundDevices = filter_module_type(module_type_filter, foundDevices)
     # Cancels the mdns discovery service (required to close active thread)
-    browser.cancel()
+    # browser.cancel()
     return foundDevices
 
 

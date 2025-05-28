@@ -1,5 +1,6 @@
+# -*- coding: future_fstrings -*-
 from .device import quarchDevice
-import logging
+import logging, sys
 import xml.etree.ElementTree as ET
 from quarchpy.user_interface.user_interface import printText
 
@@ -10,14 +11,14 @@ class quarchPPM(quarchDevice):
         self.connectionObj = originObj.connectionObj
         self.ConString = originObj.ConString
         self.ConType = originObj.ConType
-        self.fixture_definition = self.send_command("fix:chan:xml?")
+        self.fixture_definition = self.sendCommand("fix:chan:xml?")
         self.default_channels = None
         numb_colons = self.ConString.count(":")
         if numb_colons == 1:
             self.ConString = self.ConString.replace(':', '::')
-        if not skipDefaultSyntheticChannels and self.ConType[:3].upper() == "QIS" and "FAIL:" not in self.fixture_definition:
-            self.create_default_synthetic_channels()
- 
+        # if not skipDefaultSyntheticChannels and self.ConType[:3].upper() == "QIS" and "FAIL:" not in self.fixture_definition:
+        #     self.create_default_synthetic_channels()
+
     def startStream(self, fileName='streamData.txt', fileMaxMB=200000, streamName ='Stream With No Name', streamDuration = None, streamAverage = None, releaseOnData = False, separator=",", inMemoryData = None):
         return self.connectionObj.qis.startStream(self.ConString, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration, inMemoryData)
 
@@ -57,7 +58,7 @@ class quarchPPM(quarchDevice):
     '''
     def setupPowerOutput(myModule):
         # Output mode is set automatically on HD modules using an HD fixture, otherwise we will chose 5V mode for this example
-        outModeStr = myModule.send_command("config:output Mode?")
+        outModeStr = myModule.sendCommand("config:output Mode?")
         if "DISABLED" in outModeStr:
             try:
                 drive_voltage = raw_input(
@@ -66,14 +67,14 @@ class quarchPPM(quarchDevice):
                 drive_voltage = input(
                     "\n Either using an HD without an intelligent fixture or an XLC.\n \n>>> Please select a voltage [3V3, 5V]: ") or "3V3" or "5V"
 
-            myModule.send_command("config:output:mode:" + drive_voltage)
+            myModule.sendCommand("config:output:mode:" + drive_voltage)
 
         # Check the state of the module and power up if necessary
-        powerState = myModule.send_command("run power?")
+        powerState = myModule.sendCommand("run power?")
         # If outputs are off
         if "OFF" in powerState or "PULLED" in powerState:  # PULLED comes from PAM
             # Power Up
-            printText("\n Turning the outputs on:"), myModule.send_command("run:power up"), "!"
+            printText("\n Turning the outputs on:"), myModule.sendCommand("run:power up"), "!"
 
     '''
     Parses the fixture XML and extracts the synthetic channels specified by the instrument defaults.
@@ -123,7 +124,7 @@ class quarchPPM(quarchDevice):
         # Loop through each channel in the provided list of channels
         for channel in channels:
             # Send a command to the device to create a stream with the channel's function
-            result = self.send_command("stream create channel " + channel.function)
+            result = self.sendCommand("stream create channel " + channel.function)
 
             # If the command result is not "OK", raise an exception with an error message
             if result != "OK":
@@ -146,7 +147,7 @@ class quarchPPM(quarchDevice):
 
         # The following commented-out example shows how to manually send a command for a specific synthetic channel.
         # Example: This command calculates the RMS current for the neutral line.
-        # self.send_command("stream create channel chan(Neutral_RMS,A) rms(100ms,chan(Neutral,A))")
+        # self.sendCommand("stream create channel chan(Neutral_RMS,A) rms(100ms,chan(Neutral,A))")
 
 '''
 Class representing a SyntheticChannel.

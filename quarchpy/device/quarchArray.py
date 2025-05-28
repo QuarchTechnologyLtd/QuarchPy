@@ -23,7 +23,7 @@ class quarchArray(quarchDevice):
         moduleList = dict()
 
         # Query the attached devices
-        responseText = self.send_command("conf:list:mod?")
+        responseText = self.sendCommand("conf:list:mod?")
         if responseText == "":
             return dict()
         responseList = responseText.split("\n")
@@ -67,7 +67,7 @@ class subDevice(quarchDevice):
         returnStr = ''
         
         # Run the base device command
-        respStr = quarchDevice.send_command(self, CommandString + " <" + portNumb + ">")
+        respStr = quarchDevice.sendCommand(self, CommandString + " <" + portNumb + ">")
         # Split into lines, remove the line number sections then reform the string (removing the wanted 'x.y:' section at the start of each line
         respLines = respStr.split('\n')
         for x in respLines:            

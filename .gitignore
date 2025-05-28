@@ -6,3 +6,7 @@
 /quarchpy/device/__pycache__
 /quarchpy/__pycache__
 *.pyc
+/quarchpy/.idea
+/quarchpy/config_files/Cable_Modules/.svn
+/quarchpy/config_files/Cable_Modules/.svn
+/quarchpy/config_files/Cable_Modules/.svn

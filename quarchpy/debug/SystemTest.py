@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 from quarchpy import *
 from quarchpy.device import *
 try:

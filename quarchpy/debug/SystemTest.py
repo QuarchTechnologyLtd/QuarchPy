@@ -64,6 +64,35 @@ def test_system_info():
         print(e)
         print("Unable to detect Quarchpy location")
 
+    print("python:  ")
+    try:
+        temp1 = bytes(subprocess.check_output(['python', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+        print(temp1)
+    except:
+        print("Unable to detect Quarchpy at this location")
+
+    print("sudo python:  ")
+    try:
+        temp2 = bytes(subprocess.check_output(['sudo', 'python', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+        print(temp2)
+    except:
+        print("Unable to detect Quarchpy at this location")
+
+    print("python3:  ")
+    try:
+        temp3 = bytes(subprocess.check_output(['python3', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+        print(temp3)
+    except:
+        print("Unable to detect Quarchpy at this location")
+
+    print("sudo python3:  ")
+    try:
+        temp4 = bytes(subprocess.check_output(['sudo', 'python3', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+        print(temp4)
+    except:
+        print("Unable to detect Quarchpy at this location")
+
+
     print("\nJAVA\n----")
     try:
         javaVersion = bytes(subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT)).decode()
@@ -88,7 +117,6 @@ def test_system_info():
         print("\nUnable to detect QIS version. Exception:" +str(e))
 
 
-# Scan for all quarch devices on the system
 def QuarchSimpleIdentify(device1):
     """
     Prints basic identification test data on the specified module, compatible with all Quarch devices
@@ -115,7 +143,6 @@ def QuarchSimpleIdentify(device1):
 
         fixture_info = device1.sendCommand("fix idn?")
         print(fixture_info)
-
 
 
 def get_QIS_version():

@@ -142,8 +142,6 @@ class QpsInterface:
             sleep)  # Time must be allowed for QPS to Scan. If another scan request is sent it will time out and throw an error.
 
     def get_list_details(self, sock=None):
-        if sock == None:
-            sock = self.sock
         devString = self.sendCmdVerbose("$module list details")
         #devString = self.sendAndReceiveText(sock, '$list details')
         devString = devString.replace('>', '')

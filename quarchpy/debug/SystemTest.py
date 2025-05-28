@@ -29,10 +29,10 @@ def test_communication():
         return 0
     print("Selected module is: " + moduleStr)
     # Create a device using the module connection string
-    myDevice = getQuarchDevice(moduleStr)
+    myDevice = get_quarch_device(moduleStr)
     QuarchSimpleIdentify(myDevice)
     # Close the module before exiting the script
-    myDevice.closeConnection()
+    myDevice.close_connection()
 
 
 def test_system_info():
@@ -132,16 +132,16 @@ def QuarchSimpleIdentify(device1):
     print("--------------------")
     print("")
     print("Module Name: "),
-    print(device1.sendCommand("hello?"))
+    print(device1.send_command("hello?"))
     print("")
     # Print the module identify and version information
     print("Module Identity Information: ")
-    idn_info = device1.sendCommand("*idn?")
+    idn_info = device1.send_command("*idn?")
     print(idn_info)
     if "fixture" in idn_info.lower():
         print("\nFixture Identity Information: ")
 
-        fixture_info = device1.sendCommand("fix idn?")
+        fixture_info = device1.send_command("fix idn?")
         print(fixture_info)
 
 

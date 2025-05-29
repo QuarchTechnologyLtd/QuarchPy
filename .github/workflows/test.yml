@@ -79,8 +79,9 @@ jobs:
         curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
         sudo python2 get-pip.py
         pip2 --version
-        # Install future-fstrings as it's needed for _version.py import
+        # Install future-fstrings + enum34 as it's needed for _version.py import
         pip2 install future-fstrings
+        pip2 install enum34
 
     - name: Extract version from _version.py
       id: get_version

@@ -149,3 +149,4 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ${{ steps.build_dist.outputs.wheel_path }}
         asset_content_type: application/zip
+        asset_name: quarchpy-${{ steps.get_version.outputs.version_string }}-py2.py3-none-any.whl # Or derive from wheel_path

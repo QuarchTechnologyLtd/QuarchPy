@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-20.04 # Good choice for Python 2.7
+    runs-on: ubuntu-22.04 # Good choice for Python 2.7
     # strategy: matrix: python-version: ['2.7'] # Matrix not needed if only testing 2.7 manually
 
     steps:
@@ -59,7 +59,7 @@ jobs:
 #        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
   build_and_release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     # needs: test # Recommended: Uncomment to run after tests pass
     if: github.event_name == 'push' && github.ref == 'refs/heads/Py2-Release'
 

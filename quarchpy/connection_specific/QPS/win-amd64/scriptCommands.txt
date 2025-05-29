@@ -1,7 +1,7 @@
 QPS Command Summary
 Copyright (c) Quarch Ltd
-QPS v1.44.2
-Generated: 14 Jan 2025
+QPS v1.46
+Generated: 10 Apr 2025
 
 
 *** Commands ***
@@ -390,7 +390,7 @@ Version: 2
 See also: $qps hide
 
 Command: $read
-Description: Reads data between from a given start time and either end time or number of records
+Description: Reads data between a given start time and either end time or number of records
 Version: 1
 See also: $stream read
 Arguments
@@ -1084,7 +1084,7 @@ $qps hide ~ Hides the QPS application
 
 $qps show ~ Shows the QPS application
 
-$read ~ Reads data between from a given start time and either end time or number of records
+$read ~ Reads data between a given start time and either end time or number of records
 
 $save csv ~ Saves to CSV format
 

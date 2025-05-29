@@ -1,31 +1,39 @@
 *** What's New In Quarch Power Studio ***
 
-14th January 2025
+31st March 2025
 
-QPS version 1.45
-QIS version 1.47
+QPS version 1.46
+QIS version 1.48
 
 
 
 *** New Features ***
 
-Improved help menu links and additional documentation
+Import of custom channel data for CSV via the GUI
 
-Data valid synthetic channel for AC compliance testing
+Direct access to QIS terminal, recording folder and documentation
 
-Improved import speed for custom user data
+Auto check and download of USB driver on windows
 
-Reduced time from start stream, until data is first displayed
+Optional warning when QPS recordings exceed a set level
 
-Added notification for locked devices that are open in other applications
+Java memory heap size can be set in preferences
 
-Improved checking of analysis files when loading
+Chart read optimisation speeds up performance when channels are not visible
+
+Added synthetic AC channel option to show when data is invalid (outside SPEC calibration)
+
+Added notification on connection screen if a device is locked by another process
+
+Recordings are validated on load, clear warning given if anything is wrong
 
 
 *** Major Fixes ***
 
-Fixed issues with window resizing on multiple monitors
+Fixed issue with QPS files not deleting
 
-Improved thread cycling which reduced performance
+Fixed bug where channel ordering was not consistent
 
-Fixed duplicate logging lines
+Fixed issue with synthetic channels enables not working
+
+Fixed issue with timeline corruption when expanded over multiple screens

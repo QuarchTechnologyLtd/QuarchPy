@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.10'] # You can expand this to test on multiple Python versions
+        python-version: ['2.7'] # You can expand this to test on multiple Python versions
 
     steps:
     - name: Checkout code
@@ -35,6 +35,8 @@ jobs:
         fi
         # Explicitly install testing tools if not in requirements.txt
         pip install pytest coverage flake8
+        pip install future-fstrings
+        pip install enum34
 
     - name: Run tests with coverage
       run: |
@@ -71,10 +73,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python 3.10
+    - name: Set up Python 2.7
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '2.7'
 
     - name: Extract version from _version.py
       id: get_version

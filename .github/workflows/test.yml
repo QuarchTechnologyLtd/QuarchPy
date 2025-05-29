@@ -87,15 +87,29 @@ jobs:
       id: get_version
       shell: bash
       run: |
-        # Use python2 for the extraction script
-        VERSION_STRING=$(python2 -c "import sys; sys.path.insert(0, '.'); from quarchpy._version import __version__; print(__version__)")
+        # Capture standard output of the python command
+        RAW_VERSION_STRING=$(python2 -c "import sys; sys.path.insert(0, '.'); from quarchpy._version import __version__; print(__version__)")
         
+        # Clean the output:
+        # 1. Take the last line of output (in case of preceding messages on stdout).
+        # 2. Trim leading/trailing whitespace and newlines using xargs.
+        VERSION_STRING=$(echo "$RAW_VERSION_STRING" | tail -n 1 | xargs)
+
         if [ -z "$VERSION_STRING" ]; then
-          echo "Error: Could not extract version string from quarchpy/_version.py"
+          echo "Error: Version string is empty after extraction and trimming."
+          echo "Raw output from Python command was: ---"
+          echo "$RAW_VERSION_STRING"
+          echo "---"
           exit 1
         fi
         
-        echo "Extracted version for release name: $VERSION_STRING"
+        # Additional check for any remaining internal newlines (should be caught by xargs if it's just one line)
+        if [[ "$VERSION_STRING" == *$'\n'* || "$VERSION_STRING" == *$'\r'* ]]; then
+          echo "Error: Cleaned version string still contains newline characters: '$VERSION_STRING'"
+          exit 1
+        fi
+
+        echo "Cleaned version for release name: '$VERSION_STRING'" # Log the cleaned version
         echo "version_string=$VERSION_STRING" >> "$GITHUB_OUTPUT"
 
     - name: Install build tools

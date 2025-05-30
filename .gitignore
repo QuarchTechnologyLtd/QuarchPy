@@ -6,3 +6,4 @@
 /quarchpy/device/__pycache__
 /quarchpy/__pycache__
 *.pyc
+/quarchpy/.idea

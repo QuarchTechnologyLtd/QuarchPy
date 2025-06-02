@@ -757,7 +757,7 @@ class USBTransferHelper(object):
         they raise AttributeError).
         """
         if transfer is not None:
-            # Deprecated: to drop
+            # DEPRECATED - to drop
             self.__transfer = transfer
             transfer.setCallback(self)
         self.__event_callback_dict = {}
@@ -768,7 +768,7 @@ class USBTransferHelper(object):
         Submit the asynchronous read request.
         Deprecated. Use submit on transfer.
         """
-        # Deprecated: to drop
+        # DEPRECATED - to drop
         self.__transfer.submit()
 
     def cancel(self):
@@ -776,7 +776,7 @@ class USBTransferHelper(object):
         Cancel a pending read request.
         Deprecated. Use cancel on transfer.
         """
-        # Deprecated: to drop
+        # DEPRECATED - to drop
         self.__transfer.cancel()
 
     def setEventCallback(self, event, callback):
@@ -825,7 +825,7 @@ class USBTransferHelper(object):
         Returns whether this reader is currently waiting for an event.
         Deprecatd. Use isSubmitted on transfer.
         """
-        # Deprecated: to drop
+        # DEPRECATED - to drop
         return self.__transfer.isSubmitted()
 
 class USBPollerThread(threading.Thread):

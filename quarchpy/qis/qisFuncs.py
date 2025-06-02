@@ -341,7 +341,7 @@ def GetQisModuleSelection(QisConnection):
     """
     Prints a list of modules for user selection
     
-    .. deprecated:: 2.0.12
+    .. DEPRECATED -: 2.0.12
         Use the module selection functions of the QisInterface class instead
     """
 

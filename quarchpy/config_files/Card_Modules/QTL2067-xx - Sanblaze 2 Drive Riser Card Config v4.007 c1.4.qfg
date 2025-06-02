@@ -1,0 +1,257 @@
+@CONFIG Version=1
+
+# PCIe SFF HS Drive Module
+@HEADER
+DeviceClass=TorridonModule
+DeviceNumbers=QTL2067-xx
+DeviceNumbersExclude=
+MinFirmwareRequired=4.007
+MinFpgaRequired=1.4
+DeviceDescription=Quarch Sanblaze two drive riser module
+
+#Describes general module abilities
+@GENERAL
+HotPlugRead_Present = true
+GlitchStateRead_Present = true
+SourceUserBounce_Present = true
+SignalDrive_Present=true
+
+#Describes all signals on the module
+@SIGNALS
+Name=HOST1_12V_CHARGE,GlitchEnable_Present=true
+Name=HOST1_12V_POWER,GlitchEnable_Present=true
+Name=HOST1_3V3_AUX,GlitchEnable_Present=true
+Name=HOST1_IFDET,GlitchEnable_Present=true
+Name=HOST1_PERST0,GlitchEnable_Present=true,SignalDrive_Present=true
+Name=HOST1_REFCLKp,GlitchEnable_Present=true
+Name=HOST1_REFCLKn,GlitchEnable_Present=true
+Name=HOST1_PETp0,GlitchEnable_Present=true
+Name=HOST1_PETn0,GlitchEnable_Present=true
+Name=HOST1_PERp0,GlitchEnable_Present=true
+Name=HOST1_PERn0,GlitchEnable_Present=true
+Name=HOST1_PETp1,GlitchEnable_Present=true
+Name=HOST1_PETn1,GlitchEnable_Present=true
+Name=HOST1_PERp1,GlitchEnable_Present=true
+Name=HOST1_PERn1,GlitchEnable_Present=true
+Name=HOST1_PETp2,GlitchEnable_Present=true
+Name=HOST1_PETn2,GlitchEnable_Present=true
+Name=HOST1_PERp2,GlitchEnable_Present=true
+Name=HOST1_PERn2,GlitchEnable_Present=true
+Name=HOST1_PETp3,GlitchEnable_Present=true
+Name=HOST1_PETn3,GlitchEnable_Present=true
+Name=HOST1_PERp3,GlitchEnable_Present=true
+Name=HOST1_PERn3,GlitchEnable_Present=true
+Name=HOST2_PETp0,GlitchEnable_Present=true
+Name=HOST2_PETn0,GlitchEnable_Present=true
+Name=HOST2_PERp0,GlitchEnable_Present=true
+Name=HOST2_PERn0,GlitchEnable_Present=true
+Name=HOST2_PETp1,GlitchEnable_Present=true
+Name=HOST2_PETn1,GlitchEnable_Present=true
+Name=HOST2_PERp1,GlitchEnable_Present=true
+Name=HOST2_PERn1,GlitchEnable_Present=true
+Name=HOST2_PETp2,GlitchEnable_Present=true
+Name=HOST2_PETn2,GlitchEnable_Present=true
+Name=HOST2_PERp2,GlitchEnable_Present=true
+Name=HOST2_PERn2,GlitchEnable_Present=true
+Name=HOST2_PETp3,GlitchEnable_Present=true
+Name=HOST2_PETn3,GlitchEnable_Present=true
+Name=HOST2_PERp3,GlitchEnable_Present=true
+Name=HOST2_PERn3,GlitchEnable_Present=true
+Name=HOST2_REFCLKp,GlitchEnable_Present=true
+Name=HOST2_REFCLKn,GlitchEnable_Present=true
+Name=HOST2_PERST0,GlitchEnable_Present=true,SignalDrive_Present=true
+Name=HOST2_IFDET,GlitchEnable_Present=true
+Name=HOST2_3V3_AUX,GlitchEnable_Present=true
+Name=HOST2_12V_POWER,GlitchEnable_Present=true
+Name=HOST2_12V_CHARGE,GlitchEnable_Present=true
+
+Name=HOST1_P1,GlitchEnable_Present=true,SignalDrive_Present=true
+Name=HOST1_P2,GlitchEnable_Present=true,SignalDrive_Present=true
+Name=HOST1_P3,GlitchEnable_Present=true,SignalDrive_Present=true
+Name=HOST2_P1,GlitchEnable_Present=true,SignalDrive_Present=true
+Name=HOST2_P2,GlitchEnable_Present=true,SignalDrive_Present=true
+Name=HOST2_P3,GlitchEnable_Present=true,SignalDrive_Present=true
+
+@SIGNAL_GROUPS
+Name=ALL,Signals="HOST1_PETp0,HOST1_PETn0,HOST1_PERp0,HOST1_PERn0,HOST1_PETp1,HOST1_PETn1,HOST1_PERp1,HOST1_PERn1,HOST1_PETp2,HOST1_PETn2,HOST1_PERp2,HOST1_PERn2,HOST1_PETp3,HOST1_PETn3,HOST1_PERp3,HOST1_PERn3,HOST1_IFDET,HOST1_PERST0,HOST1_3V3_AUX,HOST1_12V_POWER,HOST1_12V_CHARGE,HOST1_REFCLKp,HOST1_REFCLKn,HOST2_PETp0,HOST2_PETn0,HOST2_PERp0,HOST2_PERn0,HOST2_PETp1,HOST2_PETn1,HOST2_PERp1,HOST2_PERn1,HOST2_PETp2,HOST2_PETn2,HOST2_PERp2,HOST2_PERn2,HOST2_PETp3,HOST2_PETn3,HOST2_PERp3,HOST2_PERn3,HOST2_PERST0,HOST2_IFDET,HOST2_3V3_AUX,HOST2_12V_POWER,HOST2_12V_CHARGE,HOST2_REFCLKp,HOST2_REFCLKn, HOST1_P1, HOST1_P2, HOST1_P3, HOST2_P1, HOST2_P3, HOST2_P3"
+Name=HOST1_DATA,Signals="HOST1_PETp0,HOST1_PETn0,HOST1_PERp0,HOST1_PERn0,HOST1_PETp1,HOST1_PETn1,HOST1_PERp1,HOST1_PERn1,HOST1_PETp2,HOST1_PETn2,HOST1_PERp2,HOST1_PERn2,HOST1_PETp3,HOST1_PETn3,HOST1_PERp3,HOST1_PERn3"
+Name=HOST1_SIDEBAND,Signals="HOST1_IFDET,HOST1_PERST0,HOST1_REFCLKp,HOST1_REFCLKn"
+Name=HOST1_POWER,Signals="HOST1_3V3_AUX,HOST1_12V_POWER,HOST1_12V_CHARGE"
+Name=HOST1_REFCLK,Signals="HOST1_REFCLKp,HOST1_REFCLKn"
+Name=HOST1_LANE0,Signals="HOST1_PETp0,HOST1_PETn0,HOST1_PERp0,HOST1_PERn0"
+Name=HOST1_LANE1,Signals="HOST1_PETp1,HOST1_PETn1,HOST1_PERp1,HOST1_PERn1"
+Name=HOST1_LANE2,Signals="HOST1_PETp2,HOST1_PETn2,HOST1_PERp2,HOST1_PERn2"
+Name=HOST1_LANE3,Signals="HOST1_PETp3,HOST1_PETn3,HOST1_PERp3,HOST1_PERn3"
+
+Name=HOST2_DATA,Signals="HOST2_PETp0,HOST2_PETn0,HOST2_PERp0,HOST2_PERn0,HOST2_PETp1,HOST2_PETn1,HOST2_PERp1,HOST2_PERn1,HOST2_PETp2,HOST2_PETn2,HOST2_PERp2,HOST2_PERn2,HOST2_PETp3,HOST2_PETn3,HOST2_PERp3,HOST2_PERn3"
+Name=HOST2_SIDEBAND,Signals="HOST2_IFDET,HOST2_PERST0,HOST2_REFCLKp, HOST2_REFCLKn"
+Name=HOST2_POWER,Signals="HOST2_3V3_AUX,HOST2_12V_POWER,HOST2_12V_CHARGE"
+Name=HOST2_REFCLK,Signals="HOST2_REFCLKp,HOST2_REFCLKn"
+Name=HOST2_LANE0,Signals="HOST2_PETp0,HOST2_PETn0,HOST2_PERp0,HOST2_PERn0"
+Name=HOST2_LANE1,Signals="HOST2_PETp1,HOST2_PETn1,HOST2_PERp1,HOST2_PERn1"
+Name=HOST2_LANE2,Signals="HOST2_PETp2,HOST2_PETn2,HOST2_PERp2,HOST2_PERn2"
+Name=HOST2_LANE3,Signals="HOST2_PETp3,HOST2_PETn3,HOST2_PERp3,HOST2_PERn3"
+
+# Describes all sources on the module
+@SOURCES
+
+# Describes basic source parameters
+@SOURCE_START
+Number=0
+Type=ALWAYS_OFF
+Name=Source 0
+SourceEnable_Present=false
+@SOURCE_END
+
+
+# Describes basic source parameters
+@SOURCE_START
+Number=1
+Type=TIMED
+Name=Source 1
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=2
+Type=TIMED
+Name=Source 2
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=3
+Type=TIMED
+Name=Source 3
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=4
+Type=TIMED
+Name=Source 4
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=5
+Type=TIMED
+Name=Source 5
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=6
+Type=TIMED
+Name=Source 6
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=7
+Type=IMMEDIATE_CHANGE
+Name=Source 7
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=8
+Type=ALWAYS_ON
+Name=Source 8
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes glitching module
+@GLITCH
+GlitchSignals_present=true
+GlitchSignals_Version=2
+GlitchLength_Limits=int,0,255,1
+GlitchMultiplier_Settings=50ns,500ns,5us,50us,500us,5ms,50ms,500ms
+GlitchPrbs_Settings=1:2,1:4,1:8,1:16,1:32,1:64,1:128,1:256,1:512,1:1024,1:2048,1:4096,1:8192,1:16384,1:32768,1:65536
+
+@MEASURE
+Name=3V3_AUX_HOST,Type=Voltage
+Name=3V3_AUX_DEVICE1,Type=Voltage
+Name=3V3_AUX_DEVICE2,Type=Voltage
+Name=12V_HOST1,Type=Voltage
+Name=12V_HOST2,Type=Voltage
+Name=12V_DEVICE1,Type=Voltage
+Name=12V_DEVICE2,Type=Voltage
+Name=12V_CHARGE_DEVICE1,Type=Voltage
+Name=12V_CHARGE_DEVICE2,Type=Voltage
+Name=1v2,Type=SelfVoltage
+Name=3v3,Type=SelfVoltage
+Name=12v,Type=SelfVoltage

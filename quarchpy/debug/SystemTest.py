@@ -29,10 +29,10 @@ def test_communication():
         return 0
     print("Selected module is: " + moduleStr)
     # Create a device using the module connection string
-    myDevice = getQuarchDevice(moduleStr)
+    myDevice = get_quarch_device(moduleStr)
     QuarchSimpleIdentify(myDevice)
     # Close the module before exiting the script
-    myDevice.closeConnection()
+    myDevice.close_connection()
 
 
 def test_system_info():
@@ -64,6 +64,35 @@ def test_system_info():
         print(e)
         print("Unable to detect Quarchpy location")
 
+    print("python:  ")
+    try:
+        temp1 = bytes(subprocess.check_output(['python', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+        print(temp1)
+    except:
+        print("Unable to detect Quarchpy at this location")
+
+    print("sudo python:  ")
+    try:
+        temp2 = bytes(subprocess.check_output(['sudo', 'python', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+        print(temp2)
+    except:
+        print("Unable to detect Quarchpy at this location")
+
+    print("python3:  ")
+    try:
+        temp3 = bytes(subprocess.check_output(['python3', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+        print(temp3)
+    except:
+        print("Unable to detect Quarchpy at this location")
+
+    print("sudo python3:  ")
+    try:
+        temp4 = bytes(subprocess.check_output(['sudo', 'python3', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+        print(temp4)
+    except:
+        print("Unable to detect Quarchpy at this location")
+
+
     print("\nJAVA\n----")
     try:
         javaVersion = bytes(subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT)).decode()
@@ -88,7 +117,6 @@ def test_system_info():
         print("\nUnable to detect QIS version. Exception:" +str(e))
 
 
-# Scan for all quarch devices on the system
 def QuarchSimpleIdentify(device1):
     """
     Prints basic identification test data on the specified module, compatible with all Quarch devices
@@ -104,11 +132,17 @@ def QuarchSimpleIdentify(device1):
     print("--------------------")
     print("")
     print("Module Name: "),
-    print(device1.sendCommand("hello?"))
+    print(device1.send_command("hello?"))
     print("")
     # Print the module identify and version information
     print("Module Identity Information: ")
-    print(device1.sendCommand("*idn?"))
+    idn_info = device1.send_command("*idn?")
+    print(idn_info)
+    if "fixture" in idn_info.lower():
+        print("\nFixture Identity Information: ")
+
+        fixture_info = device1.send_command("fix idn?")
+        print(fixture_info)
 
 
 def get_QIS_version():

@@ -1,0 +1,185 @@
+@CONFIG Version=2
+
+# Torridon HS mini SAS MUX module
+@HEADER
+DeviceClass=TorridonMuxModule
+DeviceNumbers=QTL1564-xx
+DeviceNumbersExclude=
+MinFirmwareRequired=4.000
+MinFpgaRequired=1.1
+DeviceDescription=Mini SAS HD MUX Module
+
+#Describes general module abilities
+@GENERAL
+ConnectDelay_Present = true
+ConnectDelay_Limits = int,0,10,1
+OffPortName = 0
+PortNameDisplayWidth = 80
+PortNameDisplayHeight = 15
+
+@PORT_GROUPS
+Name=ALL,Ports="1,2,3,4,5,6,7,8,9,10,11,12"
+
+#Describes ports
+@PORTS
+
+
+@PORT_START
+PortName=1
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=10,55
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=2
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=30,40
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=3
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=85,15
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=4
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=115,15
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=5
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=160,40
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=6
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=180,55
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=7
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=10,95
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=8
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=30,110
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=9
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=85,135
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=10
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=115,135
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=11
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=160,110
+PortColor=Black
+@PORT_END
+
+@PORT_START
+PortName=12
+Type=DEVICE
+PreEmphasis_Present = true
+PreEmphasis_Limits=int,0,7,1
+Equalisation_Present = true
+Equalisation_Limits=int,0,31,1
+Amplitude_Limits=int,0,2,1
+Amplitude_Present = true
+GuiDisplayPoint=180,95
+PortColor=Black
+@PORT_END
+
+@MEASURE
+Name=12v,Type=SelfVoltage
+Name=5v,Type=SelfVoltage

@@ -1,0 +1,209 @@
+@CONFIG Version=1
+
+# GEN4 M.2 M-Key Vertical Breaker
+@HEADER
+DeviceClass=TorridonModule
+DeviceNumbers=QTL2322-xx
+DeviceNumbersExclude=
+MinFirmwareRequired=5.000
+MinFpgaRequired=1.1
+DeviceDescription=GEN4 M.2 Vertical Breaker
+
+#Describes general module abilities
+@GENERAL
+HotPlugRead_Present = true
+GlitchStateRead_Present = true
+SourceUserBounce_Present = true
+SignalDrive_Present=true
+HighResTiming_Present=true
+BounceV2_Present=true
+Triggering_Present=false
+PowerInjection_Present=false
+HostPowerTriggering_Present=false
+LaneWidth_Present=4
+
+#Describes all signals on the module
+@SIGNALS
+Name=PERP_0,GlitchEnable_Present=true,DefaultSource=2
+Name=PERN_0,GlitchEnable_Present=true,DefaultSource=2
+Name=PETP_0,GlitchEnable_Present=true,DefaultSource=2
+Name=PETN_0,GlitchEnable_Present=true,DefaultSource=2
+Name=PERP_1,GlitchEnable_Present=true,DefaultSource=2
+Name=PERN_1,GlitchEnable_Present=true,DefaultSource=2
+Name=PETP_1,GlitchEnable_Present=true,DefaultSource=2
+Name=PETN_1,GlitchEnable_Present=true,DefaultSource=2
+Name=PERP_2,GlitchEnable_Present=true,DefaultSource=2
+Name=PERN_2,GlitchEnable_Present=true,DefaultSource=2
+Name=PETP_2,GlitchEnable_Present=true,DefaultSource=2
+Name=PETN_2,GlitchEnable_Present=true,DefaultSource=2
+Name=PERP_3,GlitchEnable_Present=true,DefaultSource=2
+Name=PERN_3,GlitchEnable_Present=true,DefaultSource=2
+Name=PETP_3,GlitchEnable_Present=true,DefaultSource=2
+Name=PETN_3,GlitchEnable_Present=true,DefaultSource=2
+
+Name=VCC,GlitchEnable_Present=true,DefaultSource=1
+Name=CLK_PL,GlitchEnable_Present=true,DefaultSource=2
+Name=CLK_MN,GlitchEnable_Present=true,DefaultSource=2
+
+Name=PEWAKE,GlitchEnable_Present=true,DefaultSource=2,SignalDrive_Present=true
+Name=CLKREQ,GlitchEnable_Present=true,DefaultSource=2,SignalDrive_Present=true
+Name=LED1,GlitchEnable_Present=true,DefaultSource=2,SignalDrive_Present=true
+Name=PERST,GlitchEnable_Present=true,DefaultSource=2,SignalDrive_Present=true
+Name=SUSCLK,GlitchEnable_Present=true,DefaultSource=2,SignalDrive_Present=true
+Name=ALERT,GlitchEnable_Present=true,DefaultSource=2,SignalDrive_Present=true
+Name=SMB_DATA,GlitchEnable_Present=true,DefaultSource=2,SignalDrive_Present=true
+Name=SMB_CLK,GlitchEnable_Present=true,DefaultSource=2,SignalDrive_Present=true
+
+
+@SIGNAL_GROUPS
+Name=ALL,Signals="PERP_0,PERN_0,PETP_0,PETN_0,PERP_1,PERN_1,PETP_1,PETN_1,PERP_2,PERN_2,PETP_2,PETN_2,PERP_3,PERN_3,PETP_3,PETN_3,VCC,CLK_PL,CLK_MN,PEWAKE,CLKREQ,LED1,PERST,SUSCLK,ALERT,SMB_DATA,SMB_CLK"
+Name=CLK,Signals="CLK_PL,CLK_MN"
+Name=MANAGEMENT,Signals="PEWAKE,CLKREQ,LED1,PERST,SUSCLK,ALERT,SMB_DATA,SMB_CLk"
+Name=POWER,Signals="VCC"
+Name=SMB_BUS,Signals="SMB_DATA,SMB_CLK"
+Name=LANE0,Signals="PERP_0,PERN_0,PETP_0,PETN_0"
+Name=LANE1,Signals="PERP_1,PERN_1,PETP_1,PETN_1"
+Name=LANE2,Signals="PERP_2,PERN_2,PETP_2,PETN_2"
+Name=LANE3,Signals="PERP_3,PERN_3,PETP_3,PETN_3"
+Name=DATA,Signals="PERP_0,PERN_0,PETP_0,PETN_0,PERP_1,PERN_1,PETP_1,PETN_1,PERP_2,PERN_2,PETP_2,PETN_2,PERP_3,PERN_3,PETP_3,PETN_3"
+
+# Describes all sources on the module
+@SOURCES
+
+# Describes basic source parameters
+@SOURCE_START
+Number=0
+Type=ALWAYS_OFF
+Name=Source 0
+SourceEnable_Present=false
+@SOURCE_END
+
+
+# Describes basic source parameters
+@SOURCE_START
+Number=1
+Type=TIMED
+Name=Source 1
+SourceDelay_Limits=us,0,16777215,1
+DefaultDelay=0ms
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=us,0,16777215,1
+BouncePeriod_Limits=ns,100,1677721500,100
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=2
+Type=TIMED
+Name=Source 2
+SourceDelay_Limits=us,0,16777215,1
+DefaultDelay=25ms
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=us,0,16777215,1
+BouncePeriod_Limits=ns,100,1677721500,100
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=3
+Type=TIMED
+Name=Source 3
+SourceDelay_Limits=us,0,16777215,1
+DefaultDelay=0ms
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=us,0,16777215,1
+BouncePeriod_Limits=ns,100,1677721500,100
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=4
+Type=TIMED
+Name=Source 4
+DefaultDelay=0ms
+SourceDelay_Limits=us,0,16777215,1
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=us,0,16777215,1
+BouncePeriod_Limits=ns,100,1677721500,100
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=5
+Type=TIMED
+Name=Source 5
+DefaultDelay=0ms
+SourceDelay_Limits=us,0,16777215,1
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=us,0,16777215,1
+BouncePeriod_Limits=ns,100,1677721500,100
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=6
+Type=TIMED
+Name=Source 6
+DefaultDelay=0ms
+SourceDelay_Limits=us,0,16777215,1
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=us,0,16777215,1
+BouncePeriod_Limits=ns,100,1677721500,100
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=7
+Type=IMMEDIATE_CHANGE
+Name=Source 7
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=8
+Type=ALWAYS_ON
+Name=Source 8
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes glitching module
+@GLITCH
+GlitchSignals_present=true
+GlitchSignals_Version=2
+GlitchLength_Limits=int,0,255,1
+GlitchMultiplier_Settings=50ns,500ns,5us,50us,500us,5ms,50ms,500ms
+GlitchPrbs_Settings=1:2,1:4,1:8,1:16,1:32,1:64,1:128,1:256,1:512,1:1024,1:2048,1:4096,1:8192,1:16384,1:32768,1:65536
+
+@MEASURE
+Name=3v3,Type=SelfVoltage,NominalValue=3300

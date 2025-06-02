@@ -1,0 +1,9 @@
+/.idea
+/build
+/dist
+/quarchpy.egg-info
+/quarchpy/docs/_build
+/quarchpy/device/__pycache__
+/quarchpy/__pycache__
+*.pyc
+/quarchpy/.idea

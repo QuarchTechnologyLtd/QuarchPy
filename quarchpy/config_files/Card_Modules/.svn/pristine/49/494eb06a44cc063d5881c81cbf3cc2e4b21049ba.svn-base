@@ -1,0 +1,188 @@
+@CONFIG Version=1
+
+# PCIe EDSFF Card Module
+@HEADER
+DeviceClass=TorridonModule
+DeviceNumbers=QTL2334-xx
+DeviceNumbersExclude=
+MinFirmwareRequired=4.000
+MinFpgaRequired=1.1
+DeviceDescription=Gen4 EDSFF x4 Card Module
+
+#Describes general module abilities
+@GENERAL
+HotPlugRead_Present = true
+GlitchStateRead_Present = true
+SourceUserBounce_Present = true
+SignalDrive_Present=true
+HighResTiming_Present=true
+BounceV2_Present=true
+SignalMonitor_Present=true
+
+#Describes all signals on the module
+@SIGNALS
+Name=PETP_0,GlitchEnable_Present=true,DefaultSource=1
+Name=PETN_0,GlitchEnable_Present=true,DefaultSource=1
+Name=PERP_0,GlitchEnable_Present=true,DefaultSource=1
+Name=PERN_0,GlitchEnable_Present=true,DefaultSource=1
+
+Name=PETP_1,GlitchEnable_Present=true,DefaultSource=1
+Name=PETN_1,GlitchEnable_Present=true,DefaultSource=1
+Name=PERP_1,GlitchEnable_Present=true,DefaultSource=1
+Name=PERN_1,GlitchEnable_Present=true,DefaultSource=1
+
+Name=PETP_2,GlitchEnable_Present=true,DefaultSource=1
+Name=PETN_2,GlitchEnable_Present=true,DefaultSource=1
+Name=PERP_2,GlitchEnable_Present=true,DefaultSource=1
+Name=PERN_2,GlitchEnable_Present=true,DefaultSource=1
+
+Name=PETP_3,GlitchEnable_Present=true,DefaultSource=1
+Name=PETN_3,GlitchEnable_Present=true,DefaultSource=1
+Name=PERP_3,GlitchEnable_Present=true,DefaultSource=1
+Name=PERN_3,GlitchEnable_Present=true,DefaultSource=1
+
+Name=12v_POWER,GlitchEnable_Present=true,DefaultSource=1
+Name=3v3_AUX,GlitchEnable_Present=true,DefaultSource=1
+
+Name=REF_CLK_0_PL,GlitchEnable_Present=true,DefaultSource=1
+Name=REF_CLK_0_MN,GlitchEnable_Present=true,DefaultSource=1
+Name=REF_CLK_1_PL,GlitchEnable_Present=true,DefaultSource=1
+Name=REF_CLK_1_MN,GlitchEnable_Present=true,DefaultSource=1
+
+Name=PRSNT_0,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=PERST_0,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=PERST_1,GlitchEnable_Present=true,DefaultSource=1
+
+Name=ACTIVITY,GlitchEnable_Present=true,DefaultSource=1
+
+Name=SMB_RST,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=SMB_CLK,GlitchEnable_Present=true,DefaultSource=1,SignalMonitor_Present=true
+Name=SMB_DAT,GlitchEnable_Present=true,DefaultSource=1,SignalMonitor_Present=true
+
+Name=PWR_DIS,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=MFG,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=DUALPORT_EN,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+
+
+@SIGNAL_GROUPS
+Name=ALL,Signals="12v_POWER,3V3_AUX,SMB_CLK,SMB_DAT,SMB_RST,PETP_0,PETN_0,PERP_0,PERN_0,PETP_1,PETN_1,PERP_1,PERN_1,PETP_2,PETN_2,PERP_2,PERN_2,PETP_3,PETN_3,PERP_3,PERN_3,REF_CLK_0_PL,REF_CLK_0_MN,REF_CLK_1_PL,REF_CLK_1_MN,PRSNT_0,PERST_0,PERST_1,ACTIVITY,SMB_CLK,SMB_DAT,SMB_RST,PWR_DIS,MFG,DUALPORT_EN"
+Name=POWER,Signals="12v_POWER,3V3_AUX"
+Name=SMB_BUS,Signals="SMB_CLK,SMB_DAT,SMB_RST"
+Name=DATA,Signals="PETP_0,PETN_0,PERP_0,PERN_0,PETP_1,PETN_1,PERP_1,PERN_1,PETP_2,PETN_2,PERP_2,PERN_2,PETP_3,PETN_3,PERP_3,PERN_3"
+Name=REF_CLK,Signals="REF_CLK_0_PL,REF_CLK_0_MN,REF_CLK_1_PL,REF_CLK_1_MN"
+Name=MANAGEMENT,Signals="PRSNT_0,PERST_0,PERST_1,ACTIVITY,SMB_CLK,SMB_DAT,SMB_RST,PWR_DIS,MFG,DUALPORT_EN"
+Name=LANE0,Signals="PETP_0,PETN_0,PERP_0,PERN_0"
+Name=LANE1,Signals="PETP_1,PETN_1,PERP_1,PERN_1"
+Name=LANE2,Signals="PETP_2,PETN_2,PERP_2,PERN_2"
+Name=LANE3,Signals="PETP_3,PETN_3,PERP_3,PERN_3"
+
+
+# Describes all sources on the module
+@SOURCES
+
+# Describes basic source parameters
+@SOURCE_START
+Number=0
+Type=ALWAYS_OFF
+Name=Source 0
+SourceEnable_Present=false
+@SOURCE_END
+
+
+# Describes basic source parameters
+@SOURCE_START
+Number=1
+Type=TIMED
+Name=Source 1
+SourceDelay_Limits=us,0,16777215,1
+DefaultDelay=0ms
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=us,0,16777215,1
+BouncePeriod_Limits=ns,100,1677721500,100
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=2
+Type=TIMED
+Name=Source 2
+SourceDelay_Limits=us,0,16777215,1
+DefaultDelay=0ms
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=us,0,16777215,1
+BouncePeriod_Limits=ns,100,1677721500,100
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=3
+Type=TIMED
+Name=Source 3
+SourceDelay_Limits=us,0,16777215,1
+DefaultDelay=0ms
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=us,0,16777215,1
+BouncePeriod_Limits=ns,100,1677721500,100
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=4
+Type=TIMED
+Name=Source 4
+SourceDelay_Limits=us,0,16777215,1
+DefaultDelay=0ms
+SourceDelay_Limits=us,0,16777215,1
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=us,0,16777215,1
+BouncePeriod_Limits=ns,100,1677721500,100
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=7
+Type=IMMEDIATE_CHANGE
+Name=Source 7
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=8
+Type=ALWAYS_ON
+Name=Source 8
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes glitching module
+@GLITCH
+GlitchSignals_present=true
+GlitchSignals_Version=2
+GlitchLength_Limits=int,0,255,1
+GlitchMultiplier_Settings=50ns,500ns,5us,50us,500us,5ms,50ms,500ms
+GlitchPrbs_Settings=1:2,1:4,1:8,1:16,1:32,1:64,1:128,1:256,1:512,1:1024,1:2048,1:4096,1:8192,1:16384,1:32768,1:65536
+
+@MEASURE
+Name=5v,Type=SelfVoltage,NominalValue=5000
+Name=1v2,Type=SelfVoltage,NominalValue=1200
+Name=3v3,Type=SelfVoltage,NominalValue=3300

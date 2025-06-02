@@ -18,8 +18,8 @@ class quarchPPM(quarchDevice):
         if not skipDefaultSyntheticChannels and self.ConType[:3].upper() == "QIS" and "FAIL:" not in self.fixture_definition:
             self.create_default_synthetic_channels()
  
-    def startStream(self, fileName='streamData.txt', fileMaxMB=200000, streamName ='Stream With No Name', streamDuration = None, streamAverage = None, releaseOnData = False, separator=",", inMemoryData = None):
-        return self.connectionObj.qis.startStream(self.ConString, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration, inMemoryData)
+    def startStream(self, fileName='streamData.txt', fileMaxMB=200000, streamName ='Stream With No Name', streamDuration = None, streamAverage = None, releaseOnData = False, separator=",", inMemoryData = None, outputFileHandle = None, useGzip = None):
+        return self.connectionObj.qis.startStream(self.ConString, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip)
 
     def streamRunningStatus(self):
         return self.connectionObj.qis.streamRunningStatus(self.ConString)

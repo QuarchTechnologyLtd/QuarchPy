@@ -1,6 +1,7 @@
-from quarchpy import *
-from quarchpy.device import *
-from quarchpy.connection_specific.jdk_j21_jres.fix_permissions import main as fix_permissions, find_java_permissions
+import os
+import platform
+import sys
+import subprocess
 try:
     from importlib.metadata import distribution
 except:
@@ -9,13 +10,13 @@ except:
     except Exception as e:
         print("Failed to import distribution from importlib_metadata")
 
-import os
-import platform
-import sys
-import subprocess
+from quarchpy.device import *
+from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
+from quarchpy.qis.qisFuncs import isQisRunning, startLocalQis
+from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy._version import __version__
 
-def test_communication():
+def _test_communication():
     print("")
     print("DEVICE COMMUNICATION TEST")
     print("-------------------------")
@@ -35,7 +36,7 @@ def test_communication():
     myDevice.close_connection()
 
 
-def test_system_info():
+def _test_system_info():
     print("")
     print("SYSTEM INFORMATION")
     print("------------------")
@@ -71,26 +72,27 @@ def test_system_info():
     except:
         print("Unable to detect Quarchpy at this location")
 
-    print("sudo python:  ")
-    try:
-        temp2 = bytes(subprocess.check_output(['sudo', 'python', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
-        print(temp2)
-    except:
-        print("Unable to detect Quarchpy at this location")
+    if "nt" not in os.name:
+        print("sudo python:  ")
+        try:
+            temp2 = bytes(subprocess.check_output(['sudo', 'python', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+            print(temp2)
+        except:
+            print("Unable to detect Quarchpy at this location")
 
-    print("python3:  ")
-    try:
-        temp3 = bytes(subprocess.check_output(['python3', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
-        print(temp3)
-    except:
-        print("Unable to detect Quarchpy at this location")
+        print("python3:  ")
+        try:
+            temp3 = bytes(subprocess.check_output(['python3', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+            print(temp3)
+        except:
+            print("Unable to detect Quarchpy at this location")
 
-    print("sudo python3:  ")
-    try:
-        temp4 = bytes(subprocess.check_output(['sudo', 'python3', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
-        print(temp4)
-    except:
-        print("Unable to detect Quarchpy at this location")
+        print("sudo python3:  ")
+        try:
+            temp4 = bytes(subprocess.check_output(['sudo', 'python3', '-m', 'pip', 'show', 'quarchpy'], stderr=subprocess.STDOUT)).decode()
+            print(temp4)
+        except:
+            print("Unable to detect Quarchpy at this location")
 
 
     print("\nJAVA\n----")
@@ -117,6 +119,7 @@ def test_system_info():
         print("\nUnable to detect QIS version. Exception:" +str(e))
 
 
+# Scan for all quarch devices on the system
 def QuarchSimpleIdentify(device1):
     """
     Prints basic identification test data on the specified module, compatible with all Quarch devices
@@ -154,11 +157,10 @@ def get_QIS_version():
     -------
     version: str
         String representation of the QIS version number
-
     """
 
-    qis_version = ""
-    my_close_qis = False
+    qis_version = "" # stub
+    my_close_qis = False # Only close QIS if we opened it.
     try:
         qisRunning=isQisRunning()
     except Exception as e:
@@ -168,7 +170,7 @@ def get_QIS_version():
         my_close_qis = True
         startLocalQis(headless=True)
 
-    myQis = qisInterface()
+    myQis = QisInterface()
     qis_version = myQis.sendAndReceiveCmd(cmd="$version")
     if "No Target Device Specified" in qis_version:
         qis_version = myQis.sendAndReceiveCmd(cmd="$help").split("\r\n")[0]
@@ -242,9 +244,9 @@ def main (args=None):
     if bool_fixusb:
         fix_usb()
     if bool_test_system_info:
-        test_system_info()
+        _test_system_info()
     if bool_test_communication:
-        test_communication()
+        _test_communication()
 
 
 

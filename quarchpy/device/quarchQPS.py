@@ -1,36 +1,32 @@
+from __future__ import annotations
 import logging
-import sys
 import time
-import enum as Enum
+from io import StringIO
+from typing import Optional, Union, List, Any, Literal
+import enum
 
-from quarchpy.user_interface import printText
+# Third-party imports
+try:
+    import pandas as pd
+except ImportError:
+    pd = None  # type: ignore
 
+# Local application imports
 from quarchpy.device import quarchDevice
 from quarchpy.user_interface.user_interface import requestDialog
-from quarchpy.utilities.Version import Version
 
-if sys.version_info[0] < 3:
-    from StringIO import StringIO
-else:
-    from io import StringIO
-
-
-# Using standard Unix time, milliseconds since the epoch (midnight 1 January 1970 UTC)
-# Should avoid issues with time zones and summer time correction but the local and host
-# clocks should still be synchronised
-def qpsNowStr():
-    """Gets the current time as milliseconds since the Unix epoch.
-
-    Uses the utility function `current_milli_time` which aims to provide
-    a timestamp suitable for Quarch systems, avoiding timezone/DST issues
-    if clocks are synchronized.
+def qpsNowStr() -> str:
+    """
+    Gets the current time as milliseconds since the Unix epoch.
 
     Returns:
         str: The current time as a string representing milliseconds
-             since the epoch (e.g., "1678886400123").
+             since the epoch.
     """
-    return current_milli_time()  # datetime supports microseconds
+    return str(current_milli_time())
 
+
+# --- Main Classes ---
 
 class quarchQPS(quarchDevice):
     """
@@ -39,57 +35,40 @@ class quarchQPS(quarchDevice):
     Handles interaction specific to QPS modules, including stream management.
     """
 
-    def __init__(self, quarchDevice):
+    def __init__(self, quarchDevice: quarchDevice):
         """
         Initializes the quarchQPS wrapper using an existing quarchDevice object.
 
         Args:
             quarchDevice (quarchDevice): An initialized instance of
                 the base quarchDevice class containing connection details.
+
+        Raises:
+            AttributeError: If the provided quarchDevice is not a valid QPS connection.
         """
-        super().__init__(quarchDevice.ConString)
+        super().__init__(quarchDevice.ConString, ConType=quarchDevice.ConType)
         self.quarchDevice = quarchDevice
-        self.ConType = quarchDevice.ConType
-        self.ConString = quarchDevice.ConString
-
         self.connectionObj = quarchDevice.connectionObj
-        self.IP_address = quarchDevice.connectionObj.qps.host
-        self.port_number = quarchDevice.connectionObj.qps.port
 
-    def startStream(self, directory, unserInput=True, streamDuration=""):
-        """
-        DEPRECATED: Use start_stream instead.
+        if not hasattr(self.connectionObj, 'qps'):
+            raise AttributeError("The provided quarchDevice is not a valid QPS connection.")
+        self.IP_address = self.connectionObj.qps.host
+        self.port_number = self.connectionObj.qps.port
 
-        Initializes and starts a Quarch data stream.
+    # --- Public API Methods ---
 
-        Args:
-            directory (str): The desired directory for the stream output.
-            unserInput (bool, optional): If True (default), allows user interaction
-                to rectify issues if a failure occurs. Set to False if user
-                interaction is unavailable (e.g., automation). Defaults to True.
-            streamDuration (str, optional): Specifies the duration of the stream.
-                An empty string (default) signifies an indefinite stream.
-
-        Returns:
-            quarchStream: An instance of the quarchStream class which manages
-            the newly initiated stream.
-        """
-        return self.start_stream(directory, unserInput, streamDuration)
-
-    def start_stream(self, directory, user_input=True, stream_duration=""):
+    def start_stream(self, directory: str, user_input: bool = True, stream_duration: str = "") -> 'quarchStream':
         """
         Initializes and starts a Quarch data stream.
 
         This method creates a quarchStream object, which handles the setup
-        and management of the data stream for the QPS application to the specified
-        directory.
+        and management of the data stream for the QPS application.
 
         Args:
             directory (str): The target directory where stream data will be saved.
-            user_input (bool, optional): Controls user interaction on failure
-                during stream initiation. If True (default), prompts the user.
-                If False, suppresses interaction and raises an Exception on failure.
-                Defaults to True.
+            user_input (bool, optional): Controls user interaction on failure.
+                If True (default), prompts the user. If False, raises an
+                Exception on failure.
             stream_duration (str, optional): Defines the requested duration for the
                 stream. An empty string (default) signifies an indefinite stream.
 
@@ -99,1016 +78,638 @@ class quarchQPS(quarchDevice):
         """
         return quarchStream(self, directory, user_input, stream_duration)
 
+    def startStream(self, directory: str, unserInput: bool = True, streamDuration: str = "") -> 'quarchStream':
+        """
+        DEPRECATED: Use start_stream instead.
+
+        Args:
+            directory (str): The target directory where stream data will be saved.
+            unserInput (bool, optional): Controls user interaction on failure.
+            streamDuration (str, optional): Defines the requested duration.
+
+        Returns:
+            quarchStream: An instance of the quarchStream class.
+        """
+        return self.start_stream(directory, unserInput, streamDuration)
+
 
 class quarchStream:
     """
     Manages an active data stream from a Quarch QPS device.
 
-    Instantiation automatically attempts to start the stream. Provides methods to control and monitor the stream.
+    Instantiation automatically attempts to start the stream. Provides methods to
+    control and monitor the stream.
     """
 
-    def __init__(self, quarchQPS, directory, unserInput=True, streamDuration=""):
+    def __init__(self, quarchQPS: quarchQPS, directory: str, unserInput: bool = True, streamDuration: str = ""):
         """
         Initializes and attempts to start a data stream from the connected device.
 
-        Copies necessary connection details from the quarchQPS object and
-        calls the internal startQPSStream method. Handles initial failure
-        based on the unserInput flag.
-
         Args:
-            quarchQPS (quarchQPS): The quarchQPS object representing the device to stream from.
+            quarchQPS (quarchQPS): The quarchQPS object to stream from.
             directory (str): The target directory for the stream data.
             unserInput (bool, optional): Controls user interaction if the initial
-                stream start command fails. If False, raises Exception on failure.
-                Defaults to True.
+                stream start command fails. Defaults to True.
             streamDuration (str, optional): Requested stream duration. Defaults to "".
 
         Raises:
-            Exception: If starting the stream fails (`startQPSStream` returns a
-                failure message) and `unserInput` is False.
+            Exception: If starting the stream fails and `unserInput` is False.
         """
         self.connectionObj = quarchQPS.connectionObj
-        self.IP_address = quarchQPS.connectionObj.qps.host
-        self.port_number = quarchQPS.connectionObj.qps.port
+        self.IP_address = quarchQPS.IP_address
+        self.port_number = quarchQPS.port_number
         self.ConString = quarchQPS.ConString
         self.ConType = quarchQPS.ConType
 
-        response = self.start_qps_stream(directory, streamDuration)
+        response = self.startQPSStream(directory, streamDuration)
         if "fail:" in response.lower():
             if unserInput is False:
                 raise Exception(response)
             else:
                 self.failCheck(response, streamDuration)
 
-    def startQPSStream(self, newDirectory, streamDuration=""):
-        """
-        DEPRECATED: use start_qps_stream instead
+    # --- Public API Methods ---
 
-        Starts the QPS stream and directs the output to a specified directory.
+    def start_qps_stream(self, new_directory: str, stream_duration: str = "") -> str:
+        """
+        Sends the command to start the QPS stream.
 
         Args:
-            newDirectory (str): The path to the directory where the stream data should be saved.
-            streamDuration (str, optional): The duration for which the stream should run.
+            new_directory (str): The path for the stream data.
+            stream_duration (str, optional): The duration for the stream. Defaults to "".
 
         Returns:
-            str: The response message received from the QPS system after attempting
-                 to start the stream. This could be a success confirmation or an error message.
+            str: The response from the QPS system.
         """
-
-        # Return the final response obtained (either from the first or second attempt).
-        return self.start_qps_stream(newDirectory, streamDuration)
-
-    def start_qps_stream(self, newDirectory, streamDuration=""):
-        """
-        Starts the QPS stream and directs the output to a specified directory.
-
-        Args:
-            newDirectory (str): The path to the directory where the stream data should be saved.
-            streamDuration (str, optional): The duration for which the stream should run.
-
-        Returns:
-            str: The response message received from the QPS system after attempting
-                 to start the stream. This could be a success confirmation or an error message.
-        """
-        # Construct the command string to start the QPS stream.
-        # Ensures the directory path is enclosed in quotes and appends the duration.
-        command = f'$start stream "{str(newDirectory)}" {str(streamDuration)}'
-
-        # Send the command to the QPS system using the verbose send command method.
+        command = f'$start stream "{new_directory}" {stream_duration}'.strip()
         response = self.connectionObj.qps.sendCmdVerbose(command)
-
-        # Check if the initial response indicates an error.
         if "Error" in response:
-            # If an error occurred on the first attempt, retry sending the exact same command.
-            # NOTE: This is a simple retry mechanism. Consider adding delays or more robust error handling if needed.
+            logging.debug("Initial start stream command failed with 'Error', retrying once.")
             response = self.connectionObj.qps.sendCmdVerbose(command)
-
-        # Return the final response obtained (either from the first or second attempt).
         return response
 
-    def failCheck(self, response, streamDuration):
+    def startQPSStream(self, newDirectory: str, streamDuration: str = "") -> str:
+        """
+        DEPRECATED: Use start_qps_stream instead.
+
+        Args:
+            newDirectory (str): The path to the directory where the stream data should be saved.
+            streamDuration (str, optional): The duration for which the stream should run.
+
+        Returns:
+            str: The response message from the QPS system.
+        """
+        return self.start_qps_stream(newDirectory, streamDuration)
+
+    def fail_check(self, response: str, stream_duration: str) -> str:
+        """
+        Handles recoverable failures during stream startup.
+
+        Currently handles "Directory already exists" by prompting for a new name.
+
+        Args:
+            response (str): The failure response message from the server.
+            stream_duration (str): The stream duration, for retrying.
+
+        Returns:
+            str: The successful response after a retry.
+
+        Raises:
+            Exception: If the failure is not a known, handled type.
+        """
+        while "fail:" in response.lower():
+            if "Fail: Directory already exists" in response:
+                new_dir = requestDialog(message=f"{response}\nPlease enter a new file name:")
+                response = self.start_qps_stream(new_dir, stream_duration)
+            else:
+                raise Exception(f"Unhandled QPS stream start failure: {response}")
+        return response
+
+    def failCheck(self, response: str, streamDuration: str) -> str:
         """
         DEPRECATED: Use fail_check instead.
 
-        Handles potential failures when starting a stream by delegating to fail_check.
-        This acts as a wrapper or entry point for the main failure handling logic
-        implemented in the fail_check method.
-
         Args:
-            response (str): The initial response received after attempting to start the stream.
-            streamDuration (str): The duration intended for the stream (passed along for retries).
-
-        Returns:
-            str: The final response after handling any recoverable failures. This will be
-                 a success message, or this function will propagate an exception if
-                 an unhandled failure occurred in fail_check.
-        """
-        # Call the primary failure handling logic (fail_check).
-        return self.fail_check(response, streamDuration)
-
-    def fail_check(self, response, streamDuration):
-        """
-        Handles specific failures encountered during stream start-up, prompting the user if necessary.
-
-        It iteratively checks the response for known, recoverable "fail:" conditions.
-        Currently, it handles the "Directory already exists" failure by prompting the
-        user for a new directory name and retrying the stream start command.
-        Other failures will result in an exception.
-
-        Args:
-            response (str): The response message received from a stream start attempt.
+            response (str): The response message from a stream start attempt.
             streamDuration (str): The duration for the stream, needed for retry attempts.
 
         Returns:
             str: The successful response message after a retry.
 
         Raises:
-            Exception: If the response contains "fail:" but is not a known, handled
-                       failure type (e.g., not "Directory already exists").
+            Exception: If the response contains an unhandled failure.
         """
-        # Loop as long as the response (converted to lowercase) contains "fail:".
-        while "fail:" in response.lower():
-            # Check if the specific failure is due to the directory already existing.
-            if "Fail: Directory already exists" in response:
-                # Prompt the user for a new directory name using an external dialog function.
-                # Assumes requestDialog(message) returns the user's input string.
-                newDir = requestDialog(message=response + "  Please enter a new file name:")
-                # Attempt to start the stream again with the new directory name.
-                # The result updates the 'response' variable for the next loop iteration or exit.
-                response = self.startQPSStream(newDir, streamDuration)
-            else:
-                # If the failure message is not recognized or handled specifically...
-                # Raise a general exception, passing the original failure response message.
-                # This halts execution for unhandled failure types.
-                raise Exception(response)
-        # If the loop finishes (i.e., "fail:" is no longer in the response),
-        # return the last received response, which should indicate success.
-        return response
+        return self.fail_check(response, streamDuration)
 
-    def get_stats(self, format="df"):
+    def get_stats(self, format: str = "df") -> Union[pd.DataFrame, List[List[str]], None]:
         """
         Retrieves statistics from the QPS device.
 
         Args:
-            format (str): The desired output format ("df" for pandas DataFrame, "list" for list of lists). Defaults to "df".
+            format (str, optional): The desired output format ("df" for pandas
+                DataFrame, "list" for list of lists). Defaults to "df".
 
         Returns:
-            pandas.DataFrame or list: Statistics data in the specified format.
-            Raises Exception if the QPS command fails.
-        """
-        # Send the '$get stats' command to the QPS device via the connection object, wait up to 60s, remove whitespace.
-        command_response = self.connectionObj.qps.sendCmdVerbose("$get stats", timeout=60).strip()
-        # Check if the response indicates a failure.
-        if command_response.startswith("Fail"):
-            # Raise an exception if the command failed.
-            raise Exception(command_response)
-
-        # Check if the requested format is a pandas DataFrame.
-        if format == "df":
-            # Try importing pandas and suppressing FutureWarnings.
-            try:
-                import warnings
-                import pandas as pd
-                warnings.simplefilter(action='ignore', category=FutureWarning)
-            # Handle cases where pandas cannot be imported.
-            except Exception as e:
-                logging.error(e)  # Log the specific import error.
-                logging.warning("pandas not imported correctly. Continuing")  # Log a warning.
-                # If pandas is not available, maybe return the raw string or raise another error?
-                # Current behavior: continues, but pd below will fail. Consider adding return None or raising here.
-
-            # Set pandas display options for better console output (show all columns, wider display).
-            pd.set_option('display.max_columns', None)
-            pd.set_option('display.width', 1024)
-            # Treat the command response string as an in-memory text file.
-            test_data = StringIO(command_response)
-
-            # Read the CSV data from the string into a DataFrame.
-            # Handle different argument names for bad line handling based on pandas version.
-            # `header=[0, 1]` indicates a MultiIndex header (two rows).
-            if Version.is_v1_ge_v2(pd.__version__, "1.3.0"):  # Check if pandas version is 1.3.0 or greater.
-                # Use 'on_bad_lines' argument for newer pandas versions.
-                retVal = pd.read_csv(test_data, sep=",", header=[0, 1], on_bad_lines="skip")
-            else:
-                # Use 'error_bad_lines' argument for older pandas versions.
-                retVal = pd.read_csv(test_data, sep=",", header=[0, 1], error_bad_lines=False)  # False skips bad lines silently.
-        # Check if the requested format is a list.
-        elif format == "list":
-            # Initialize an empty list to store the rows.
-            retVal = []
-            # Normalize line endings and split the response string into lines.
-            for line in command_response.replace("\r\n", "\n").split("\n"):
-                # Initialize an empty list for the current row's elements.
-                row = []
-                # Split the line into elements using the comma delimiter.
-                for element in line.split(","):
-                    # Add each element to the current row list.
-                    row.append(element)
-                # Add the completed row list to the main list.
-                retVal.append(row)
-        # It might be good to add an 'else' here to handle invalid format arguments.
-
-        # Return the processed statistics data (either DataFrame or list).
-        return retVal
-
-    def stats_to_CSV(self, file_name="", poll_till_complete=False, check_interval=0.5, timeout=60):
-        """
-        Commands the QPS device to save its current statistics grid to a CSV file.
-
-        Sends the '$stats to csv' command to the device. Optionally, it can wait
-        until the export process on the device is complete before returning.
-
-        Args:
-            file_name (str, optional):
-                The absolute path and filename for the CSV file on the QPS device's
-                filesystem. If empty, the QPS device typically assigns a default name
-                and location. Defaults to "".
-            poll_till_complete (bool, optional):
-                If True, the method will repeatedly query the device's export status
-                and only return after the export is finished. Defaults to False.
-            check_interval (float, optional):
-                The time in seconds to wait between status checks when
-                `poll_till_complete` is True. Defaults to 0.5.
-
-        Returns:
-            str: The initial response message from the QPS device after sending the
-                 '$stats to csv' command.
+            Union[pd.DataFrame, List[List[str]], None]: Statistics data in the
+            specified format, or None if pandas is required but not found.
 
         Raises:
-            Exception: If the initial '$stats to csv' command response from the
-                       QPS device starts with "Fail".
+            Exception: If the QPS command fails.
         """
-        # Send the command to the QPS device to export stats to the specified CSV file.
-        # Enclose the filename in quotes to handle spaces. Wait up to 60 seconds for the initial response.
-        command_response = self.connectionObj.qps.sendCmdVerbose(f'$stats to csv "{file_name}"', timeout=60)
-
-        # Check if the initial command failed immediately.
+        command_response = self.connectionObj.qps.sendCmdVerbose("$get stats", timeout=60).strip()
         if command_response.startswith("Fail"):
             raise Exception(command_response)
 
-        # If requested, wait until the device reports that the CSV export is finished.
+        if format == "df":
+            if pd is None:
+                logging.error("Pandas is not installed, cannot return DataFrame.")
+                return None
+
+            test_data = StringIO(command_response)
+
+            df = pd.read_csv(test_data, sep=",", header=[0, 1], on_bad_lines="skip")
+
+            return df
+
+        elif format == "list":
+            ret_val = []
+            for line in command_response.replace("\r\n", "\n").split("\n"):
+                row = [element for element in line.split(",")]
+                ret_val.append(row)
+            return ret_val
+
+        return None
+
+    def stats_to_csv(self, file_name: str = "", poll_till_complete: bool = False,
+                     check_interval: float = 0.5, timeout: int = 60) -> str:
+        """
+        Commands the QPS device to save its current statistics to a CSV file.
+
+        Args:
+            file_name (str, optional): Absolute path for the CSV file on the QPS
+                device's filesystem. Defaults to "".
+            poll_till_complete (bool, optional): If True, waits for the export
+                to finish. Defaults to False.
+            check_interval (float, optional): Seconds between status checks when
+                polling. Defaults to 0.5.
+            timeout (int, optional): Max seconds to wait for polling to complete.
+                Defaults to 60.
+
+        Returns:
+            str: The initial response from the QPS device.
+
+        Raises:
+            Exception: If the initial QPS command fails.
+            TimeoutError: If polling is enabled and times out.
+        """
+        cmd = f'$stats to csv "{file_name}"'
+        command_response = self.connectionObj.qps.sendCmdVerbose(cmd, timeout=60)
+
+        if command_response.startswith("Fail"):
+            raise Exception(command_response)
+
         if poll_till_complete:
             start_time = time.monotonic()
-            # Check the current export status.
-            is_exporting = check_export_status(self.get_stats_export_status())
-            # Loop as long as the device indicates it is still exporting.
-            while is_exporting:
-                elapsed_time = time.monotonic() - start_time
-                if elapsed_time > timeout:
-                    raise TimeoutError(f"QPS CSV Export process of the statistics timed out after {timeout} seconds")
-                # Re-check the status.
-                is_exporting = check_export_status(self.get_stats_export_status())
-                # Pause execution briefly before the next check.
+            while check_export_status(self.get_stats_export_status()):
+                if (time.monotonic() - start_time) > timeout:
+                    raise TimeoutError(f"QPS CSV Export of stats timed out after {timeout} seconds")
                 time.sleep(check_interval)
 
-        # Return the initial response received from the QPS device (not the final status).
         return command_response
 
-    def get_custom_stats_range(self, start_time, end_time):
+    def stats_to_CSV(self, file_name: str = "", poll_till_complete: bool = False,
+                     check_interval: float = 0.5, timeout: int = 60) -> str:
+        """
+        DEPRECATED: Use stats_to_csv instead.
+
+        Args:
+            file_name (str, optional): The absolute path for the CSV file. Defaults to "".
+            poll_till_complete (bool, optional): If True, polls until the export is
+                finished. Defaults to False.
+            check_interval (float, optional): Time in seconds between status checks
+                when polling. Defaults to 0.5.
+            timeout (int, optional): Max time in seconds to wait for polling. Defaults to 60.
+
+        Returns:
+            str: The initial response message from the QPS device.
+        """
+        return self.stats_to_csv(file_name, poll_till_complete, check_interval, timeout)
+
+    def get_custom_stats_range(self, start_time: Union[int, str], end_time: Union[int, str]) -> Optional[pd.DataFrame]:
         """
         Retrieves statistics from the QPS device for a specified time range.
 
-        This method queries the QPS device for statistics calculated between the
-        provided start and end times, ignoring any previously set annotations
-        that might define other calculation intervals. It returns the result
-        as a pandas DataFrame.
-
         Args:
-            start_time (str or int):
-                The start time for the statistics calculation. Can be provided as:
-                - An integer/string representing seconds since the stream start.
-                - A string in the format "days:hours:minutes:seconds.milliseconds"
-                  (e.g., "0D00:01:30.500" for 1 minute, 30.5 seconds).
-            end_time (str or int):
-                The end time for the statistics calculation, using the same formats
-                as `start_time`.
+            start_time (Union[int, str]): The start time for stats calculation.
+            end_time (Union[int, str]): The end time for stats calculation.
 
         Returns:
-            pandas.DataFrame: A DataFrame containing the calculated statistics for
-                              the specified time range. The structure typically includes
-                              multi-level columns for different metrics (e.g., Min, Max, Avg)
-                              across various channels.
+            Optional[pd.DataFrame]: A DataFrame containing the stats.
 
         Raises:
             ImportError: If the pandas library is not installed.
-            Exception: If the QPS command '$get custom stats range' fails (response
-                       starts with "Fail").
-            Exception: If pandas fails to parse the response data into a DataFrame.
+            Exception: If the QPS command fails or data parsing fails.
         """
-        # Attempt to import pandas and related modules.
-        try:
-            import warnings
-            import pandas as pd
-            warnings.simplefilter(action='ignore',
-                                  category=FutureWarning)  # Suppress potential future warnings from pandas.
-        except ImportError:
-            # Log a warning if pandas cannot be imported and re-raise the error.
+        if pd is None:
             logging.warning("pandas not imported correctly. Required for get_custom_stats_range.")
-            # Re-raising ensures the function cannot proceed without pandas.
             raise ImportError("pandas library is required for get_custom_stats_range")
 
-        # Construct and send the command to the QPS device, including start and end times.
-        # Wait up to 60 seconds for the response.
         command_response = self.connectionObj.qps.sendCmdVerbose(
             f"$get custom stats range {start_time} {end_time}", timeout=60)
 
-        # Check if the QPS device reported a failure for the command.
         if command_response.startswith("Fail"):
             raise Exception(command_response)
 
-        # Treat the raw string response from the QPS as an in-memory text file (CSV format).
         test_data = StringIO(command_response)
-
-        # Attempt to parse the CSV data from the response into a pandas DataFrame.
         try:
-            # Configure pandas display options (optional, affects console printing of the df).
-            pd.set_option('display.max_columns', None)
-            pd.set_option('display.width', 1024)
-
-            # Read the CSV data, handling version differences in pandas arguments.
-            # header=[0, 1] specifies that the first two rows form a MultiIndex header.
-            if Version.is_v1_ge_v2(pd.__version__, "1.3.0"):  # Check pandas version >= 1.3.0
-                # Use 'on_bad_lines' argument for newer pandas. 'skip' ignores problematic lines.
-                df = pd.read_csv(test_data, sep=",", header=[0, 1], on_bad_lines="skip")
-            else:
-                # Use 'error_bad_lines' argument for older pandas. False skips bad lines.
-                df = pd.read_csv(test_data, sep=",", header=[0, 1], error_bad_lines=False)
+            df = pd.read_csv(test_data, sep=",", header=[0, 1], on_bad_lines="skip")
         except Exception as e:
-            # Log an error if DataFrame creation fails and re-raise the exception.
             logging.error(f"Unable to create pandas data frame from command response: {command_response}")
-            raise e  # Propagate the exception (e.g., parsing error).
-
-        # Return the successfully created DataFrame.
+            raise e
         return df
 
-    # Deprecated alias for take_snapshot
-    def takeSnapshot(self):
+    def take_snapshot(self) -> str:
         """
-        DEPRECATED: Use take_snapshot() instead.
+        Triggers the QPS device to capture an immediate snapshot.
 
-        Triggers the QPS device to take an immediate snapshot of the current stream data.
+        Returns:
+            str: The response from the QPS device.
+
+        Raises:
+            Exception: If the command fails.
+        """
+        command_response = self.connectionObj.qps.sendCmdVerbose("$take snapshot")
+        if command_response.startswith("Fail"):
+            raise Exception(command_response)
+        return command_response
+
+    def takeSnapshot(self) -> str:
+        """
+        DEPRECATED: Use take_snapshot instead.
 
         Returns:
             str: The response message from the QPS device.
         """
-        # Calls the actual implementation method.
         return self.take_snapshot()
 
-    def take_snapshot(self):
+    def get_stream_state(self) -> str:
         """
-        Triggers the QPS device to capture an immediate snapshot.
-
-        Sends the '$take snapshot' command. The snapshot is typically saved
-        within the currently configured stream directory on the QPS device itself.
+        Queries the QPS application for its current stream processing state.
 
         Returns:
-            str: The response message from the QPS device after sending the command.
-                 Usually "OK" on success.
+            str: The stream state as reported by the QPS application.
+
+        Raises:
+            Exception: If the command fails.
         """
-        # Send the command to trigger the snapshot.
-        command_response = self.connectionObj.qps.sendCmdVerbose("$take snapshot")
-        # Check for an immediate failure response.
+        command_response = self.connectionObj.qps.sendCmdVerbose("$stream state")
         if command_response.startswith("Fail"):
             raise Exception(command_response)
-        # Return the success or failure message from the device.
         return command_response
 
-    # Deprecated alias for get_stream_state
-    def getStreamState(self):
+    def getStreamState(self) -> str:
         """
-        DEPRECATED: Use get_stream_state() instead.
-
-        Queries the QPS application for the current state of the data stream processing.
+        DEPRECATED: Use get_stream_state instead.
 
         Returns:
             str: The stream state reported by the QPS application.
         """
-        # Calls the actual implementation method.
         return self.get_stream_state()
 
-    def get_stream_state(self):
-        """
-        Queries the QPS application for its current stream processing state.
-
-        Sends the '$stream state' command. Note that the QPS application state
-        may differ from the physical module's streaming state. For example, QPS
-        might report "Running" or "Stopping" while it processes data buffered
-        from a module that has already finished sending data.
-
-        Returns:
-            str: The stream state as reported by the QPS application.
-        """
-        # Send the command to query the stream state.
-        command_response = self.connectionObj.qps.sendCmdVerbose("$stream state")
-        # Check for an immediate failure response.
-        if command_response.startswith("Fail"):
-            raise Exception(command_response)
-        # Return the state string provided by the QPS.
-        return command_response
-
-    # Deprecated alias for add_annotation
-    def addAnnotation(self, title, annotationTime=0, extraText="", yPos="", titleColor="", annotationColor="",
-                      annotationType="", annotationGroup="", timeFormat="unix"):
-        """
-        DEPRECATED: Use add_annotation() instead.
-
-        Adds a custom annotation or comment marker to the QPS stream data.
-
-        Constructs and sends a '$stream annotation add' command to the QPS device
-        with various customization options for appearance, timing, and type.
-
-        Args:
-            title (str):
-                The primary text label displayed next to the annotation marker.
-                annotationTime (str or int, optional):
-                Specifies when the annotation should appear.
-                - 0 (default): Places the annotation at the current time ("live").
-                - Integer/String number: Interpreted as milliseconds (if timeFormat='unix')
-                  or seconds (if timeFormat='elapsed') from the start of the stream.
-                - String starting with 'e' (e.g., "e10"): Interpreted as elapsed time in seconds
-                  (legacy format, converted to "10s").
-                - Other strings containing letters: Assumed to be elapsed time format (e.g. "10s", "1m30s").
-                Defaults to 0.
-            extraText (str, optional):
-                Additional text visible when inspecting the annotation in the QPS interface. Defaults to "".
-            yPos (str or int, optional):
-                Vertical position on the graph (percentage, 0=bottom, 100=top). Defaults to "".
-            titleColor (str, optional):
-                Hex color code (e.g., "FF0000") for the title text. Defaults to "".
-            annotationColor (str, optional):
-                Hex color code (e.g., "00FF00") for the annotation marker itself. Defaults to "".
-            annotationType (str, optional):
-                Determines the type, often influencing statistics ("annotate" vs. "comment").
-                Defaults to "annotate". Can be set to "comment".
-            annotationGroup (str, optional):
-                Assigns the annotation to a specific group (functionality depends on QPS version/usage).
-                Defaults to "". (Note: This parameter isn't used in the current command construction).
-            timeFormat (str, optional):
-                Specifies the interpretation of `annotationTime` if it's numeric.
-                "unix" (milliseconds since epoch) or "elapsed" (time since stream start).
-                Automatically adjusted based on `annotationTime` format if not explicitly "unix".
-                Defaults to "unix".
-
-        Returns:
-            str: The response message from the QPS device after sending the command ("OK").
-        """
-        # Calls the actual implementation method, passing all arguments through.
-        return self.add_annotation(title, annotationTime, extraText, yPos, titleColor, annotationColor, annotationType,
-                                   annotationGroup, timeFormat)
-
-    def add_annotation(self, title, annotationTime=0, extraText="", yPos="", titleColor="", annotationColor="",
-                       annotationType="", annotationGroup="", timeFormat="unix"):
+    def add_annotation(self, title: str, annotation_time: Union[int, str] = 0, extra_text: str = "",
+                       y_pos: Union[int, str] = "",
+                       title_color: str = "", annotation_color: str = "", annotation_type: str = "annotate",
+                       time_format: str = "unix") -> str:
         """
         Adds a custom annotation marker to the active QPS stream.
 
-        Constructs and sends a '$stream annotation add' command to the QPS device
-        with various customization options for appearance, timing, and type.
-
         Args:
-            title (str):
-                The primary text label displayed next to the annotation marker.
-                annotationTime (str or int, optional):
-                Specifies when the annotation should appear.
-                - 0 (default): Places the annotation at the current time ("live").
-                - Integer/String number: Interpreted as milliseconds (if timeFormat='unix')
-                  or seconds (if timeFormat='elapsed') from the start of the stream.
-                - String starting with 'e' (e.g., "e10"): Interpreted as elapsed time in seconds
-                  (legacy format, converted to "10s").
-                - Other strings containing letters: Assumed to be elapsed time format (e.g. "10s", "1m30s").
-                Defaults to 0.
-            extraText (str, optional):
-                Additional text visible when inspecting the annotation in the QPS interface. Defaults to "".
-            yPos (str or int, optional):
-                Vertical position on the graph (percentage, 0=bottom, 100=top). Defaults to "".
-            titleColor (str, optional):
-                Hex color code (e.g., "FF0000") for the title text. Defaults to "".
-            annotationColor (str, optional):
-                Hex color code (e.g., "00FF00") for the annotation marker itself. Defaults to "".
-            annotationType (str, optional):
-                Determines the type, often influencing statistics ("annotate" vs. "comment").
-                Defaults to "annotate". Can be set to "comment".
-            annotationGroup (str, optional):
-                Assigns the annotation to a specific group (functionality depends on QPS version/usage).
-                Defaults to "". (Note: This parameter isn't used in the current command construction).
-            timeFormat (str, optional):
-                Specifies the interpretation of `annotationTime` if it's numeric.
-                "unix" (milliseconds since epoch) or "elapsed" (time since stream start).
-                Automatically adjusted based on `annotationTime` format if not explicitly "unix".
-                Defaults to "unix".
+            title (str): The primary text label for the annotation.
+            annotation_time (Union[int, str], optional): When the annotation appears. Defaults to 0 ("now").
+            extra_text (str, optional): Additional text for the annotation. Defaults to "".
+            y_pos (Union[int, str], optional): Vertical position (0-100). Defaults to "".
+            title_color (str, optional): Hex color for the title. Defaults to "".
+            annotation_color (str, optional): Hex color for the marker. Defaults to "".
+            annotation_type (str, optional): "annotate" or "comment". Defaults to "annotate".
+            time_format (str, optional): "unix" or "elapsed". Defaults to "unix".
 
         Returns:
-            str: The response message from the QPS device after sending the command ("OK").
+            str: The response message from the QPS device.
         """
-        # Normalize annotation type for easier comparison.
-        annotationType = annotationType.lower()
-        # Ensure annotationTime is a string for parsing checks.
-        annotationTime = str(annotationTime)
+        time_val = str(annotation_time)
+        if any(c.isalpha() for c in time_val):
+            time_format = "elapsed"
+            if time_val.startswith("e"):
+                time_val = time_val[1:] + "s"
+        elif time_val == "0":
+            time_val = qpsNowStr()
+            time_format = "unix"
 
-        # --- Time Format and Value Handling ---
-        # Check if annotationTime uses an elapsed time format (contains letters or starts with 'e').
-        if any(c.isalpha() for c in annotationTime):  # Check if any character is alphabetic.
-            timeFormat = "elapsed"  # Assume elapsed format if letters are present.
-            # Handle legacy 'e' prefix for elapsed seconds (e.g., "e5" -> "5s").
-            if annotationTime.startswith("e"):
-                annotationTime = annotationTime[1:] + "s"  # Remove 'e', add 's'.
-        # Handle the special case where annotationTime is 0, meaning "now".
-        elif annotationTime == "0":
-            annotationTime = current_milli_time()  # Get current time in Unix milliseconds.
-            timeFormat = "unix"  # Set format explicitly to Unix time.
-
-        # --- Annotation Type Handling ---
-        # Default to 'annotate' type if empty or explicitly 'annotation'.
-        if annotationType == "" or annotationType == "annotation":
-            annotationType = "annotate"
-        # Allow 'comment' type to pass through.
-        elif annotationType == "comment":
-            pass  # No change needed for 'comment'.
-        # Note: Other potential annotation types might exist but are not explicitly handled here.
-
-        # --- Command Construction ---
-        # Escape newline characters in text fields for safe command transmission.
         title = title.replace("\n", "\\n")
-        extraText = extraText.replace("\n", "\\n")
+        extra_text = extra_text.replace("\n", "\\n")
 
-        # Start building the QPS command string.
-        cmd = f'$stream annotation add time={annotationTime} text="{title}"'
+        cmd = f'$stream annotation add time={time_val} text="{title}"'
+        if extra_text:
+            cmd += f' extraText="{extra_text}"'
+        if y_pos != "":
+            cmd += f' yPos={y_pos}'
+        if annotation_type:
+            cmd += f' type={annotation_type}'
+        if annotation_color:
+            cmd += f' colour={annotation_color}'
+        if title_color:
+            cmd += f' textColour={title_color}'
+        if time_format:
+            cmd += f' timeFormat={time_format}'
 
-        # Append optional parameters to the command string if they are provided.
-        if extraText:  # Check if extraText is not empty.
-            cmd += f' extraText="{extraText}"'
-        if yPos != "":  # Check if yPos is explicitly provided (not just default empty string).
-            cmd += f' yPos={yPos}'
-        # Check if annotationType is explicitly provided (important: `type` is a Python built-in, compare `annotationType`).
-        if annotationType:  # Check if annotationType is not empty.
-            # Potential Bug: Original code used `if type != ""`. This likely intended `if annotationType != ""`.
-            # Using `if annotationType:` which correctly checks if the string is non-empty.
-            cmd += f' type={annotationType}'
-        if annotationColor:  # Check if annotationColor is not empty.
-            cmd += f' colour={annotationColor}'  # QPS uses 'colour'.
-        if titleColor:  # Check if titleColor is not empty.
-            cmd += f' textColour={titleColor}'  # QPS uses 'textColour'.
-        if timeFormat:  # Check if timeFormat is not empty.
-            cmd += f' timeFormat={timeFormat}'
-        # Note: annotationGroup is not currently added to the command.
-
-        # Send the fully constructed command to the QPS device.
         return self.connectionObj.qps.sendCmdVerbose(cmd)
 
-    def addComment(self, title, commentTime=0, extraText="", yPos="", titleColor="", commentColor="", annotationType="", annotationGroup="", timeFormat="unix"):
+    def addAnnotation(self, title: str, annotationTime: Union[int, str] = 0, extraText: str = "",
+                      yPos: Union[int, str] = "",
+                      titleColor: str = "", annotationColor: str = "", annotationType: str = "",
+                      annotationGroup: str = "", timeFormat: str = "unix") -> str:
+        """
+        DEPRECATED: Use add_annotation instead.
+
+        Args:
+            title (str): The primary text label for the annotation.
+            annotationTime (Union[int, str], optional): Timestamp. Defaults to 0 ("now").
+            extraText (str, optional): Additional text. Defaults to "".
+            yPos (Union[int, str], optional): Vertical position (0-100). Defaults to "".
+            titleColor (str, optional): Hex color for the title. Defaults to "".
+            annotationColor (str, optional): Hex color for the marker. Defaults to "".
+            annotationType (str, optional): "annotate" or "comment". Defaults to "".
+            annotationGroup (str, optional): Not used. Defaults to "".
+            timeFormat (str, optional): "unix" or "elapsed". Defaults to "unix".
+
+        Returns:
+            str: The response message from the QPS device.
+        """
+        current_type = annotationType.lower()
+        if current_type == "" or current_type == "annotation":
+            current_type = "annotate"
+
+        return self.add_annotation(title, annotation_time=annotationTime, extra_text=extraText, y_pos=yPos,
+                                   title_color=titleColor, annotation_color=annotationColor,
+                                   annotation_type=current_type, time_format=timeFormat)
+
+    def add_comment(self, title: str, comment_time: Union[int, str] = 0, **kwargs: Any) -> str:
+        """
+        Adds a 'comment' type annotation to the QPS stream.
+
+        This is a convenience wrapper for `add_annotation` that sets the type to 'comment'.
+
+        Args:
+            title (str): The text label for the comment.
+            comment_time (Union[int, str], optional): The timestamp. Defaults to 0.
+            **kwargs: Other arguments accepted by `add_annotation`.
+
+        Returns:
+            str: The response message from the QPS device.
+        """
+        kwargs['annotation_type'] = 'comment'
+        return self.add_annotation(title, annotation_time=comment_time, **kwargs)
+
+    def addComment(self, title: str, commentTime: Union[int, str] = 0, extraText: str = "", yPos: Union[int, str] = "",
+                   titleColor: str = "", commentColor: str = "", annotationType: str = "",
+                   annotationGroup: str = "", timeFormat: str = "unix") -> str:
         """
         DEPRECATED: Use add_comment instead.
 
-        Adds a 'comment' type annotation to the QPS stream.
-
-        This method serves as a backward-compatible wrapper. It ensures the
-        annotationType is set to 'comment' and then calls the addAnnotation method.
-        Comments are a specific type of annotation that do not affect
-        statistics calculations in QPS.
-
         Args:
-            title (str):
-                The text label that appears next to the comment marker in the stream.
-            commentTime (int | float | str, optional):
-                The timestamp for the comment. Can be milliseconds since epoch (unix),
-                an elapsed time string (e.g., "10s", "1m30s"), or 0 for current time.
-                Defaults to 0.
-            extraText (str, optional):
-                Additional text associated with the comment, viewable on selection.
-                Defaults to "".
-            yPos (str | int, optional):
-                Vertical position on the graph (0-100 percentage).
-                Defaults to None (QPS default).
-            titleColor (str, optional):
-                Hex color code (e.g., "FF0000") for the title text.
-                Defaults to None (QPS default).
-            commentColor (str, optional):
-                Hex color code (e.g., "00FF00") for the comment marker.
-                Defaults to None (QPS default).
-            annotationType (str, optional):
-                If provided, it will be overridden to 'comment'.
-                Defaults to "" (which becomes 'comment').
-            annotationGroup (str, optional):
-                Optional grouping string for the annotation.
-                Defaults to "".
-            timeFormat (str, optional):
-                Format of `commentTime` if provided ("unix" or "elapsed").
-                Defaults to "unix".
+            title (str): The text label for the comment.
+            commentTime (Union[int, str], optional): The timestamp. Defaults to 0.
+            extraText (str, optional): Additional text. Defaults to "".
+            yPos (Union[int, str], optional): Vertical position (0-100). Defaults to "".
+            titleColor (str, optional): Hex color for the title. Defaults to "".
+            commentColor (str, optional): Hex color for the comment marker. Defaults to "".
+            annotationType (str, optional): Overridden to 'comment'. Defaults to "".
+            annotationGroup (str, optional): Not used. Defaults to "".
+            timeFormat (str, optional): "unix" or "elapsed". Defaults to "unix".
 
         Returns:
-            str: The response message from the QPS device via the underlying
-                 addAnnotation call (e.g., "ok" or error string).
+            str: The response message from the QPS device.
         """
-        if annotationType == "":
-            annotationType = "comment"
-        return self.addAnnotation(title=title, annotationTime=commentTime, extraText=extraText, yPos=yPos,
-                                  titleColor=titleColor, annotationColor=commentColor, annotationType=annotationType,
-                                  annotationGroup=annotationGroup, timeFormat=timeFormat)
+        return self.add_comment(title, comment_time=commentTime, extraText=extraText, yPos=yPos,
+                                titleColor=titleColor, commentColor=commentColor,
+                                timeFormat=timeFormat)
 
-    def add_comment(self, title, commentTime=0, extraText="", yPos="", titleColor="", commentColor="", annotationType="", annotationGroup="", timeFormat="unix"):
+    def save_csv(self, file_path: str, lines_per_file: Optional[Union[int, str]] = None, use_cr: Optional[bool] = None,
+                 delimiter: Optional[str] = None, timeout: int = 180, poll_till_complete: bool = False,
+                 check_interval: float = 0.5) -> str:
         """
-        Adds a 'comment' type annotation to the QPS stream.
-
-        This method ensures the annotationType is set to 'comment' and then calls
-        the underlying addAnnotation method. Comments are a specific type of
-        annotation that do not affect statistics calculations in QPS.
+        Commands the QPS device to save the stream data to a CSV file.
 
         Args:
-            title (str):
-                The text label that appears next to the comment marker in the stream.
-            commentTime (int | float | str, optional):
-                The timestamp for the comment. Can be milliseconds since epoch (unix),
-                an elapsed time string (e.g., "10s", "1m30s"), or 0 for current time.
-                Defaults to 0.
-            extraText (str, optional):
-                Additional text associated with the comment, viewable on selection.
-                Defaults to "".
-            yPos (str | int, optional):
-                Vertical position on the graph (0-100 percentage).
-                Defaults to None (QPS default).
-            titleColor (str, optional):
-                Hex color code (e.g., "FF0000") for the title text.
-                Defaults to None (QPS default).
-            commentColor (str, optional):
-                Hex color code (e.g., "00FF00") for the comment marker.
-                Defaults to None (QPS default).
-            annotationType (str, optional):
-                If provided, it will be overridden to 'comment'.
-                Defaults to "" (which becomes 'comment').
-            annotationGroup (str, optional):
-                Optional grouping string for the annotation.
-                Defaults to "".
-            timeFormat (str, optional):
-                Format of `commentTime` if provided ("unix" or "elapsed").
-                Defaults to "unix".
+            file_path (str): Target file path on the QPS device's filesystem.
+            lines_per_file (Optional[Union[int, str]], optional): Max lines per file. Defaults to None.
+            use_cr (Optional[bool], optional): True for CRLF, False for LF. Defaults to None.
+            delimiter (Optional[str], optional): Field delimiter for the CSV. Defaults to None.
+            timeout (int, optional): Timeout in seconds. Defaults to 180.
+            poll_till_complete (bool, optional): If True, waits for export to finish. Defaults to False.
+            check_interval (float, optional): Seconds between status checks when polling. Defaults to 0.5.
 
         Returns:
-            str: The response message from the QPS device via the underlying
-                 addAnnotation call (e.g., "ok" or error string).
-        """
-        # Comments are just annotations that do not affect the statistics grid.
-        # This function was kept to be backwards compatible and is a simple pass through to add annotation.
-        currentAnnotationType = annotationType  # Use local var
-        if currentAnnotationType == "":
-            currentAnnotationType = "comment"
-        # This method should call the appropriate internal/wrapped addAnnotation method.
-        # Assuming self.addAnnotation is the intended wrapper name from previous steps.
-        return self.addAnnotation(title=title, annotationTime=commentTime, extraText=extraText, yPos=yPos,
-                                  titleColor=titleColor, annotationColor=commentColor,
-                                  annotationType=currentAnnotationType,
-                                  annotationGroup=annotationGroup, timeFormat=timeFormat)
+            str: The initial response from the QPS device.
 
-    # Alias for save_csv
-    def saveCSV(self, filePath, linesPerFile=None, cr=None, delimiter=None, timeout=60, pollTillComplete=False, checkInterval=0.5):
+        Raises:
+            TimeoutError: If polling is enabled and the export does not complete in time.
+        """
+        args = ""
+        if lines_per_file is not None:
+            args += f" -l{lines_per_file}"
+        if use_cr is not None:
+            args += " -cyes" if use_cr else " -cno"
+        if delimiter is not None:
+            args += f" -s{delimiter}"
+
+        command = f'$save csv "{file_path}" {args}'.strip()
+        command_response = self.connectionObj.qps.sendCmdVerbose(command, timeout=timeout)
+
+        if poll_till_complete:
+            start_time = time.monotonic()
+            while check_export_status(self.get_stream_export_status()):
+                if (time.monotonic() - start_time) > timeout:
+                    raise TimeoutError(f"Stream export to CSV timed out after {timeout} seconds")
+                logging.debug("Waiting for stream export to complete...")
+                time.sleep(check_interval)
+
+        return command_response
+
+    def saveCSV(self, filePath: str, linesPerFile: Optional[Union[int, str]] = None, cr: Optional[bool] = None,
+                delimiter: Optional[str] = None, timeout: int = 180, pollTillComplete: bool = False,
+                checkInterval: float = 0.5) -> str:
         """
         DEPRECATED: Use save_csv instead.
 
-        Commands the QPS device to save the currently streamed data to a CSV file(s).
-
-        Constructs and sends the '$save csv' command with optional arguments for
-        splitting files, line endings, and delimiters. Can optionally poll the
-        device until the export process is complete.
-
         Args:
-            filePath (str):
-                The target file path on the QPS device's filesystem where the CSV
-                should be saved.
-            linesPerFile (int or str, optional):
-                Specifies the maximum number of lines per CSV file. Use an integer
-                or "all" to save to a single file. Defaults to None (device default).
-            cr (bool, optional):
-                Specifies the line ending. True for CRLF, False for LF.
-                Defaults to None (device default).
-            delimiter (str, optional):
-                The character to use as a field delimiter in the CSV file.
-                Defaults to None (device default, usually ',').
-            timeout (int, optional):
-                Maximum time in seconds to wait for the initial command response from QPS.
-                Defaults to 180.
-            pollTillComplete (bool, optional):
-                If True, continuously checks the stream export status after sending
-                the command and only returns once the export is finished. Defaults to False.
-            checkInterval (float, optional):
-                Time in seconds to wait between status checks when poll_till_complete is True.
-                Defaults to 0.5.
+            filePath (str): The target file path on the QPS device's filesystem.
+            linesPerFile (Optional[Union[int, str]], optional): Max lines per file. Defaults to None.
+            cr (Optional[bool], optional): True for CRLF, False for LF line endings. Defaults to None.
+            delimiter (Optional[str], optional): Field delimiter for the CSV. Defaults to None.
+            timeout (int, optional): Timeout in seconds. Defaults to 180.
+            pollTillComplete (bool, optional): If True, waits for export to finish. Defaults to False.
+            checkInterval (float, optional): Seconds between status checks when polling. Defaults to 0.5.
 
         Returns:
-            str: The initial response message from the QPS device after sending the
-                 '$save csv' command ("OK").
+            str: The initial response from the QPS device.
         """
         return self.save_csv(filePath, linesPerFile, cr, delimiter, timeout, pollTillComplete, checkInterval)
 
-    def save_csv(self, file_path, lines_per_file=None, use_cr=None, delimiter=None, timeout=180, poll_till_complete=False, check_interval=0.5):
+    def create_channel(self, channel_name: str, channel_group: str, base_units: str, use_prefix: bool) -> str:
         """
-        Commands the QPS device to save the currently streamed data to a CSV file(s).
-
-        Constructs and sends the '$save csv' command with optional arguments for
-        splitting files, line endings, and delimiters. Can optionally poll the
-        device until the export process is complete.
-
-        Args:
-            file_path (str):
-                The target file path on the QPS device's filesystem where the CSV
-                should be saved.
-            lines_per_file (int or str, optional):
-                Specifies the maximum number of lines per CSV file. Use an integer
-                or "all" to save to a single file. Defaults to None (device default).
-            use_cr (bool, optional):
-                Specifies the line ending. True for CRLF, False for LF.
-                Defaults to None (device default).
-            delimiter (str, optional):
-                The character to use as a field delimiter in the CSV file.
-                Defaults to None (device default, usually ',').
-            timeout (int, optional):
-                Maximum time in seconds to wait for the initial command response from QPS.
-                Defaults to 180.
-            poll_till_complete (bool, optional):
-                If True, continuously checks the stream export status after sending
-                the command and only returns once the export is finished. Defaults to False.
-            check_interval (float, optional):
-                Time in seconds to wait between status checks when poll_till_complete is True.
-                Defaults to 0.5.
-
-        Returns:
-            str: The initial response message from the QPS device after sending the
-                 '$save csv' command ("OK").
-        """
-        args = ""  # Initialize string for optional command arguments.
-
-        # Build optional arguments for the QPS command.
-        if lines_per_file is not None:
-            args += f" -l{lines_per_file}"  # -l flag for lines per file.
-        if use_cr is not None:
-            # -c flag for carriage return ('yes' or 'no').
-            args += " -cyes" if use_cr else " -cno"
-        if delimiter is not None:
-            args += f" -s{delimiter}"  # -s flag for separator/delimiter.
-
-        # Send the command to QPS to save the stream data.
-        # Enclose file path in quotes; append optional arguments.
-        command_response = self.connectionObj.qps.sendCmdVerbose(f'$save csv "{file_path}" {args}'.strip(),timeout=timeout)
-
-        # --- Polling Logic ---
-        # Check export status *after* sending the save command if polling is enabled.
-        # This ensures we wait for the current export to finish first.
-        if poll_till_complete:
-            start_time = time.monotonic()
-            is_exporting = check_export_status(self.get_stream_export_status())
-            while is_exporting:
-                elapsed_time = time.monotonic() - start_time
-                if elapsed_time > timeout:
-                    raise TimeoutError(f"Current stream export operation timed out after {timeout} seconds")
-                logging.debug("Waiting for current stream export to complete...")
-                is_exporting = check_export_status(self.get_stream_export_status())
-                time.sleep(check_interval)
-
-        # Return the initial response from the '$save csv' command.
-        return command_response
-
-    # Alias for create_channel
-    def createChannel(self, channelName, channelGroup, baseUnits, usePrefix):
-        """
-        DEPRECATED: Use create_channel instead.
-        Creates a new custom data channel on the QPS device for the current stream.
-
-        Args:
-            channelName (str): The name for the new channel.
-            channelGroup (str): The group to associate the channel with (e.g., "Voltage").
-            baseUnits (str): The fundamental unit for the channel (e.g., "V", "A", "W", "count").
-            usePrefix (bool): If True, allows channel prefixes.
-
-        Returns:
-            str: The response message from the QPS device ("OK").
-        """
-        return self.create_channel(channelName, channelGroup, baseUnits, usePrefix)
-
-    def create_channel(self, channel_name, channel_group, base_units, use_prefix):
-        """
-        Creates a new custom data channel on the QPS device for the current stream.
+        Creates a new custom data channel on the QPS device.
 
         Args:
             channel_name (str): The name for the new channel.
             channel_group (str): The group to associate the channel with (e.g., "Voltage").
-            base_units (str): The fundamental unit for the channel (e.g., "V", "A", "W", "count").
-            use_prefix (bool): If True, allows channel prefixes.
+            base_units (str): The fundamental unit for the channel (e.g., "V", "A").
+            use_prefix (bool): If True, allows channel prefixes (e.g., 'm' for milli).
 
         Returns:
-            str: The response message from the QPS device ("OK").
+            str: The response from the QPS device.
         """
-        # Convert the boolean 'use_prefix' argument to the string "yes" or "no" expected by QPS.
         prefix_str = "yes" if use_prefix else "no"
+        command = f"$create channel {channel_name} {channel_group} {base_units} {prefix_str}"
+        return self.connectionObj.qps.sendCmdVerbose(command)
 
-        # Construct and send the '$create channel' command.
-        return self.connectionObj.qps.sendCmdVerbose(f"$create channel {channel_name} {channel_group} {base_units} {prefix_str}")
+    def createChannel(self, channelName: str, channelGroup: str, baseUnits: str, usePrefix: bool) -> str:
+        """
+        DEPRECATED: Use create_channel instead.
 
-    # Alias for hide_channel
-    def hideChannel(self, channelSpecifier):
+        Args:
+            channelName (str): The name for the new channel.
+            channelGroup (str): The group to associate the channel with.
+            baseUnits (str): The fundamental unit for the channel.
+            usePrefix (bool): If True, allows channel prefixes.
+
+        Returns:
+            str: The response message from the QPS device.
+        """
+        return self.create_channel(channelName, channelGroup, baseUnits, usePrefix)
+
+    def hide_channel(self, channel_specifier: str) -> str:
+        """
+        Hides a specified channel from the QPS stream view.
+
+        Args:
+            channel_specifier (str): The identifier of the channel to hide (e.g., "5v:voltage").
+
+        Returns:
+            str: The response from the QPS device.
+        """
+        return self.connectionObj.qps.sendCmdVerbose(f"$hide channel {channel_specifier}")
+
+    def hideChannel(self, channelSpecifier: str) -> str:
         """
         DEPRECATED: Use hide_channel instead.
-
-        Hides a specified channel from the QPS stream view.
 
         Args:
             channelSpecifier (str): The identifier of the channel to hide.
 
         Returns:
-            str: The response message from the QPS device ("OK").
+            str: The response message from the QPS device.
         """
         return self.hide_channel(channelSpecifier)
 
-    def hide_channel(self, channel_specifier):
+    def show_channel(self, channel_specifier: str) -> str:
         """
-        Hides a specified channel from the QPS stream view.
+        Shows (un-hides) a specified channel in the QPS stream view.
 
         Args:
-            channel_specifier (str): The identifier of the channel to hide.
+            channel_specifier (str): The identifier of the channel to show.
 
         Returns:
-            str: The response message from the QPS device ("OK").
+            str: The response from the QPS device.
         """
-        # Construct and send the '$hide channel' command.
-        return self.connectionObj.qps.sendCmdVerbose(f"$hide channel {channel_specifier}")
+        return self.connectionObj.qps.sendCmdVerbose(f"$show channel {channel_specifier}")
 
-    # Alias for show_channel
-    def showChannel(self, channelSpecifier):
+    def showChannel(self, channelSpecifier: str) -> str:
         """
         DEPRECATED: Use show_channel instead.
 
-        Shows (un-hides) a specified channel in the QPS stream view.
-
         Args:
-            channelSpecifier (str): The identifier of the channel to show
-                                     (e.g., "5v:voltage", "MyCustomChannel").
-
-        Returns:
-            str: The response message from the QPS device ("OK").
-        """
-        return self.show_channel(channelSpecifier)
-
-    def show_channel(self, channel_specifier):
-        """
-        Shows (un-hides) a specified channel in the QPS stream view.
-
-        Args:
-            channel_specifier (str): The identifier of the channel to show
-                                     (e.g., "5v:voltage", "MyCustomChannel").
+            channelSpecifier (str): The identifier of the channel to show.
 
         Returns:
             str: The response message from the QPS device.
         """
-        # Construct and send the '$show channel' command.
-        return self.connectionObj.qps.sendCmdVerbose(f"$show channel {channel_specifier}")
+        return self.show_channel(channelSpecifier)
 
-    # Alias for my_channels
-    def myChannels(self):
-        """
-        DEPRECATED: Use my_channels or channels instead.
-
-        Retrieves the list of available channels from QPS as a single raw string.
-
-        Returns:
-            str: The raw response string from the QPS '$channels' command, typically
-                 containing newline-separated channel identifiers.
-        """
-        return self.my_channels()
-
-    def my_channels(self):
-        """
-        Retrieves the list of available channels from QPS as a single raw string.
-
-        Returns:
-            str: The raw response string from the QPS '$channels' command, typically
-                 containing newline-separated channel identifiers.
-        """
-        # Send the '$channels' command and return the raw response.
-        return self.connectionObj.qps.sendCmdVerbose("$channels")
-
-    def channels(self):
+    def channels(self) -> List[str]:
         """
         Retrieves the list of available channels from QPS, split into a list of strings.
 
         Returns:
             list[str]: A list where each element is a channel identifier string.
         """
-        # Send the '$channels' command, get the raw response, and split it into lines.
         return self.connectionObj.qps.sendCmdVerbose("$channels").splitlines()
 
-    # Alias for stop_stream
-    def stopStream(self, pollTillComplete=False, checkInterval=0.1, timeout=60):
+    def myChannels(self) -> str:
         """
-        DEPRECATED: Use stop_stream instead
+        DEPRECATED: Use channels instead.
 
-        Sends the command to stop the QPS data stream.
-
-        Optionally polls the QPS stream state until it is no longer "running",
-        ensuring buffered data has been processed.
-
-        Args:
-            pollTillComplete (bool, optional): If True, waits until the QPS stream
-                                               state is no longer "running". Defaults to False.
-            checkInterval (float, optional): Time in seconds between status checks
-                                             when polling. Defaults to 0.1.
-            timeout (int, optional): Maximum time in seconds to wait for the initial command response from QPS.
-                                    Defaults to 60.
+        Retrieves the list of available channels from QPS as a single raw string.
 
         Returns:
-            str: The final checked stream status string ("STOPPED", "OVERRUN") if polling.
-                otherwise the initial response from the '$stop stream' command ("OK").
+            str: The raw response string from the QPS '$channels' command.
         """
-        return self.stop_stream(pollTillComplete, checkInterval, timeout)
+        return self.connectionObj.qps.sendCmdVerbose("$channels")
 
-    def stop_stream(self, poll_till_complete=False, check_interval=0.1, timeout=60):
-        """
-        Sends the command to stop the QPS data stream.
-
-        Optionally polls the QPS stream state until it is no longer "running",
-        ensuring buffered data has been processed.
-
-        Args:
-            poll_till_complete (bool, optional): If True, waits until the QPS stream
-                                               state is no longer "running". Defaults to False.
-            check_interval (float, optional): Time in seconds between status checks
-                                             when polling. Defaults to 0.1.
-            timeout (int, optional): Maximum time in seconds to wait for the initial command response from QPS.
-                                    Defaults to 60.
-
-        Returns:
-            str: The final checked stream status string ("STOPPED", "OVERRUN") if polling.
-                otherwise the initial response from the '$stop stream' command ("OK").
-        """
-        # Send the command to stop the stream.
-        response = self.connectionObj.qps.sendCmdVerbose("$stop stream")
-        # Check for immediate failure of the stop command itself.
-        if response.startswith("Fail"):
-            raise Exception(response)
-
-        # Poll until the stream has fully stopped processing if required.
-        if poll_till_complete:
-            # Get the start time
-            start_time = time.monotonic()
-            # Get the initial stream state (after sending stop).
-            stream_state = self.getStreamState().lower()
-            # Check the status using the utility function.
-            response = check_stream_stopped_status(stream_state)  # Initial status check
-            # Loop while QPS still reports it's running (processing buffer).
-            while "running" in stream_state:
-                logging.debug(f"Stream buffer still emptying: {stream_state}")
-                # Check for timeout
-                elapsed_time = time.monotonic() - start_time
-                if elapsed_time > timeout:
-                    raise TimeoutError(f"Timeout ({timeout}s) reached while waiting for stream to stop. Last state: {stream_state}")
-                # Wait before checking again.
-                time.sleep(check_interval)
-                # Get updated stream state.
-                stream_state = self.getStreamState().lower()
-                # Check the status again using the utility function.
-                response = check_stream_stopped_status(stream_state)  # Update response based on latest state
-
-        # Return the initial command response (if not polling) or the final checked status (if polling).
-        return response
-
-    # Alias for hide_all_default_channels
-    def hideAllDefaultChannels(self):
-        """DEPRECATED: Use hide_all_default_channels instead."""
-        self.hide_all_default_channels()
-
-    def hide_all_default_channels(self):
+    def hide_all_default_channels(self) -> None:
         """
         Hides a predefined list of common default QPS/PAM channels.
 
-        This method contains a hardcoded list of channel specifiers typically
-        present on Quarch systems and calls hide channel for each one.
-
         Note:
-            This list might not be exhaustive or accurate for all hardware/firmware
-            versions. A TODO exists to query the device for channels dynamically.
+            This list is hardcoded and might not be exhaustive for all hardware.
         """
-        # TODO: Query QPS / Device for all channel names and hide them dynamically
-        #       instead of using a hardcoded list.
-
-        # List of common default channels to hide
         default_channels = [
-            # Standard voltage channels
             "3.3v:voltage", "3v3:voltage", "5v:voltage", "12v:voltage",
-            # Standard current channels
             "3.3v:current", "3v3:current", "5v:current", "12v:current",
-            # Standard power channels
             "3.3v:power", "3v3:power", "5v:power", "12v:power", "tot:power",
-            # Default PAM digital channels
             "perst#:digital", "wake#:digital", "clkreq#:digital",
-            # Corrected 'lkreq#' to 'clkreq#' based on typical usage
             "smclk:digital", "smdat:digital"
         ]
-
-        # Iterate through the list and hide each channel.
         for channel in default_channels:
             try:
                 self.hide_channel(channel)
             except Exception as e:
-                # Log a warning if hiding a specific channel fails (e.g., it doesn't exist)
-                logging.warning(f"Failed to hide channel '{channel}': {e}")
+                logging.warning(f"Failed to hide default channel '{channel}': {e}")
 
-    # Alias for add_data_point
-    def addDataPoint(self, channelName, groupName, dataValue, dataPointTime=0, timeFormat="unix"):
+    def hideAllDefaultChannels(self) -> None:
+        """
+        DEPRECATED: Use hide_all_default_channels instead.
+
+        Hides a predefined list of common default QPS/PAM channels.
+        """
+        self.hide_all_default_channels()
+
+    def add_data_point(self, channel_name: str, group_name: str, data_value: Union[int, float],
+                       data_point_time: Union[int, str] = 0, time_format: str = "unix") -> None:
+        """
+        Adds a single data point to a specified custom channel.
+
+        Args:
+            channel_name (str): The name of the custom channel.
+            group_name (str): The group associated with the channel.
+            data_value (Union[int, float]): The numeric value of the data point.
+            data_point_time (Union[int, str], optional): Timestamp for the data point.
+                Defaults to 0 (current time).
+            time_format (str, optional): "unix" or "elapsed". Defaults to "unix".
+        """
+        if data_point_time == 0:
+            timestamp = qpsNowStr()
+            time_format = "unix"
+        else:
+            timestamp = str(data_point_time)
+
+        command = (f"$stream data add {channel_name} {group_name} "
+                   f"{timestamp} {data_value} {time_format}")
+
+        self.connectionObj.qps.sendCmdVerbose(command)
+
+    def addDataPoint(self, channelName: str, groupName: str, dataValue: Union[int, float],
+                     dataPointTime: Union[int, str] = 0, timeFormat: str = "unix") -> None:
         """
         DEPRECATED: Use add_data_point instead.
 
@@ -1116,83 +717,89 @@ class quarchStream:
 
         Args:
             channelName (str): The name of the custom channel to add data to.
-                                (This channel should typically be created first using `create_channel`).
             groupName (str): The group associated with the channel (must match creation).
             dataValue (int or float): The numeric value of the data point.
-            dataPointTime (int or str, optional):
-                The timestamp for the data point.
-                - 0 (default) or None: Uses the current time (Unix milliseconds).
-                - Integer/String number: Interpreted according to `time_format`.
-                Defaults to 0.
-            timeFormat (str, optional):
-                Specifies how `data_point_time` is interpreted.
-                "unix" (milliseconds since epoch) or "elapsed" (time since stream start).
-                Defaults to "unix".
-
+            dataPointTime (int or str, optional): The timestamp for the data point.
+            timeFormat (str, optional): The format of the given time ["elapsed"|"unix"].
         """
         self.add_data_point(channelName, groupName, dataValue, dataPointTime, timeFormat)
 
-    def add_data_point(self, channel_name, group_name, data_value, data_point_time=0, time_format="unix"):
-        """
-        Adds a single data point to a specified custom channel in the QPS stream.
-
-        Args:
-            channel_name (str): The name of the custom channel to add data to.
-                                (This channel should typically be created first using `create_channel`).
-            group_name (str): The group associated with the channel (must match creation).
-            data_value (int or float): The numeric value of the data point.
-            data_point_time (int or str, optional):
-                The timestamp for the data point.
-                - 0 (default) or None: Uses the current time (Unix milliseconds).
-                - Integer/String number: Interpreted according to `time_format`.
-                Defaults to 0.
-            time_format (str, optional):
-                Specifies how `data_point_time` is interpreted.
-                "unix" (milliseconds since epoch) or "elapsed" (time since stream start).
-                Defaults to "unix".
-        """
-        # Determine the timestamp: use current time if 0 or None is provided.
-        if data_point_time is None or data_point_time == 0:
-            timestamp = qpsNowStr()  # Get current time in Unix milliseconds.
-            time_format = "unix"  # Ensure time format matches the timestamp generated.
-        else:
-            # Ensure timestamp is a string for the command. (Original code converted to int first, which might lose precision if time was float/str)
-            timestamp = str(data_point_time)
-
-        # Construct the command string.
-        command = (f"$stream data add {channel_name} {group_name} "
-                   f"{timestamp} {data_value} {time_format}")
-
-        # Log the command being sent (consider changing level from warning if this is normal operation).
-        logging.warning(command)  # Original code used warning level.
-
-        # Send the command to add the data point.
-        self.connectionObj.qps.sendCmdVerbose(command)
-
-    def get_stream_export_status(self):
+    def get_stream_export_status(self) -> str:
         """
         Queries the QPS device for the status of the main stream data export process.
 
         Returns:
             str: The response string from QPS indicating the stream export status
         """
-        # Send the command to get the status of stream CSV export.
         return self.connectionObj.qps.sendCmdVerbose("$stream export status")
 
-    def get_stats_export_status(self):
+    def get_stats_export_status(self) -> str:
         """
         Queries the QPS device for the status of the statistics data export process.
 
         Returns:
             str: The response string from QPS indicating the stats export status
         """
-        # Send the command to get the status of statistics CSV export.
         return self.connectionObj.qps.sendCmdVerbose("$stream stats export status")
+
+    def stop_stream(self, poll_till_complete: bool = False, check_interval: float = 0.1, timeout: int = 60) -> Literal[Status.OVERRUN, Status.STOPPED] | Any:
+        """
+        Sends the command to stop the QPS data stream.
+
+        Args:
+            poll_till_complete (bool, optional): If True, waits for the stream to fully stop. Defaults to False.
+            check_interval (float, optional): Seconds between status checks when polling. Defaults to 0.1.
+            timeout (int, optional): Max seconds to wait for polling to complete. Defaults to 60.
+
+        Returns:
+            str: The final stream status if polling, otherwise the initial command response.
+
+        Raises:
+            Exception: If the stop command itself fails.
+            TimeoutError: If polling is enabled and times out.
+        """
+        response = self.connectionObj.qps.sendCmdVerbose("$stop stream")
+        if response.startswith("Fail"):
+            raise Exception(response)
+
+        if poll_till_complete:
+            start_time = time.monotonic()
+            while True:
+                stream_state = self.get_stream_state().lower()
+                is_stopped = check_stream_stopped_status(stream_state)
+                if is_stopped:
+                    return is_stopped
+
+                if (time.monotonic() - start_time) > timeout:
+                    raise TimeoutError(f"Timeout ({timeout}s) waiting for stream to stop. Last state: {stream_state}")
+
+                logging.debug(f"Stream buffer still emptying: {stream_state}")
+                time.sleep(check_interval)
+
+        return response
+
+    def stopStream(self, pollTillComplete: bool = False, checkInterval: float = 0.1, timeout: int = 60) -> str:
+        """
+        DEPRECATED: Use stop_stream instead.
+
+        Args:
+            pollTillComplete (bool, optional): If True, waits until the QPS stream
+                                               state is no longer "running". Defaults to False.
+            checkInterval (float, optional): Time in seconds between status checks
+                                             when polling. Defaults to 0.1.
+            timeout (int, optional): Maximum time in seconds to wait. Defaults to 60.
+
+        Returns:
+            str: The final checked stream status string ("STOPPED", "OVERRUN") if polling,
+                 otherwise the initial response from the '$stop stream' command.
+        """
+        return self.stop_stream(pollTillComplete, checkInterval, timeout)
+
 
 # -------------------------------------
 #  Constants/Enums
 # -------------------------------------
-class Status(Enum):
+class Status(enum.Enum):
     IN_PROGRESS = "IN PROGRESS"
     COMPLETE = "COMPLETE"
     STOPPED = "STOPPED"
@@ -1205,6 +812,7 @@ class Status(Enum):
 # -------------------------------------
 def current_milli_time():
     return int(round(time.time() * 1000))
+
 
 def current_second_time():
     return int(round(time.time()))
@@ -1222,6 +830,7 @@ def check_stream_status(stream_status):
             return '\tStream interrupted due to max file size has being exceeded'
         else:
             return "\tStopped for unknown reason"
+    return "\t Stream running"
 
 
 def check_stream_stopped_status(stream_status):
@@ -1232,6 +841,7 @@ def check_stream_stopped_status(stream_status):
             return Status.OVERRUN
         else:
             return Status.STOPPED
+    return Status.IN_PROGRESS
 
 
 # -------------------------------------
@@ -1242,3 +852,4 @@ def check_export_status(export_status):
         return True
     elif export_status == Status.IN_PROGRESS:
         return False
+    return False

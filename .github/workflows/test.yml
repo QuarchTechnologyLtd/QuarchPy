@@ -18,6 +18,12 @@ jobs:
       with:
         python-version: '3.10'
 
+    - name: Clean pycache and .pyc files
+    run: |
+        find . -type d -name "__pycache__" -exec rm -r {} +
+        find . -type f -name "*.pyc" -delete
+    
+    
     - name: Install dependencies
       shell: bash
       run: |

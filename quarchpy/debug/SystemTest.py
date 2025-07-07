@@ -1,6 +1,6 @@
 from quarchpy import *
 from quarchpy.device import *
-from quarchpy.connection_specific.jdk_j21_jres.fix_permissions import main as fix_permissions, find_java_permissions
+from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
 try:
     from importlib.metadata import distribution
 except:
@@ -117,6 +117,7 @@ def test_system_info():
         print("\nUnable to detect QIS version. Exception:" +str(e))
 
 
+# Scan for all quarch devices on the system
 def QuarchSimpleIdentify(device1):
     """
     Prints basic identification test data on the specified module, compatible with all Quarch devices

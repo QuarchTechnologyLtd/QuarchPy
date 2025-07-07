@@ -1,7 +1,7 @@
 QPS Command Summary
 Copyright (c) Quarch Ltd
-QPS v1.44.2
-Generated: 14 Jan 2025
+QPS v1.47
+Generated: 1 Jul 2025
 
 
 *** Commands ***
@@ -390,7 +390,7 @@ Version: 2
 See also: $qps hide
 
 Command: $read
-Description: Reads data between from a given start time and either end time or number of records
+Description: Reads data between a given start time and either end time or number of records
 Version: 1
 See also: $stream read
 Arguments
@@ -481,6 +481,11 @@ Argument: file
 Description: File specifier is of the form /dir/dir/dir/recordingName. Any '\' characters are replaced with '/' character
 Index: 0
 Type: STRING
+Default value: NONE
+Argument: duration
+Description: Specifies the stream duration in seconds.
+Index: 1
+Type: INT
 Default value: NONE
 
 Command: $stats to csv
@@ -808,11 +813,20 @@ Description: List of channels to export; eg "voltage:5v,current:12v" with the de
 Index: 5
 Type: STRING
 Default value: all
+Argument: defaultDirectory
+Description: Sets the default csv file directory to save all exported files
+Index: 6
+Type: STRING
+Default value: NONE
 Notes:
 Format: $save csv file path/file name ALL|Max lines per file yes/no ",", "\t", ";", " "
 Argument file is optional and if not specified then a file name is assigned and of the form: 
 If no fileType file is specified then the following is assigned: .../path to recording directory/fileType+Export+yyyyMMddHHmmss.fileType
 By default all channels are exported but can be filtered using argument "channel"
+
+Command: $stream export status
+Description: Checks the status of export operation.
+Version: 2
 
 Command: $stream import
 Description: Imports from a given format
@@ -904,6 +918,11 @@ Description: File specifier of the form /dir/dir/dir/recordingName. Any '\' char
 Index: 0
 Type: STRING
 Default value: NONE
+Argument: duration
+Description: Specifies the stream duration in seconds.
+Index: 1
+Type: INT
+Default value: NONE
 
 Command: $stream record duration
 Description: Returns the total recording time
@@ -952,6 +971,10 @@ Description: Type of export file; eg .csv
 Index: 1
 Type: STRING
 Default value: csv
+
+Command: $stream stats export status
+Description: Checks the status of the stats export operation.
+Version: 2
 
 Command: $stream stats table
 Description: Returns statistics
@@ -1084,7 +1107,7 @@ $qps hide ~ Hides the QPS application
 
 $qps show ~ Shows the QPS application
 
-$read ~ Reads data between from a given start time and either end time or number of records
+$read ~ Reads data between a given start time and either end time or number of records
 
 $save csv ~ Saves to CSV format
 
@@ -1126,6 +1149,8 @@ $stream data add ~ Adds a channel/group value at a specified time
 
 $stream export ~ Saves to a given format
 
+$stream export status ~ Checks the status of export operation.
+
 $stream import ~ Imports from a given format
 
 $stream read ~ Reads data between from a given start time and either end time or number of records
@@ -1139,6 +1164,8 @@ $stream start time ~ Returns the time that streaming started
 $stream state ~ The current state of streaming
 
 $stream stats export ~ Saves the statistics to a given format
+
+$stream stats export status ~ Checks the status of the stats export operation.
 
 $stream stats table ~ Returns statistics
 

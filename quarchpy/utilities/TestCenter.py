@@ -34,7 +34,7 @@ def setup(interface_name, *command_params, stack_level=1):
     # Write the command and params to STDOUT
     sys.stdout.write("SETUP," + str(caller.filename) + "," + str(caller.lineno) + "," + interface_name + ",")
     for index, item in enumerate(command_params):
-        if (index < len(command_params) - 1):
+        if index < len(command_params) - 1:
             sys.stdout.write("\"" + item + "\"" + ",")
         else:
             sys.stdout.write("\"" + item)
@@ -43,7 +43,7 @@ def setup(interface_name, *command_params, stack_level=1):
     sys.stdout.flush()
 
     # Read the response from STDIN as the function result
-    return sys.stdin.readline().strip();
+    return sys.stdin.readline().strip()
 
 
 # Runs an interface setup function
@@ -76,7 +76,7 @@ def testPoint(command_name, *command_params, stack_level=1):
     sys.stdout.flush()
 
     # Read the response from STDIN as the test response
-    return sys.stdin.readline().strip();
+    return sys.stdin.readline().strip()
 
 
 def endTest(stack_level=1):
@@ -88,8 +88,8 @@ def endTest(stack_level=1):
 
     caller = getframeinfo(stack()[stack_level][0])
 
-    sys.stdout.write("ENDTEST," + str(caller.filename) + "," + str(caller.lineno));
-    sys.stdout.write("\n");
+    sys.stdout.write("ENDTEST," + str(caller.filename) + "," + str(caller.lineno))
+    sys.stdout.write("\n")
     sys.stdout.flush()
 
 
@@ -152,7 +152,7 @@ def GetVariable(package: str, var_name: str) -> str:
     Access a TestCenter user variable and return its value.
 
     Args:
-        package: Name of the TestCenter package to access
+        package: Name of the TestCenter package to access. UNUSED
         var_name: Name of the string variable to return.
 
     Returns:

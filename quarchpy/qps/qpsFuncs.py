@@ -3,7 +3,7 @@ from queue import Queue, Empty
 import platform
 from quarchpy.qis import isQisRunning, startLocalQis
 from quarchpy.connection_specific.connection_QPS import QpsInterface
-from quarchpy.connection_specific.jdk_j21_jres.fix_permissions import main as fix_permissions, find_java_permissions
+from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
 from quarchpy.user_interface import *
 import subprocess
 import logging
@@ -79,10 +79,10 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     # Record current working directory
     current_dir = os.getcwd()
 
-    # JRE 21 path
+    # JRE path
     java_path = os.path.dirname(os.path.abspath(__file__))
     java_path, junk = os.path.split(java_path)
-    java_path = os.path.join(java_path, "connection_specific", "jdk_j21_jres")
+    java_path = os.path.join(java_path, "connection_specific", "jdk_jres")
     java_path = "\"" + java_path
     # Start to build the path towards qps.jar
     qps_path = os.path.dirname(os.path.abspath(__file__))
@@ -103,7 +103,7 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     permissions, message = find_java_permissions()
     if permissions is False:
         logging.warning(message)
-        logging.warning("Not having correct permissions will prevent Quarch Java 21 Programs from launching.")
+        logging.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
         logging.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
         user_input = input("Would you like to use auto run this now? (Y/N)")
         if user_input.lower() == "y":
@@ -139,17 +139,17 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
 
     # OS dependency
     if current_os in "Windows":
-        command = java_path + "\\win_amd64_jdk_21_jre\\bin\\java\" -jar qps.jar " + str(args)
+        command = java_path + "\\win_amd64_jdk_jre\\bin\\java\" -jar qps.jar " + str(args)
     elif current_os in "Linux" and current_arch == "x86_64":
-        command = java_path + "/lin_amd64_jdk_21_jre/bin/java\" -jar qps.jar " + str(args)
+        command = java_path + "/lin_amd64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
     elif current_os in "Linux" and current_arch == "aarch64":
-        command = java_path + "/lin_arm64_jdk_21_jre/bin/java\" -jar qps.jar " + str(args)
+        command = java_path + "/lin_arm64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
     elif current_os in "Darwin" and current_arch == "x86_64":
-        command = java_path + "/mac_amd64_jdk_21_jre/bin/java\" -jar qps.jar " + str(args)
+        command = java_path + "/mac_amd64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
     elif current_os in "Darwin" and current_arch == "arm64":
-        command = java_path + "/mac_arm64_jdk_21_jre/bin/java\" -jar qps.jar " + str(args)
+        command = java_path + "/mac_arm64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
     else:  # default to windows
-        command = java_path + "\\win_amd64_jdk_21_jre\\bin\\java\" -jar qps.jar " + str(args)
+        command = java_path + "\\win_amd64_jdk_jre\\bin\\java\" -jar qps.jar " + str(args)
 
     if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
         if current_os in "Windows":

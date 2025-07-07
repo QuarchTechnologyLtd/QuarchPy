@@ -2,6 +2,11 @@ import os
 import platform
 import sys
 import subprocess
+
+from quarchpy import *
+from quarchpy.device import *
+from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
+
 try:
     from importlib.metadata import distribution
 except:

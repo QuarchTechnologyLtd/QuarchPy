@@ -1,6 +1,8 @@
 from quarchpy.device import quarchDevice
 from quarchpy.utilities.Version import Version
 from quarchpy.user_interface.user_interface import requestDialog
+#from quarchpy.utilities.utils import check_stream_stopped_status, check_export_status
+
 import os, time, datetime, sys, logging
 
 if sys.version_info[0] < 3:
@@ -29,24 +31,24 @@ class quarchQPS(quarchDevice):
         self.IP_address = quarchDevice.connectionObj.qps.host
         self.port_number = quarchDevice.connectionObj.qps.port
 
-    def startStream(self, directory, unserInput=True):
+    def startStream(self, directory, unserInput=True, streamDuration=""):
         """
         directory - str - desired stream dir
         unserInput=True - if a failure occurs userInput=True allows user to rectify problem with user input. set to False if user interaction is not available (automating).
         """
         #time.sleep(1)  # TODO remove this sleep once script->QPS timeing issue resolved. This works fine in the meantime
-        return quarchStream(self.quarchDevice, directory, unserInput)
+        return quarchStream(self.quarchDevice, directory, unserInput, streamDuration)
 
 
 class quarchStream:
-    def __init__(self, quarchQPS, directory, unserInput=True):
+    def __init__(self, quarchQPS, directory, unserInput=True, streamDuration=""):
         self.connectionObj = quarchQPS.connectionObj
         self.IP_address = quarchQPS.connectionObj.qps.host
         self.port_number = quarchQPS.connectionObj.qps.port
         self.ConString = quarchQPS.ConString
         self.ConType = quarchQPS.ConType
-        time.sleep(1)
-        response = self.startQPSStream(directory)
+        # time.sleep(1) # TODO Nabil - Is this required?
+        response = self.startQPSStream(directory, streamDuration)
         if not "fail:" in response.lower():
             return
         else:
@@ -55,18 +57,19 @@ class quarchStream:
             else:
                 self.failCheck(response)
 
-    def startQPSStream(self, newDirectory):
-        '''STARTS the stream '''
-        response = self.connectionObj.qps.sendCmdVerbose("$start stream \"" + str(newDirectory) + "\"")
+    def startQPSStream(self, newDirectory, streamDuration=""):
+        '''STARTS the QPS stream '''
+        # Set the stream duration if required.
+        response = self.connectionObj.qps.sendCmdVerbose("$start stream \"" + str(newDirectory) + "\" " + str(streamDuration))
         if "Error" in response:
-            response = self.connectionObj.qps.sendCmdVerbose("$start stream " + str(newDirectory))
+            response = self.connectionObj.qps.sendCmdVerbose("$start stream " + str(newDirectory) + " " + streamDuration)
         return response
 
     def failCheck(self, response):
         ''' handles failed starting of stream that requires input from user to fix.'''
         while "fail:" in response.lower():
             if "Fail: Directory already exists" in response:
-                newDir = requestDialog(message=response+"  Please enter a new file name:")
+                newDir = requestDialog(message=response + "  Please enter a new file name:")
                 response = self.startQPSStream(newDir)
             else:  # If its a failure we don't know how to handle.
                 raise Exception(response)
@@ -112,7 +115,7 @@ class quarchStream:
 
         return retVal
 
-    def stats_to_CSV(self, file_name=""):
+    def stats_to_CSV(self, file_name="", poll_till_complete=False, check_interval=0.5):
         """
         Saves the statistics grid to a csv file
 
@@ -130,43 +133,51 @@ class quarchStream:
         command_response = self.connectionObj.qps.sendCmdVerbose("$stats to csv \"" + file_name + "\"", timeout=60)
         if command_response.startswith("Fail"):
             raise Exception(command_response)
+
+        #UNCOMMENT
+        # if poll_till_complete:
+        #     is_exporting = check_export_status(self.get_stats_export_status())
+        #     while is_exporting:
+        #         is_exporting = check_export_status(self.get_stats_export_status())
+        #         time.sleep(check_interval)
         return command_response
 
     def get_custom_stats_range(self, start_time, end_time):
         """
-                      Returns the QPS statistics information over a specific time ignoring any set annotations.
+          Returns the QPS statistics information over a specific time ignoring any set annotations.
 
-                                Parameters
-                                ----------
-                                start_time = : str
-                                    The time in seconds you would like the stats to start this can be in integer or string format.
-                                    or using the following format to specify daysDhours:minutes:seconds.milliseconds
-                                    xxxDxx:xx:xx.xxxx
-                                end_time = : str
-                                    The time in seconds you would like the stats to stop this can be in integer or string format
-                                    or using the following format to specify daysDhours:minutes:seconds.milliseconds
-                                    xxxDxx:xx:xx.xxxx
-                                Returns
-                                -------
-                                df = : dataframe
-                                    The response text from QPS. If successful "ok. Saving stats to : file_name" otherwise returns the exception thrown
+                    Parameters
+                    ----------
+                    start_time = : str
+                        The time in seconds you would like the stats to start this can be in integer or string format.
+                        or using the following format to specify daysDhours:minutes:seconds.milliseconds
+                        xxxDxx:xx:xx.xxxx
+                    end_time = : str
+                        The time in seconds you would like the stats to stop this can be in integer or string format
+                        or using the following format to specify daysDhours:minutes:seconds.milliseconds
+                        xxxDxx:xx:xx.xxxx
+                    Returns
+                    -------
+                    df = : dataframe
+                        The response text from QPS. If successful "ok. Saving stats to : file_name" otherwise returns the exception thrown
         """
         try:
             import warnings
             import pandas as pd
             warnings.simplefilter(action='ignore', category=FutureWarning)
-        except:
+        except ImportError:
             logging.warning("pandas not imported correctly")
+
         command_response = self.connectionObj.qps.sendCmdVerbose(
             "$get custom stats range " + str(start_time) + " " + str(end_time), timeout=60)
+
         if command_response.startswith("Fail"):
             raise Exception(command_response)
         test_data = StringIO(command_response)
+
         try:
             pd.set_option('display.max_columns', None)
             pd.set_option('display.width', 1024)
-            # df = pd.read_csv(test_data, sep=",", header=[0,1])
-            # pandas.read_csv() replaced error_bad_lines with on_bad_lines from v1.3.0
             if Version.is_v1_ge_v2(pd.__version__, "1.3.0"):
                 df = pd.read_csv(test_data, sep=",", header=[0, 1], on_bad_lines="skip")
             else:
@@ -187,9 +198,9 @@ class quarchStream:
 
     def getStreamState(self):
         """
-                      Askes QPS for the stream status.
+                      Asks QPS for the stream status.
                       QPS stream state != Module stream state.
-                      This is different from "rec stream?" cmd to the module as it will return "streaming" when the module is nolonger streaming but QPS is still receiveing stream data from the module.
+                      This is different from "rec stream?" cmd to the module as it will return "streaming" when the module is no longer streaming but QPS is still receiveing stream data from the module.
                       ei the module has stopped streaming but is emptying the stream buffer.
         """
         command_response = self.connectionObj.qps.sendCmdVerbose("$stream state")
@@ -197,8 +208,8 @@ class quarchStream:
             raise Exception(command_response)
         return (command_response)
 
-
-    def addAnnotation(self, title, annotationTime=0, extraText="", yPos="", titleColor="", annotationColor="", annotationType="", annotationGroup="", timeFormat="unix"):
+    def addAnnotation(self, title, annotationTime=0, extraText="", yPos="", titleColor="", annotationColor="",
+                      annotationType="", annotationGroup="", timeFormat="unix"):
         """
                     Adds a custom annotation to stream with given parameters.
 
@@ -229,14 +240,15 @@ class quarchStream:
         annotationType = annotationType.lower()
         annotationTime = str(annotationTime)
 
-        if (annotationTime[0].isalpha() or annotationTime[-1].isalpha()):
-            timeFormat="elapsed"
-            if annotationTime.startswith("e"): #Old format allowed e to be used to pass elapsed time in seconds "e2" -> 2s + elapsed
-                annotationTime=annotationTime[1:]+"s"
+        if annotationTime[0].isalpha() or annotationTime[-1].isalpha():
+            timeFormat = "elapsed"
+            if annotationTime.startswith(
+                    "e"):  #Old format allowed e to be used to pass elapsed time in seconds "e2" -> 2s + elapsed
+                annotationTime = annotationTime[1:] + "s"
 
-        elif annotationTime=="0":
-            annotationTime=current_milli_time()
-            timeFormat="unix"
+        elif annotationTime == "0":
+            annotationTime = current_milli_time()
+            timeFormat = "unix"
 
         if annotationType == "" or annotationType == "annotation":
             annotationType = "annotate"
@@ -248,23 +260,22 @@ class quarchStream:
         #     return retString
 
         title = title.replace("\n", "\\n")
-        cmd="$stream annotation add "+" time="+str(annotationTime)+ " text=\""+title+"\""
-        if extraText!="":
+        cmd = "$stream annotation add " + " time=" + str(annotationTime) + " text=\"" + title + "\""
+        if extraText != "":
             extraText = extraText.replace("\n", "\\n")
-            cmd+=" extraText=\"" +str(extraText)+"\""
-        if yPos!= "":
-            cmd+=" yPos="+str(yPos)
-        if type!="":
-            cmd+=" type="+ str(annotationType)
-        if annotationColor!="":
-            cmd+=" colour="+str(annotationColor)
-        if titleColor!="":
-            cmd+=" textColour="+str(titleColor)
-        if timeFormat!="":
-            cmd+=" timeFormat="+str(timeFormat)
+            cmd += " extraText=\"" + str(extraText) + "\""
+        if yPos != "":
+            cmd += " yPos=" + str(yPos)
+        if type != "":
+            cmd += " type=" + str(annotationType)
+        if annotationColor != "":
+            cmd += " colour=" + str(annotationColor)
+        if titleColor != "":
+            cmd += " textColour=" + str(titleColor)
+        if timeFormat != "":
+            cmd += " timeFormat=" + str(timeFormat)
 
         return self.connectionObj.qps.sendCmdVerbose(cmd)
-
 
     def addComment(self, title, commentTime=0, extraText="", yPos="", titleColor="", commentColor="", annotationType="",
                    annotationGroup="", timeFormat="unix"):
@@ -276,7 +287,8 @@ class quarchStream:
                                   titleColor=titleColor, annotationColor=commentColor, annotationType=annotationType,
                                   annotationGroup=annotationGroup, timeFormat=timeFormat)
 
-    def saveCSV(self, filePath, linesPerFile=None, cr=None, delimiter=None, timeout=60):
+    def saveCSV(self, filePath, linesPerFile=None, cr=None, delimiter=None, timeout=60, pollTillComplete=False,
+                checkInterval=0.5):
         """
             Saves the stream to csv file at specified location
 
@@ -310,6 +322,12 @@ class quarchStream:
         if delimiter != None:
             args += " -s" + delimiter
 
+        # if pollTillComplete:
+        #     is_exporting = check_export_status(self.get_stream_export_status())
+        #     while is_exporting:
+        #         is_exporting = check_export_status(self.get_stream_export_status())
+        #         time.sleep(checkInterval)
+
         # , filePath, linesPerFile, cr, delimiter
         return self.connectionObj.qps.sendCmdVerbose("$save csv \"" + filePath + "\" " + args, timeout=timeout)
 
@@ -335,17 +353,22 @@ class quarchStream:
     def channels(self):
         return self.connectionObj.qps.sendCmdVerbose("$channels").splitlines()
 
-    def stopStream(self):
-        return self.connectionObj.qps.sendCmdVerbose("$stop stream")
-
-    def stopStreamAndAllowBufferToEmpty(self, checkInterval=0.5):
-        self.stopStream()
-        streamState = self.getStreamState().lower()
-        while "running" in streamState:
-            logging.debug("Stream buffer still emptying: " + streamState)
-            time.sleep(checkInterval)
+    def stopStream(self, pollTillComplete=False, checkInterval=0.5):
+        # Stop the stream
+        response = self.connectionObj.qps.sendCmdVerbose("$stop stream")
+        # Poll till stream has completed if required
+        if pollTillComplete:
+            # Get the current stream status
             streamState = self.getStreamState().lower()
-        logging.debug("QPS no longer Streaming: " + streamState)
+            # Verify the stream stopped correctly
+            # response = check_stream_stopped_status(streamState)
+            # while "running" in streamState:
+            #     logging.debug("Stream buffer still emptying: " + streamState)
+            #     streamState = self.getStreamState().lower()
+            #     response = check_stream_stopped_status(streamState)
+            #     time.sleep(checkInterval)
+
+        return response
 
     def hideAllDefaultChannels(self):
 
@@ -386,7 +409,13 @@ class quarchStream:
         else:
             dataPointTime = int(dataPointTime)
         logging.warning("$stream data add " + channelName + " " + groupName + " " + str(dataPointTime) + " " + str(
-                dataValue) + " " + timeFormat)
+            dataValue) + " " + timeFormat)
         self.connectionObj.qps.sendCmdVerbose(
             "$stream data add " + channelName + " " + groupName + " " + str(dataPointTime) + " " + str(
                 dataValue) + " " + timeFormat)
+
+    def get_stream_export_status(self):
+        return self.connectionObj.qps.sendCmdVerbose("$stream export status")
+
+    def get_stats_export_status(self):
+        return self.connectionObj.qps.sendCmdVerbose("$stream stats export status")

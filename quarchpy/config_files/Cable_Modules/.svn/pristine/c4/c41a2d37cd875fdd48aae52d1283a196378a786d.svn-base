@@ -1,0 +1,154 @@
+@CONFIG Version=1
+
+# Torridon SFP28 cable pull Module
+@HEADER
+DeviceClass=TorridonModule
+DeviceNumbers=QTL2138-xx
+DeviceNumbersExclude=
+MinFirmwareRequired=4.000
+MinFpgaRequired=1.1
+DeviceDescription=SFP28 Cable Pull Module
+
+#Describes general module abilities
+@GENERAL
+HotPlugRead_Present = true
+GlitchStateRead_Present = true
+SourceUserBounce_Present = true
+
+#Describes all signals on the module
+@SIGNALS
+Name=RX1_PL,GlitchEnable_Present=true
+Name=RX1_MN,GlitchEnable_Present=true
+Name=TX1_PL,GlitchEnable_Present=true
+Name=TX1_MN,GlitchEnable_Present=true
+Name=VCC_TX,GlitchEnable_Present=true
+Name=VCC_RX,GlitchEnable_Present=true
+Name=MOD_ABS,GlitchEnable_Present=true
+Name=SDA,GlitchEnable_Present=true
+Name=SCL,GlitchEnable_Present=true
+Name=TX_FAULT,GlitchEnable_Present=true
+Name=TX_DISABLE,GlitchEnable_Present=true
+Name=RX_LOS,GlitchEnable_Present=true
+Name=RS0,GlitchEnable_Present=true
+Name=RS1,GlitchEnable_Present=true
+
+
+@SIGNAL_GROUPS
+Name=ALL,Signals="TX1_PL,TX1_MN,RX1_PL,RX1_MN,VCC_TX,VCC_RX,MOD_ABS,SDA,SCL,TX_FAULT,TX_DISABLE,RX_LOS,RS0,RS1"
+Name=DATA,Signals="TX1_PL,TX1_MN,RX1_PL,RX1_MN"
+Name=MANAGEMENT,Signals="MOD_ABS,SDA,SCL,TX_FAULT,TX_DISABLE,RX_LOS,RS0,RS1"
+Name=POWER,Signals="VCC_TX,VCC_RX"
+
+# Describes all sources on the module
+@SOURCES
+
+# Describes basic source parameters
+@SOURCE_START
+Number=0
+Type=ALWAYS_OFF
+Name=Source 0
+SourceEnable_Present=false
+@SOURCE_END
+
+
+# Describes basic source parameters
+@SOURCE_START
+Number=1
+Type=TIMED
+Name=Source 1
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=2
+Type=TIMED
+Name=Source 2
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=3
+Type=TIMED
+Name=Source 3
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=4
+Type=TIMED
+Name=Source 4
+SourceDelay_Limits=ms,0,127,1
+SourceDelay_Limits=ms,0,1270,10
+SourceEnable_Present=true
+
+# Describes source pin-bounce parameters
+@SOURCE_BOUNCE
+SourceBounce_Present=true
+BounceLength_Limits=ms,0,127,1
+BounceLength_Limits=ms,0,1270,10
+BouncePeriod_Limits=us,10,1270,10
+BouncePeriod_Limits=us,1000,127000,1000
+BounceDuty_Limits=int,1,100,1
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=7
+Type=IMMEDIATE_CHANGE
+Name=Source 7
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes basic source parameters
+@SOURCE_START
+Number=8
+Type=ALWAYS_ON
+Name=Source 8
+SourceEnable_Present=false
+@SOURCE_END
+
+# Describes glitching module
+@GLITCH
+GlitchSignals_present=true
+GlitchSignals_Version=2
+GlitchLength_Limits=int,0,255,1
+GlitchMultiplier_Settings=50ns,500ns,5us,50us,500us,5ms,50ms,500ms
+GlitchPrbs_Settings=1:2,1:4,1:8,1:16,1:32,1:64,1:128,1:256,1:512,1:1024,1:2048,1:4096,1:8192,1:16384,1:32768,1:65536
+
+@MEASURE

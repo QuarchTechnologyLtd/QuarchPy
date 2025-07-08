@@ -1,4 +1,4 @@
-(C)Quarch Technology Ltd 2025, QIS v1.47
+(C)Quarch Technology Ltd 2025, QIS v1.49
 
 qis:
 
@@ -31,7 +31,10 @@ Command line parameters:
 
 	-logging=ON
 		Enables application logging to file
-		
+
+	-loglevel=SEVERE,WARNING,INFO,CONFIG,FINE,FINER,FINEST
+	    Sets the logging level, which by default is set to INFO
+
 	-logtarget=file
 		Logs to the specified file
 		
@@ -297,6 +300,10 @@ Non $ Commands internal to qis:
 		Deletes all previously created channels.
 	stream created channels?
 		Returns a list of all previously created channels.
+	stream created channels enabled?
+		Returns a list of previously created channels that are enabled.
+	stream created channels disabled?
+		Returns a list of previously created channels that are disabled.
 	stream created function definitions?
 		Returns an XML description of all supported functions.
 
@@ -345,7 +352,7 @@ Any command not recognised by qis will be passed on to the current default devic
 The $help screen:
 
     >$help
-    Quarch Instrument Server v1.35.01 (C)Quarch Technology Ltd 2023
+    Quarch Instrument Server v1.47 (C)Quarch Technology Ltd 2025
 
     This program uses:
     usb4java V1.3 distributed under LGPL v3.0
@@ -504,6 +511,10 @@ Appendix B: Synthetic Channel Functions
 		Deletes all previously created channels.
 	stream created channels?
 		Returns a list of all previously created channels.
+	stream created channels enabled?
+		Returns a list of previously created channels that are enabled.
+	stream created channels disabled?
+		Returns a list of previously created channels that are disabled.
 	stream created function definitions?
 		Returns an XML description of all supported functions.
 
@@ -549,7 +560,29 @@ A more detailed description, with examples, of each command follows:
 		chan(L1_RMS,V) rms(100mS, chan(L1,V))
 		chan(L1_RMS,A) rms(100mS, chan(L1,A))
 		...
+	
+	stream created channels enabled?
+		Returns a list of enabled previously created channels For example:
 		
+		stream created channels enabled?
+		
+		could return the following list:
+		
+		chan(L1_RMS,V) rms(100mS, chan(L1,V))
+		chan(L1_RMS,A) rms(100mS, chan(L1,A))
+		...
+	
+	stream created channels disabled?
+		Returns a list of disabled previously created channels For example:
+		
+		stream created channels disabled?
+		
+		could return the following list:
+		
+		chan(L1_RMS,V) rms(100mS, chan(L1,V))
+		chan(L1_RMS,A) rms(100mS, chan(L1,A))
+		...	
+	
 	stream created function definitions?
 		Returns the XML schema used to define the supported synthetic channel functions. For example:
 		
@@ -568,31 +601,35 @@ A more detailed description, with examples, of each command follows:
 		
 The currently supported synthetic channel functions are:
 
-	rms
-		The effective value of a sinusoidal waveform which gives the same heating effect as an equivalent DC supply.
-	sineWave
-		A test function generating a sine wave based on the supplied parameters.
+	average
+	    The average of a channel over the specified time window.
+	crestFactor
+		The ratio of peak value to RMS value over the specified time window.
 	frequency
 		The frequency of the signal specified by the source channel.
+	multiplier
+        The scalar multiple of a single source channel or the product of at least two source channels.
+	pActive
+		The actual power which is transferred to the load / dissipated in the circuit.
+	pApparent
+		The product of RMS voltage and RMS current.
 	phase
 		The difference in phase, expressed in degrees, between the two source channels.
 	pInstantaneous
 		The product of voltage and current.
-	pApparent
-		The product of RMS voltage and RMS current.
-	pActive
-		The actual power which is transferred to the load / dissipated in the circuit.
-	pReactive
-		Power absorbed by and returned from the load due to its reactive properties.
 	powerFactor
 		The ratio of the real power absorbed by the load to the apparent power flowing in the circuit.
-	crestFactor
-		The ratio of peak value to RMS value over the specified time window.
-	sum
-		The sum of the specified channels.
+	pReactive
+		Power absorbed by and returned from the load due to its reactive properties.
+	rms
+		The effective value of a sinusoidal waveform which gives the same heating effect as an equivalent DC supply.
+	sineWave
+		A test function generating a sine wave based on the supplied parameters.
 	subtract
 		The difference of the specified channels.
-		
+	sum
+		The sum of the specified channels.
+
 Each of the above functions have differing arguments and return value and the best source of reference for each function's
 details is via the XML function definitions command described above.
 	

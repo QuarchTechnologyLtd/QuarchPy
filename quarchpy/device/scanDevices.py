@@ -547,7 +547,7 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
                         myArrayControler = quarchArray(myQuarchDevice)
                         scanDevices = myArrayControler.scanSubModules()
                         foundDevices = mergeDict(foundDevices, scanDevices)
-                        myArrayControler.closeConnection()
+                        myArrayControler.close_connection()
                     except Exception as e:
                         logging.debug(e, exc_info=True)
                         logging.debug("Cannot get serial number. Quarch device may be in use by another program.")

@@ -1,0 +1,79 @@
+@CONFIG Version=2
+
+# Torridon PMM (3v3 / 12v version)
+@HEADER
+DeviceClass=TorridonPowerModule
+DeviceNumbers=QTL1730-01
+DeviceNumbersExclude=
+MinFirmwareRequired=4.105
+MinFpgaRequired=1.8
+DeviceDescription=Power Margining Module
+
+#Describes general module abilities
+@GENERAL
+Logging_Present=true
+Triggering_Present=false
+OutputVoltageLimit_Present=true
+TempWarningUnit=60
+TempNearCutoffUnit=70
+TempWarningFet=60
+TempNearCutoffFet=70
+
+@PORT_GROUPS
+Name=ALL,Ports="12v,3v3"
+
+#Describes ports
+@PORTS
+
+@PORT_START
+PortName=12v
+Type=VARIABLE
+
+Nominal_Voltage=12000
+Voltage_Limits=int,0,14400,1
+Current_Measure_Limits=int,0,7500,1
+
+Pattern_Present=true
+Pattern_Points=1023
+Pattern_Time_Limits=int,0,2147483647,1
+Pattern_Repeat_Limits=int,1,65535,1
+PortColor=Red
+@PORT_END
+
+@PORT_START
+PortName=3v3
+Type=VARIABLE
+
+Nominal_Voltage=3300
+Voltage_Limits=int,0,3960,1
+Current_Measure_Limits=int,0,7500,1
+
+Pattern_Present=true
+Pattern_Points=1023
+Pattern_Time_Limits=int,0,2147483647,1
+Pattern_Repeat_Limits=int,1,65535,1
+PortColor=Blue
+@PORT_END
+
+@LOGGING
+USB_Live_Present=true
+Live_Rate=1000
+Logging_Channel_Order=3v3,12v
+Logging_Rate_Limits=int,1,10000,1
+
+
+
+@MEASURE
+Name=3v3,Type=SelfVoltage,Description=3.3v Internal
+Name=6v5,Type=SelfVoltage,Description=6.5v Internal
+Name=15v,Type=SelfVoltage,Description=15v Internal
+Name=20v,Type=SelfVoltage,Description=20v Internal
+Name=Unit,Type=SelfTemperature,Description=Unit Ambient
+Name=5v,Type=SelfTemperature,Description=5v Regulator
+Name=12v,Type=SelfTemperature,Description=12v Regulator
+Name=5v,Type=Voltage,Description=3v3 Output Voltage
+Name=12v,Type=Voltage,Description=12v Output Voltage
+Name=5v,Type=Current,Description=3v3 Output Current
+Name=12v,Type=Current,Description=12v Output Current
+Name=5v,Type=Power,Description=3v3 Output Power
+Name=12v,Type=Power,Description=12v Output Power

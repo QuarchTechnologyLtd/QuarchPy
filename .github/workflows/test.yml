@@ -13,6 +13,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Clean pycache and .pyc files
+      run: |
+        find . -type d -name "__pycache__" -exec rm -r {} +
+        find . -type f -name "*.pyc" -delete
+
     - name: Set up Python 3.10
       uses: actions/setup-python@v5
       with:
@@ -69,4 +74,3 @@ jobs:
       run: |
         twine upload dist/* -u __token__ -p ${{ secrets.PYPI_TOKEN }}
         echo "Upload to PyPI"
-

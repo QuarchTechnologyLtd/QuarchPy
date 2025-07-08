@@ -1,4 +1,3 @@
-import pytest
 from quarchpy.device.scanDevices import *
 
 def test_scan_devices():

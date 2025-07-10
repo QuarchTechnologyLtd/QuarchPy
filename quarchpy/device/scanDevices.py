@@ -1,15 +1,11 @@
-import time
-import socket
-import sys
 import operator
-import logging
-import os
-
+import socket
 from sys import platform
 
 from quarchpy.config_files.quarch_config_parser import return_module_type_list
-from quarchpy.user_interface import*
+from quarchpy.user_interface import *
 from quarchpy.user_interface import User_interface
+
 try:
     from quarchpy.connection_specific.connection_USB import importUSB  # , USBConn
 except:
@@ -22,12 +18,13 @@ from quarchpy.connection_specific.connection_USB import TQuarchUSB_IF
 from quarchpy.connection_specific import connection_ReST, connection_TCP
 from quarchpy.connection_specific.mDNS import MyListener
 
-
 '''
 Merge two dictionaries and return the result
 '''
+
+
 def mergeDict(x, y):
-    if (y is None):
+    if y is None:
         return x
     else:
         merged = x.copy()
@@ -38,6 +35,8 @@ def mergeDict(x, y):
 '''
 Scan for Quarch modules across all available COM ports
 '''
+
+
 def list_serial(debuPrint=False):
     serial_ports = serialList.comports()
     serial_modules = dict()
@@ -55,7 +54,8 @@ def list_serial(debuPrint=False):
             if "QTL" not in serial_module:
                 serial_module = "QTL" + serial_module
 
-            module = str(i[0]), str(serial_module)
+            # Keep for debugging
+            # module = str(i[0]), str(serial_module)
 
             if serial_module[7] == "-" and serial_module[10] == "-":
                 serial_modules["SERIAL:" + str(i[0])] = serial_module
@@ -72,6 +72,8 @@ def list_serial(debuPrint=False):
 '''
 Scan for all Quarch devices available over USB
 '''
+
+
 def list_USB(debuPrint=False):
     QUARCH_VENDOR_ID = 0x16d0
     QUARCH_PRODUCT_ID1 = 0x0449
@@ -81,7 +83,8 @@ def list_USB(debuPrint=False):
     context = usb1.USBContext()
     usb_list = context.getDeviceList()
 
-    if (debuPrint): printText(usb_list)
+    if debuPrint:
+        printText(usb_list)
 
     usb_modules = dict()
     hdList = []
@@ -89,6 +92,7 @@ def list_USB(debuPrint=False):
     usb_permission_error = False
 
     for i in usb_list:
+        i_handle = None
         if hex(i.device_descriptor.idVendor) == hex(QUARCH_VENDOR_ID) and hex(i.device_descriptor.idProduct) == hex(
                 QUARCH_PRODUCT_ID1):
             try:
@@ -103,10 +107,9 @@ def list_USB(debuPrint=False):
                             usb_permission_error = True
                 usb_modules["USB:???"] = "LOCKED MODULE"
 
-
             try:
                 module_sn = i_handle.getASCIIStringDescriptor(3)
-                if "1944" in module_sn or "2098" in module_sn :  #use enclosure number instead of serial number
+                if "1944" in module_sn or "2098" in module_sn:  #use enclosure number instead of serial number
                     hdList.append(i)
             except Exception as err:
                 logging.debug("USB exception on reading serial number: " + str(err))
@@ -114,8 +117,8 @@ def list_USB(debuPrint=False):
                 continue
 
             try:
-                if (debuPrint): printText(i_handle.getASCIIStringDescriptor(3) + " " + i_handle.getASCIIStringDescriptor(
-                    2) + " " + i_handle.getASCIIStringDescriptor(1))
+                if debuPrint:
+                    printText(i_handle.getASCIIStringDescriptor(3) + " " + i_handle.getASCIIStringDescriptor(2) + " " + i_handle.getASCIIStringDescriptor(1))
             except Exception as err:
                 logging.error("USB exception on reading descriptor strings: " + str(err))
                 usb_modules["USB:???"] = "LOCKED MODULE"
@@ -126,7 +129,8 @@ def list_USB(debuPrint=False):
             else:
                 module_sn = module_sn.strip()
 
-            if (debuPrint): printText(module_sn)
+            if debuPrint:
+                printText(module_sn)
 
             usb_modules["USB:" + module_sn] = module_sn
             logging.debug("Located USB module: " + module_sn)
@@ -141,9 +145,6 @@ def list_USB(debuPrint=False):
     # before returning the list of usb modules scan through the list for a 1944 create a quarch device and use sendCommand("*enclosure?")
 
     for module in hdList:
-
-        QquarchDevice = None
-        quarchDevice = None
         quarchDevice = module
         QquarchDevice = TQuarchUSB_IF(context)
         QquarchDevice.connection = quarchDevice
@@ -163,7 +164,6 @@ def list_USB(debuPrint=False):
         QquarchDevice.ClosePort()
         QquarchDevice.deviceHandle = None
 
-
     if usb_permission_error:
         logging.warning("Potential permission error accessing Quarch module(s) via USB.")
         logging.warning("If unknown, run the command 'sudo python3 -m quarchpy.run debug --fixusb' to add a new usb rule.")
@@ -174,19 +174,21 @@ def list_USB(debuPrint=False):
 '''
 List all Quarch devices found over LAN, using a UDP broadcast scan
 '''
-def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLookup=None):
 
-    retVal={}
+
+def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLookup=None):
+    retVal = {}
     lan_modules = dict()
     specifiedDevice = None
     moduleFound = None
+    mySocket = None
+    ip_module = None
+    module_name = None
     # Broadcast the message.
     logging.debug("Broadcast LAN discovery message for UDP scan to all network interfaces")
     ipList = socket.gethostbyname_ex(socket.gethostname())
     ipList[2].append("")
     logging.debug(os.path.basename(__file__) + ": Discovered the following interfaces: " + str(ipList))
-
-
 
     for ip in ipList[2]:
         logging.debug(os.path.basename(__file__) + ": Broadcasting on : " + ip)
@@ -194,24 +196,25 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
             mySocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             mySocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             mySocket.settimeout(lanTimeout)
-            mySocket.bind((ip,56732))
+            mySocket.bind((ip, 56732))
         except Exception as err:
-            logging.debug("Error while trying to bind to network interfaces: "+" Error: "+str(err))
+            logging.debug("Error while trying to bind to network interfaces: " + " Error: " + str(err))
 
         if ipAddressLookup is not None:
             # Attempts to find the device through UDP then REST
-            specifiedDevice, moduleFound = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules, moduleFound)
-
+            specifiedDevice, moduleFound = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules,
+                                                        moduleFound)
 
         mySocket.sendto(b'Discovery: Who is out there?\0\n', ('255.255.255.255', 30303))
         counter = 0
         # Receive messages until timeout.
         while True:
             network_modules = {}
+            msg_received = None
             counter += 1
             # Receive raw message until timeout, then break.
             try:
-                msg_received = mySocket.recvfrom(256)
+                msg_received = mySocket.recvfrom(1024)
             except Exception as e:
                 # check if any a device was targeted directly and allow parse
                 if specifiedDevice is not None:
@@ -247,21 +250,21 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
                     module_name = "QTL" + module_name
 
             # Checks if there's a value in the TELNET key.
-            if (target_conn.lower() == "all" or target_conn.lower() == "telnet"):
+            if target_conn.lower() == "all" or target_conn.lower() == "telnet":
                 if network_modules.get("\\x8a") or network_modules.get("138"):
                     # Append the information to the list.
                     lan_modules["TELNET:" + ip_module] = module_name
                     logging.debug("Found Telnet module: " + module_name)
 
             # Checks if there's a value in the REST key.
-            if (target_conn.lower() == "all" or target_conn.lower() == "rest"):
+            if target_conn.lower() == "all" or target_conn.lower() == "rest":
                 if network_modules.get("\\x84") or network_modules.get("132"):
                     # Append the information to the list.
                     lan_modules["REST:" + ip_module] = module_name
                     logging.debug("Found REST module: " + module_name)
 
             # Checks if there's a value in the TCP key.
-            if (target_conn.lower() == "all" or target_conn.lower() == "tcp"):
+            if target_conn.lower() == "all" or target_conn.lower() == "tcp":
                 if network_modules.get("\\x85") or network_modules.get("133"):
                     # Append the information to the list.
                     lan_modules["TCP:" + ip_module] = module_name
@@ -277,31 +280,31 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
     return retVal
 
 
-
 def get_user_level_serial_number(network_modules):
-    '''
+    """
 
     :param network_modules:
     :return:
-    '''
+    """
     list_of_multi_module_units = ["1995"]  # List of modules that require enclosure number + Port to be displayed.
+    module_name = None
 
     # Filter the raw message to get the module and ip address.
     if "134" in network_modules.keys():
-        module_name = network_modules.get("134").strip()                    # enclosure number only
+        module_name = network_modules.get("134").strip()  # enclosure number only
         for module in list_of_multi_module_units:
             if module in module_name:
-                module_name += "-" + network_modules.get("135").strip()     # enclosure number with port
+                module_name += "-" + network_modules.get("135").strip()  # enclosure number with port
                 break
     elif "\\x86" in network_modules.keys():
         module_name = network_modules.get("\\x86").strip()  # enclosure number only
         for module in list_of_multi_module_units:
             if module in module_name:
-                module_name += "-" + network_modules.get("\\x87").strip()     # enclosure number with port
+                module_name += "-" + network_modules.get("\\x87").strip()  # enclosure number with port
                 break
     else:
         if "131" in network_modules.keys():
-            module_name = module_name = network_modules.get("131").strip()      # serial number
+            module_name = module_name = network_modules.get("131").strip()  # serial number
         elif "\\x83" in network_modules.keys():
             module_name = module_name = network_modules.get("\\x83").strip()  # serial number
 
@@ -309,41 +312,41 @@ def get_user_level_serial_number(network_modules):
 
 
 ''''''
+
+
 def lookupDevice(ipAddressLookup, mySocket, lan_modules, module_found):
+    specifiedDevice = None
     try:
-        specifiedDevice =None
         # For future reference, 0 is the C terminator for a string
         timeout = mySocket.gettimeout()
-        # mySocket.settimeout(20)
-        # timeout2 = mySocket.gettimeout()
-        logging.debug("Ipaddress lookup =" + ipAddressLookup+ "  timeout = "+ str(timeout))
+        logging.debug("Ipaddress lookup =" + ipAddressLookup + "  timeout = " + str(timeout))
 
         mySocket.sendto(b'Discovery: Who is out there?\0\n', (str(ipAddressLookup).strip(), 30303))
         specifiedDevice = mySocket.recvfrom(256)
         # Check to see if the response contains the connection protocol
         return specifiedDevice
     except Exception as e:
-        logging.debug("Error during UDP lookup of IP address "+ str(ipAddressLookup) +"  Error: " + str(e))
+        logging.debug("Error during UDP lookup of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
         logging.debug("No Quarch module found at this address. Please check the IP address and that you can ping it.\r\n")
 
-    #return None # Commented out, attempt a REST connection with IP. This is what other quarch applications do.
-    if specifiedDevice is None: #Only True if TCP not found or errored
+    if specifiedDevice is None:  #Only True if TCP not found or errored
         try:
             restCon = connection_ReST.ReSTConn(str(ipAddressLookup).replace("\r\n", ""))
-            restDevice = restCon.sendCommand("*enclosure?") #Try use enclosure for PPMs
-            if "fail" in restDevice.lower(): # This will fail nicely for other modules
-                restDevice = restCon.sendCommand("*serial?") # and serial number will be used in place.
+            restDevice = restCon.sendCommand("*enclosure?")  #Try use enclosure for PPMs
+            if "fail" in restDevice.lower():  # This will fail nicely for other modules
+                restDevice = restCon.sendCommand("*serial?")  # and serial number will be used in place.
             if not str(restDevice).startswith("QTL"):
                 restDevice = "QTL" + restDevice
             # Exit as device was found correctly
             # Add the item to list
             lan_modules["REST:" + str(ipAddressLookup).replace("\r\n", "")] = restDevice
             module_found = restDevice
-            specifiedDevice=None # Don't return rest connection, to bypass tcp parsing.
+            specifiedDevice = None  # Don't return rest connection, to bypass tcp parsing.
         except Exception as e:
             logging.debug("Error During REST scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
             logging.debug("Please check the IP address and that you can ping it.\r\n")
         try:
+            # Keep for debugging purposes
             # from threading import Thread
             # t = Thread(target=connection_TCP.TCPConn, args=(str(ipAddressLookup).replace("\r\n", ""),))
             # t.daemon = True
@@ -352,24 +355,24 @@ def lookupDevice(ipAddressLookup, mySocket, lan_modules, module_found):
             # if t.is_alive():
             #     raise TimeoutError("Timeout during TCP Connection attempt.")
 
-            tcpCon= connection_TCP.TCPConn(str(ipAddressLookup).replace("\r\n", ""))
-            tcpDevice = tcpCon.sendCommand("*enclosure?") #Try use enclosure for PPMs
-            if "fail" in tcpDevice.lower(): # This will fail nicely for other modules
-                tcpDevice = tcpCon.sendCommand("*serial?") # and serial number will be used in place.
+            tcpCon = connection_TCP.TCPConn(str(ipAddressLookup).replace("\r\n", ""))
+            tcpDevice = tcpCon.sendCommand("*enclosure?")  #Try use enclosure for PPMs
+            if "fail" in tcpDevice.lower():  # This will fail nicely for other modules
+                tcpDevice = tcpCon.sendCommand("*serial?")  # and serial number will be used in place.
             if not str(tcpDevice).startswith("QTL"):
                 tcpDevice = "QTL" + tcpDevice
             # Exit as device was found correctly
             # Add the item to list
             lan_modules["TCP:" + str(ipAddressLookup).replace("\r\n", "")] = tcpDevice
             module_found = tcpDevice
-            specifiedDevice=None # Don't return tcp connection, to bypass tcp parsing.
+            specifiedDevice = None  # Don't return tcp connection, to bypass tcp parsing.
         except Exception as e:
             logging.debug("Error During TCP scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
             logging.debug("Please check the IP address and that you can ping it.\r\n")
 
         # Needs to return None so previous method will not attempt another lookup.
         return specifiedDevice, module_found
-
+    return None
 
 
 def getSerialNumberFromConnectionTarget(connectionTarget):
@@ -388,13 +391,13 @@ def getSerialNumberFromConnectionTarget(connectionTarget):
 
     """
     myDict = scanDevices(favouriteOnly=False)
-    for k,v in myDict.items():
+    for k, v in myDict.items():
         if k == connectionTarget:
             return v
     return None
 
 
-def get_connection_target(module_string ,scan_dictionary=None, connection_preference= None, include_conn_type = True):
+def get_connection_target(module_string, scan_dictionary=None, connection_preference=None, include_conn_type=True):
     """
                         Takes in the connection type and serial number of a module and returns the connection target.
 
@@ -419,10 +422,10 @@ def get_connection_target(module_string ,scan_dictionary=None, connection_prefer
                         ret_val : str
                             The Connection target of the supplied device.
     """
-    logging.debug("Getting connection target for : "+ str(module_string))
+    logging.debug("Getting connection target for : " + str(module_string))
     if connection_preference == None:
         connection_preference = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
-    module_string.replace("::", ":") #QIS/QPS format to QuarchPy format
+    module_string.replace("::", ":")  #QIS/QPS format to QuarchPy format
     delimeter_pos = module_string.find(":")
     if delimeter_pos == -1:
         con_type = None
@@ -430,18 +433,18 @@ def get_connection_target(module_string ,scan_dictionary=None, connection_prefer
     else:
         con_type = module_string[:delimeter_pos]
         serial_number = module_string[delimeter_pos + 1:].lower()
-    if serial_number.find("qtl") !=-1:
-        serial_number=serial_number.replace("qtl","")
+    if serial_number.find("qtl") != -1:
+        serial_number = serial_number.replace("qtl", "")
     if scan_dictionary is None:
         logging.debug("Scanning for devices...")
-        scan_dictionary = scanDevices(favouriteOnly=False,filterStr=[serial_number])
+        scan_dictionary = scanDevices(favouriteOnly=False, filterStr=[serial_number])
 
-    ret_val="Fail Module Not Found"
+    ret_val = "Fail Module Not Found"
 
     if con_type is None:
         connection_found = False
         for con_type in connection_preference:
-            if connection_found is False:
+            if not connection_found:
                 for k, v in scan_dictionary.items():
                     if k.__contains__(con_type):
                         ret_val = k
@@ -449,7 +452,7 @@ def get_connection_target(module_string ,scan_dictionary=None, connection_prefer
     else:
         for k, v in scan_dictionary.items():
             if k.lower().__contains__(con_type.lower()):
-                ret_val=k
+                ret_val = k
 
     if not include_conn_type and not ret_val.__contains__("Fail"):
         delimeter_pos = ret_val.find(":")
@@ -461,6 +464,8 @@ def get_connection_target(module_string ,scan_dictionary=None, connection_prefer
 '''
 Scans for Quarch modules across the given interface(s). Returns a dictionary of module addresses and serial numbers
 '''
+
+
 def filter_module_type(module_type_filter, found_devices):
     """
     Used in scandevices to filter modules by their type.
@@ -482,6 +487,7 @@ def filter_module_type(module_type_filter, found_devices):
                 filtered_devices.update({key: value})
     return filtered_devices
 
+
 def scan_mDNS(mdnsListener, zeroconf=None):
     from zeroconf import ServiceBrowser, Zeroconf
     if zeroconf is None:
@@ -491,13 +497,13 @@ def scan_mDNS(mdnsListener, zeroconf=None):
     return browser
 
 
-
 '''
 Scans for Quarch modules across the given interface(s). Returns a dictionary of module addresses and serial numbers
 '''
-def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly=True,filterStr=None,
-                module_type_filter=None, ipAddressLookup=None):
 
+
+def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly=True, filterStr=None,
+                module_type_filter=None, ipAddressLookup=None):
     foundDevices = dict()
     scannedArrays = list()
 
@@ -520,7 +526,8 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         foundDevices = mergeDict(foundDevices, list_serial())
         try:
             #This will fail if the test machine is not connected to a network
-            foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
+            foundDevices = mergeDict(foundDevices,
+                                     list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
             foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
         except Exception as e:
             logging.error(e)
@@ -536,9 +543,8 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         foundDevices = list_network(target_conn, ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout)
         foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
 
-
     if (scanInArray):
-        for k, v in foundDevices.items(): # k=Connection target, v=serial number
+        for k, v in foundDevices.items():  # k=Connection target, v=serial number
             if (k not in scannedArrays):
                 scannedArrays.append(k)
                 if (isThisAnArrayController(v)):
@@ -570,7 +576,7 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         favConFoundDevices = {}
         index = 0
         for k, v in sortedFoundDevices.items():
-            if (favConFoundDevices == {} or not v in favConFoundDevices.values()):
+            if favConFoundDevices == {} or not v in favConFoundDevices.values():
                 favConFoundDevices[k] = v
         foundDevices = favConFoundDevices
 
@@ -578,11 +584,12 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
     sortedFoundDevices = {}
     sortedFoundDevices = sorted(foundDevices.items(), key=operator.itemgetter(1))
     foundDevices = dict(sortedFoundDevices)
-    if filterStr != None:
+    if filterStr is not None:
         filteredDevices = {}
         for k, v in foundDevices.items():
             for j in filterStr:
-                if (j in v or "LOCKED MODULE" in v): #show locked modules too incase the module you are looking for is on the system but is locked
+                if (
+                        j in v or "LOCKED MODULE" in v):  #show locked modules too incase the module you are looking for is on the system but is locked
                     filteredDevices[k] = v
         foundDevices = filteredDevices
 
@@ -597,6 +604,8 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
 '''
 Prints out a list of Quarch devices nicely onto the terminal, numbering each unit
 '''
+
+
 def listDevices(scanDictionary):
     if not scanDictionary:
         printText("No quarch devices found to display")
@@ -611,68 +620,70 @@ def listDevices(scanDictionary):
 '''
 Requests the user to select one of the devices in the given list
 '''
-def userSelectDevice(scanDictionary=None, scanFilterStr=None,favouriteOnly=True, message=None, title=None, nice=False, additionalOptions = None, target_conn="all"):
-    if User_interface.instance != None and User_interface.instance.selectedInterface == "testcenter":
+
+
+def userSelectDevice(scanDictionary=None, scanFilterStr=None, favouriteOnly=True, message=None, title=None, nice=False,
+                     additionalOptions=None, target_conn="all"):
+    if User_interface.instance is not None and User_interface.instance.selectedInterface == "testcenter":
         nice = False
     if message is None: message = "Please select a quarch device"
     if title is None: title = "Select a Device"
     ip_address = None
-    while (True):
+    while True:
         # Scan first, if no list is supplied
-        if (scanDictionary is None):
+        if scanDictionary is None:
             printText("Scanning for devices...")
-            if ip_address == None:
-                scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly, target_conn=target_conn)
+            if ip_address is None:
+                scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly,
+                                             target_conn=target_conn)
             else:
-                scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly, target_conn=target_conn, ipAddressLookup=ip_address)
+                scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly,
+                                             target_conn=target_conn, ipAddressLookup=ip_address)
 
-        if len(scanDictionary)<1:
-            scanDictionary["***No Devices Found***"]="***No Devices Found***"
+        if len(scanDictionary) < 1:
+            scanDictionary["***No Devices Found***"] = "***No Devices Found***"
 
-
-        if nice: #Prepair the data for niceListSelection using displayTable().
-            if additionalOptions is None: additionalOptions = ["Specify IP Address","Rescan","Quit"]
+        if nice:  #Prepair the data for niceListSelection using displayTable().
+            if additionalOptions is None: additionalOptions = ["Specify IP Address", "Rescan", "Quit"]
             tempList = []
-            tempEl = []
             for k, v in scanDictionary.items():
-                tempEl = []
-                tempEl.append(v)
+                tempEl = [v]
                 charPos = k.find(":")
                 tempEl.append(k)
                 tempList.append(tempEl)
-            adOp =[]
+            adOp = []
             for option in additionalOptions:
-                adOp.append([option]*2) # Put option in all columns
+                adOp.append([option] * 2)  # Put option in all columns
                 #adOp.append([option,"-"])
             userStr = listSelection(title, message, tempList, additionalOptions=adOp, indexReq=True, nice=nice, tableHeaders=["Selection", "Description"])
-            userStr = userStr[2] #With the data formatted in this way the ConnTarget will always be in userStr[2]
+            userStr = userStr[2]  #With the data formatted in this way the ConnTarget will always be in userStr[2]
 
-        else: # Prepare data for old style selection or testCenter
+        else:  # Prepare data for old style selection or testCenter
             devicesString = []
             for k, v in scanDictionary.items():
                 charPos = k.find(":")
                 devicesString.append(k + '=' + v + ": " + k[:charPos])
             devicesString = ','.join(devicesString)
-            if additionalOptions is None :
+            if additionalOptions is None:
                 additionalOptions = "Specify IP Address=IP Scan,Rescan=Rescan,Quit=Quit"
-            userStr = listSelection(title=title,message=message,selectionList=devicesString, additionalOptions=additionalOptions)
+            userStr = listSelection(title=title, message=message, selectionList=devicesString,
+                                    additionalOptions=additionalOptions)
 
         # Process the user response
-        if (userStr.lower() in 'quit'):
+        if userStr.lower() in 'quit':
             return "quit"
-        elif (userStr.lower() in 'rescan'):
+        elif userStr.lower() in 'rescan':
             ip_address = None
             scanDictionary = None
             favouriteOnly = True
-        elif (userStr.lower() in 'all conn types'):
+        elif userStr.lower() in 'all conn types':
             ip_address = None
             scanDictionary = None
             favouriteOnly = False
-        elif(userStr.lower() in 'specify ip address'):
+        elif userStr.lower() in 'specify ip address':
             ip_address = requestDialog("Please input IP Address of the module you would like to connect to: ")
             scanDictionary = None
             favouriteOnly = False
         else:
             # Return the address string of the selected module
             return userStr
-

@@ -157,9 +157,13 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     ipv4v6_vm_args = "-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false"
 
     # Process command prefix. Needed for headless mode, to support OSs with no system tray.
-    cmd_prefix = ipv4v6_vm_args
+    # Added the flag to suppress the Java restricted method warning
+    cmd_prefix = ipv4v6_vm_args + " --enable-native-access=ALL-UNNAMED"
     if headless is True or (args is not None and "-headless" in args):
         cmd_prefix += " -Djava.awt.headless=true"
+
+    # Ignore netty unsafe warning
+    cmd_prefix += " -Dio.netty.noUnsafe=true"
 
     # Process command suffix (additional standard options for QIS).
     if terminal is True:

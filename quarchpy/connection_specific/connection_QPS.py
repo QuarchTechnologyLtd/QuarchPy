@@ -142,8 +142,8 @@ class QpsInterface:
             sleep)  # Time must be allowed for QPS to Scan. If another scan request is sent it will time out and throw an error.
 
     def get_list_details(self, sock=None):
-        if sock == None:
-            sock = self.sock
+        # if sock == None:
+        #     sock = self.sock
         devString = self.sendCmdVerbose("$module list details")
         #devString = self.sendAndReceiveText(sock, '$list details')
         devString = devString.replace('>', '')
@@ -234,8 +234,8 @@ class QpsInterface:
                         message = "No detection that QPS started loading the recording within " + str(startOpenTimout) + "s."
                         break
 
-            time.sleep(pollInterval) #Sleep pollInterval time, so we are not hammering QPS for updates while its busy loading.
-        time.sleep(1) #sleep outside the loop as there is a
+            time.sleep(pollInterval) # Sleep pollInterval time, so we are not hammering QPS for updates while its busy loading.
+        time.sleep(1) # sleep outside the loop as there is a
         return message
 
 

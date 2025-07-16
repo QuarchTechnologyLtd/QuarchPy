@@ -71,6 +71,7 @@ class quarchDevice:
         self.ConCommsType = None
         self.connectionObj = None
         self.timeout = 5  # Default int timeout
+        self.is_module_resetting = False
 
         # Call helper to store and validate parameters
         self._store_and_validate_params(ConString, ConType, timeout)
@@ -309,6 +310,8 @@ class quarchDevice:
         """
         # --- Initialization ---
         logging.debug(f"Verifying device '{self.ConString}' on {server_type} server...")
+        list_details = None
+        list_str_lower = None
         found = False
         connect_timeout = time.time() + self.timeout  # Calculate deadline
 
@@ -545,7 +548,10 @@ class quarchDevice:
         """ Ensures the connection is closed when the object is garbage collected. """
         try:
             # Close all connections
-            self.close_connection()
+            if not self.is_module_resetting:
+                self.close_connection()
+            else:
+                self.is_module_resetting = False
         except Exception as e_close:
             # Avoid errors during shutdown sequence
             if logging and logging.error:
@@ -884,6 +890,8 @@ class quarchDevice:
             ConnectionError: If sending the reset command fails initially (and connection exists).
         """
         logging.debug(f"{os.path.basename(__file__)}: sending command: *rst")
+        self.is_module_resetting = True
+
         original_con_string = self.ConString  # Store original target before potential modification
         original_con_type = self.ConType  # Store original type
         con_type_upper = self.ConType.upper()

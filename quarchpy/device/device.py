@@ -544,18 +544,19 @@ class quarchDevice:
             # This should ideally be caught by specific init helpers, but acts as a final safeguard
             raise ConnectionError("Connection object (self.connectionObj) was not successfully created by initializer.")
 
-    def __del__(self):
-        """ Ensures the connection is closed when the object is garbage collected. """
-        try:
-            # Close all connections
-            if not self.is_module_resetting:
-                self.close_connection()
-            else:
-                self.is_module_resetting = False
-        except Exception as e_close:
-            # Avoid errors during shutdown sequence
-            if logging and logging.error:
-                logging.error(f"Error during automatic connection close in destructor: {e_close}")
+    # Commenting out destructor as is still causing issues
+    # def __del__(self):
+    #     """ Ensures the connection is closed when the object is garbage collected. """
+    #     try:
+    #         # Close all connections
+    #         if not self.is_module_resetting:
+    #             self.close_connection()
+    #         else:
+    #             self.is_module_resetting = False
+    #     except Exception as e_close:
+    #         # Avoid errors during shutdown sequence
+    #         if logging and logging.error:
+    #             logging.error(f"Error during automatic connection close in destructor: {e_close}")
 
     # --- Public Methods (Wrappers + snake_case) ---
 

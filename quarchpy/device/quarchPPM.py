@@ -25,7 +25,7 @@ class quarchPPM(quarchDevice):
     including streaming, power control, and configuration.
     """
 
-    def __init__(self, originObj: quarchDevice, ConString: str, skipDefaultSyntheticChannels: bool = False):
+    def __init__(self, originObj: quarchDevice, skipDefaultSyntheticChannels: bool = False):
         """
         Initialises the quarchPPM object.
 
@@ -34,7 +34,7 @@ class quarchPPM(quarchDevice):
             skipDefaultSyntheticChannels (bool): If True, skips the creation
                 of default synthetic channels on QIS-based devices.
         """
-        super().__init__(ConString)
+        super().__init__(originObj.ConString)
         self.connectionObj = originObj.connectionObj
         self.ConString = originObj.ConString
         self.ConType = originObj.ConType

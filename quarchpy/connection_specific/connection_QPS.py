@@ -234,8 +234,8 @@ class QpsInterface:
                         message = "No detection that QPS started loading the recording within " + str(startOpenTimout) + "s."
                         break
 
-            time.sleep(pollInterval) #Sleep pollInterval time, so we are not hammering QPS for updates while its busy loading.
-        time.sleep(1) #sleep outside the loop as there is a
+            time.sleep(pollInterval) # Sleep pollInterval time, so we are not hammering QPS for updates while its busy loading.
+        time.sleep(1) # sleep outside the loop as there is a
         return message
 
 

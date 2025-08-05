@@ -4,3 +4,4 @@ flake8
 zeroconf
 pandas
 numpy
+requests

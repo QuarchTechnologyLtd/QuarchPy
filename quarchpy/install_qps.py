@@ -30,8 +30,27 @@ def find_qps():
     """
     qps_jar = "qps.jar"
     qps_path = os.path.join(EXTRACTION_FOLDER_QPS, "win-amd64", qps_jar)
-    # A representative file to check if JDK/JRE is extracted
-    jdk_jre_check_file = os.path.join(EXTRACTION_FOLDER_JDK_JRE, "win_amd64_jdk_jre", "bin", "java.exe")
+
+    # --- Cross-platform JDK/JRE check ---
+    # Determine the correct subfolder and executable name based on the OS
+    if sys.platform == "win32":
+        jdk_folder_name = "win_amd64_jdk_jre"
+        java_executable_name = "java.exe"
+    elif sys.platform == "linux":
+        jdk_folder_name = "lin_amd64_jdk_jre"
+        java_executable_name = "java"
+    elif sys.platform == "darwin":  # darwin is the value for macOS
+        jdk_folder_name = "mac_amd64_jdk_jre"
+        java_executable_name = "java"
+    else:
+        jdk_folder_name = None  # Unsupported OS
+        java_executable_name = None
+
+    # Construct the path to the java executable if the OS is supported
+    if jdk_folder_name:
+        jdk_jre_check_file = os.path.join(EXTRACTION_FOLDER_JDK_JRE, jdk_folder_name, "bin", java_executable_name)
+    else:
+        jdk_jre_check_file = None  # Path cannot be determined for unsupported OS
 
     qps_found = os.path.exists(qps_path)
     jdk_found = os.path.exists(jdk_jre_check_file)
@@ -141,12 +160,27 @@ def extract_and_move_components(zip_filepath):
         os.makedirs(EXTRACTION_FOLDER_QPS, exist_ok=True)
         os.makedirs(EXTRACTION_FOLDER_JDK_JRE, exist_ok=True)
 
+        # --- Overwrite logic for win-amd64 ---
+        dest_qps_path = os.path.join(EXTRACTION_FOLDER_QPS, 'win-amd64')
+        if os.path.exists(dest_qps_path):
+            print(f"  - Existing 'win-amd64' folder found. Removing old version...")
+            shutil.rmtree(dest_qps_path)
         print(f"Moving 'win-amd64' folder into '{EXTRACTION_FOLDER_QPS}'...")
         shutil.move(src_qps_folder, EXTRACTION_FOLDER_QPS)
 
+        # --- Overwrite logic for jdk_jres contents ---
         print(f"Moving contents of 'jdk_jres' to '{EXTRACTION_FOLDER_JDK_JRE}'...")
-        for item in os.listdir(src_jdk_folder):
-            shutil.move(os.path.join(src_jdk_folder, item), EXTRACTION_FOLDER_JDK_JRE)
+        for item_name in os.listdir(src_jdk_folder):
+            src_item = os.path.join(src_jdk_folder, item_name)
+            dest_item = os.path.join(EXTRACTION_FOLDER_JDK_JRE, item_name)
+            # If destination exists, remove it first to ensure overwrite
+            if os.path.exists(dest_item):
+                if os.path.isdir(dest_item):
+                    shutil.rmtree(dest_item)
+                else:
+                    os.remove(dest_item)
+            # Now move the new item
+            shutil.move(src_item, dest_item)
 
         print("Components moved successfully.")
         return True

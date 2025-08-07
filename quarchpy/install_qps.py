@@ -3,11 +3,13 @@ import sys
 import zipfile
 import requests
 import shutil  # Import the shutil module for moving directories
+import xml.etree.ElementTree as ET
 
 # --- Configuration ---
 QPS_VERSION = "1.47"
 # The single URL for the combined ZIP file.
 QPS_DOWNLOAD_URL = f"https://quarch.com/software_update/qps/QPS_{QPS_VERSION}.zip"
+QPS_DOWNLOAD_URL_LATEST = "https://quarch.com/software_update/qps/QPS.zip"
 
 # --- Path definitions using __file__ (as requested) ---
 try:
@@ -64,18 +66,54 @@ def find_qps():
     if not jdk_found:
         print("Required Java JDK/JRE Binaries are not installed.")
 
-    # --- Installation Logic ---
+        # --- Installation Logic ---
     installation_successful = False
     if is_network_connection_available():
         print("\nAttempting online installation...")
         response = input("Would you like to download and install the missing components? (y/n): ").lower()
+
         if response == 'y':
-            installation_successful = install_online()
+            url_to_use = QPS_DOWNLOAD_URL
+            version_to_use = QPS_VERSION
+
+            # 1. Check if the primary URL is valid
+            if not is_download_url_valid(url_to_use):
+                print(f"The download url {url_to_use} is not valid.")
+                print(f"Defaulting to URL for the latest version of QPS: \n{QPS_DOWNLOAD_URL_LATEST}")
+
+                # 2. Check if the latest version is different and warn the user
+                latest_version = get_latest_qps_version()
+                if latest_version != QPS_VERSION:
+                    print(f"Warning! The version of QuarchPy you are using does not officially support the latest version of QPS ({latest_version}).")
+                    print("Please consider upgrading QuarchPy.")
+                    proceed_response = input("Would you like to proceed with downloading the latest version? (y/n): ").lower()
+
+                    # 3. If user cancels, stop the installation
+                    if proceed_response != 'y':
+                        print("Installation cancelled by user.")
+                        # We set installation_successful to False and will skip the final install call
+                        installation_successful = False
+                        url_to_use = None  # Signal that we have no valid URL
+                    else:
+                        # User wants to proceed with the latest version
+                        url_to_use = QPS_DOWNLOAD_URL_LATEST
+                        version_to_use = "LATEST"
+                else:
+                    # The latest version is the same as the current, just use the latest URL
+                    url_to_use = QPS_DOWNLOAD_URL_LATEST
+                    version_to_use = "LATEST"
+
+            # 4. Final installation call
+            if url_to_use:
+                # We only attempt installation if we have a valid URL to use
+                installation_successful = install_online(url_to_use, version_to_use)
     else:
         print("\nNo internet connection detected.")
         # Provide the download URL for the user
-        print(f"To install manually, please download the required file from:")
+        print("To install manually, please download the required file from:")
         print(f"  {QPS_DOWNLOAD_URL}")
+        print("\n If the link above does not work please try the following link:")
+        print(f"  {QPS_DOWNLOAD_URL_LATEST}")
         response = input("\nWould you like to locate a manually downloaded ZIP file to install from? (y/n): ").lower()
         if response == 'y':
             installation_successful = install_offline()
@@ -95,15 +133,16 @@ def find_qps():
         return False
 
 
-def install_online():
+def install_online(url, qps_version):
     """Handles the online download and then calls the extraction function."""
-    zip_filename = os.path.join(TARGET_DIR, f"QPS_{QPS_VERSION}.zip")
+    zip_filename = f"QPS_{qps_version}.zip"
+    zip_filename_path = os.path.join(TARGET_DIR, zip_filename)
     try:
-        print(f"Downloading components from {QPS_DOWNLOAD_URL}...")
-        with requests.get(QPS_DOWNLOAD_URL, stream=True) as r:
+        print(f"Downloading components from {url}...")
+        with requests.get(url, stream=True) as r:
             r.raise_for_status()
             total_size = int(r.headers.get('content-length', 0))
-            with open(zip_filename, 'wb') as f:
+            with open(zip_filename_path, 'wb') as f:
                 downloaded = 0
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
@@ -113,15 +152,15 @@ def install_online():
                     sys.stdout.flush()
         print("\nDownload complete.")
         # Call the core extraction logic
-        return extract_and_move_components(zip_filename)
+        return extract_and_move_components(zip_filename_path)
     except requests.RequestException as e:
         print(f"\nError: Failed to download components. {e}")
         return False
     finally:
         # Clean up the downloaded zip file after attempting extraction
-        if os.path.exists(zip_filename):
-            os.remove(zip_filename)
-            print(f"Cleaned up downloaded file: {zip_filename}")
+        if os.path.exists(zip_filename_path):
+            os.remove(zip_filename_path)
+            print(f"Cleaned up downloaded file: {zip_filename_path}")
 
 
 def install_offline():
@@ -225,6 +264,71 @@ def is_network_connection_available(timeout=5):
         return True
     except requests.RequestException:
         return False
+
+
+def get_latest_qps_version():
+    """
+    Fetches the latest QPS version number from the Quarch XML file.
+
+    Returns:
+        str: The latest version number as a string, or the script's default
+             QPS_VERSION on failure.
+    """
+    version_xml_url = "https://quarch.com/software_update/qps/current_version_all.xml"
+    try:
+        print(f"Checking for the latest QPS version from {version_xml_url}...")
+        # Make a request to the URL, with a timeout for safety
+        response = requests.get(version_xml_url, timeout=10)
+        # Raise an exception for bad status codes (like 404 or 500)
+        response.raise_for_status()
+
+        # Parse the XML content from the response text
+        root = ET.fromstring(response.text)
+
+        # Find the 'LatestVersion' tag within the XML structure
+        latest_version_element = root.find('LatestVersion')
+
+        if latest_version_element is not None:
+            # If the tag is found, return its text content
+            latest_version = latest_version_element.text
+            print(f"  - Latest version found: {latest_version}")
+            return latest_version
+        else:
+            print("  - Could not find 'LatestVersion' tag in the XML.")
+
+    except requests.RequestException as e:
+        # Handle network errors (timeout, no connection, DNS error, etc.)
+        print(f"  - Error fetching version info: {e}")
+    except ET.ParseError as e:
+        # Handle cases where the response is not valid XML
+        print(f"  - Error parsing XML response: {e}")
+
+    # If any step fails, fall back to the script's configured version
+    print(f"  - Could not determine latest version. Falling back to {QPS_VERSION}.")
+    return QPS_VERSION
+
+def is_download_url_valid(url):
+    """
+    Checks if the provided URL is valid.
+
+    Args:
+        url (str): An URL.
+
+    Returns:
+        bool: True on success, False on failure.
+    """
+    try:
+        print(f"Checking URL: {url} ...")
+        # Use a HEAD request to check the URL without downloading the content
+        response = requests.head(url, timeout=10)
+        # raise_for_status() will raise an exception for 4xx/5xx errors
+        response.raise_for_status()
+        print("  - URL is valid.")
+        return True  # Return the valid URL and stop checking
+    except requests.RequestException as e:
+        print(f"  - This URL is not valid: {e}")
+
+    return False  # Return None if no valid URLs were found
 
 
 if __name__ == "__main__":

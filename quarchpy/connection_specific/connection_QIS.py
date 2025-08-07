@@ -44,20 +44,35 @@ class QisInterface:
         self.pythonVersion = sys.version[0]
         self.cursor = '>'
         #clear packets
-        welcomeString = self.streamSock.recv(self.maxRxBytes).rstrip()
+        welcome_string = self.streamSock.recv(self.maxRxBytes).rstrip()
 
 
-    def connect(self, connectionMessage = True):
-        '''
-        Connect() tries to open a socket  on the host and port specified in the objects variables
-        If successful it returns the backends welcome string. If it fails it returns a string saying unable to connect
-        The backend should be running and host and port set before running this function. Normally it should be called at the beggining
-        of talking to the backend and left open until finished talking when the disconnect() function should be ran
+    def connect(self, connection_message = True):
+        """
+        Connects to the backend QIS instance using a socket.  Host and port parameters
+        were set during class init and are generally the localhost
 
-        Param:
-        connectionMessage: boolean, optional
-            Set to False if you don't want a warning message to appear when an instance is already running on that port. Useful when using isQisRunning() from qisFuncs
-        '''
+        If successful, it retrieves and returns the backend's welcome string.
+        In case of failure, an exception is raised and an appropriate error message is logged.
+        The backend server must be running
+
+        Parameters:
+        connectionMessage: bool, optional
+            Defaults to True. If set to False, suppresses the warning message about an
+            instance already running on the specified port. This can be useful when
+            using `isQisRunning()` from `qisFuncs`.
+
+        Raises:
+        Exception:
+            If the connection fails or the welcome string is not received an exception is raised
+
+        Returns:
+        str:
+            The welcome string received from the backend server upon a successful
+            connection.  This will confirm the QIS version but is generally not used other than
+            for debugging
+        """
+
         try:
             self.deviceDictSetup('QIS')
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -66,10 +81,10 @@ class QisInterface:
 
             #clear packets
             try:
-                welcomeString = self.sock.recv(self.maxRxBytes).rstrip()
-                welcomeString = 'Connected@' + str(self.host) + ':' + str(self.port) + ' ' + '\n    ' + str(welcomeString)
-                self.deviceDict['QIS'][0:3] = [False, 'Connected', welcomeString]
-                return welcomeString
+                welcome_string = self.sock.recv(self.maxRxBytes).rstrip()
+                welcome_string = 'Connected@' + str(self.host) + ':' + str(self.port) + ' ' + '\n    ' + str(welcome_string)
+                self.deviceDict['QIS'][0:3] = [False, 'Connected', welcome_string]
+                return welcome_string
             except Exception as e:
                 logging.error('No welcome received. Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(self.port) + ')')
                 logging.error('Is backend running and host accessible?')
@@ -77,14 +92,28 @@ class QisInterface:
                 raise e
         except Exception as e:
             self.deviceDictSetup('QIS')
-            if connectionMessage:
+            if connection_message:
                 logging.error('Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(self.port) + ').')
                 logging.error('Is backend running and host accessible?')
             self.deviceDict['QIS'][0:3] = [True, 'Disconnected', 'Unable to connect to QIS']
             raise e
 
-    # Tries to close the socket to specified host and port.
+
     def disconnect(self):
+        """
+        Disconnects the current connection to the QIS backend.
+
+        This method attempts to gracefully disconnect from the backend server and updates
+        the connection state in the device dictionary. If an error occurs during the
+        disconnection process, the state is updated to indicate the failure, and the
+        exception is re-raised
+
+        Returns:
+            str: A message indicating that the disconnection process has started.
+
+        Raises:
+            Exception: Propagates any exception that occurs during the disconnection process.
+        """
         res = 'Disconnecting from backend'
         try:
             self.sock.shutdown(socket.SHUT_RDWR)
@@ -98,21 +127,78 @@ class QisInterface:
             raise e
         return res
 
-    def closeConnection(self, sock=None, conString=None):
+    def close_connection(self, sock=None, con_string=None):
+        """
+        Instructs QIS to close the connection to physical device(s).  This will release the device such
+        that it is accessible by other users.
+
+        Parameters:
+            sock: Optional; The socket object to close the connection to. Defaults to
+                  the existing socket.
+            conString: Optional; Specify the device ID to close, otherwise all devices will be closed
+
+        Returns:
+            str: The response received after sending the close command. On success, this will be: 'OK
+
+        Raises:
+            ConnectionResetError: Raised if the socket connection has already been
+                                  reset.
+        """
         if sock is None:
             sock = self.sock
-        if conString is None:
+        if con_string is None:
             cmd = "close"
         else:
-            cmd = conString + " close"
+            cmd = con_string + " close"
         try:
             response = self.sendAndReceiveText(sock, cmd)
             return response
         except ConnectionResetError:
-            logging.warning('Unable to close connection to QIS, QIS may be already closed')
-            return None
+            logging.error('Unable to close connection to device(s), QIS may be already closed')
+            return "FAIL: Unable to close connection to device(s), QIS may be already closed"
 
-    def startStream(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration=None, inMemoryData=None, outputFileHandle=None, useGzip=None):
+    def closeConnection(self, sock=None, conString=None):
+        """
+        deprecated:: 2.2.13
+        Use `close_connection` instead.
+        """
+        return self.close_connection (self, sock, conString)
+
+    def startStream(self, module, fileName, fileMaxMB, releaseOnData, separator, streamDuration=None, inMemoryData=None, outputFileHandle=None, useGzip=None):
+        """
+        Initiates a data streaming process which will capture data from the current instrument and write it to file.
+        It is also possible to stream to RAM and then process the data yourself.
+
+        Streaming runs in a separate Python thread, so this function will return as soon as the process has begun.
+
+
+        Parameters:
+        module : str
+            The ID of the module for which the stream is being initiated.
+        fileName : str
+            The target file name for storing the streamed data.
+        fileMaxMB : int
+            The maximum size in megabytes allowed for the output file.
+        streamName : str
+            The name identifier for the stream (UNUSED)
+        streamAverage : float
+            The average data rate for the stream (UNUSED)
+        releaseOnData : bool
+            A flag to indicate whether to release data when available.
+        separator : str
+            The separator that is used to format the streamed data.
+        streamDuration : float, optional
+            The duration (in seconds) for which the streaming process should run. Unlimited if None.
+        inMemoryData : object, optional
+            An object representing data kept in memory during the streaming process.
+        outputFileHandle : object, optional
+            A file handle to an output file where the stream data is written.
+        useGzip : bool, optional
+            A flag indicating whether the output file should be compressed using gzip.
+
+        Raises:
+        None
+        """
         self.StreamRunSentSemaphore.acquire()
         self.deviceDictSetup('QIS')
         i = self.deviceMulti(module)
@@ -1045,43 +1131,6 @@ class QisInterface:
             return '32k'
         else:
             return 'Invalid Average Value'
-
-    # TODO: MD Thinks this implements software averaging, is unused and now performed in QIS
-    # Works out average values of timescales longer than max device averaging
-    def averageStripes(self, leftover, streamAverage, newStripes, f, remainingStripes = []):
-        newString = str(newStripes)
-        newList = []
-        if remainingStripes == []:
-            newList = newString.split('\r\n')
-        else:
-            newList = remainingStripes
-            newList.extend(newString.split('\r\n'))
-        numElements = newList[0].count(' ') + 1
-        streamTotalAverage = leftover + streamAverage
-        splitList = [] * numElements
-        if len(newList) < streamTotalAverage:
-            remainingStripes = newList[:-1]
-            return leftover, remainingStripes
-        runningAverage = [0] * (len(newList[0].split(' ')) - 2)
-        j = 0
-        z = 1
-        for i in newList[:-1]:
-            splitList = i.split(' ')
-            splitNumbers = [int(x) for x in splitList[2:]]
-            runningAverage = [sum(x) for x in zip(runningAverage, splitNumbers)]
-            if z == math.floor(streamTotalAverage):
-                finalAverage = splitList[0:2] + [str(round(x / streamAverage)) for x in runningAverage]
-                for counter in xrange(len(finalAverage)-1):
-                    finalAverage[counter] = finalAverage[counter] + ' '
-                for x in finalAverage:
-                    f.write(x)
-                f.write('\r\n')
-                streamTotalAverage += streamAverage
-                j += 1
-            z += 1
-        remainingStripes = newList[int(math.floor(j * streamAverage + leftover)):-1]
-        leftover = (streamTotalAverage - streamAverage) % 1
-        return leftover, remainingStripes
 
     def deviceMulti(self, device):
         if (device in self.deviceList):

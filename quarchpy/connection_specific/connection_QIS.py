@@ -25,7 +25,7 @@ class QisInterface:
         self.deviceList = []
         self.deviceDict = {}
         self.dictSemaphore = threading.Semaphore()
-        self.connect(connectionMessage = connectionMessage)
+        self.connect(connection_message = connectionMessage)
         self.stripesEvent = threading.Event()
 
         self.qps_stream_header = None
@@ -200,7 +200,7 @@ class QisInterface:
 
         # Create the worker thread to handle stream processing
         t1 = threading.Thread(target=self.start_stream_thread, name=module,
-                              args=(module, file_name, max_file_size, None, None, release_on_data, separator, stream_duration, in_memory_data, output_file_handle, use_gzip))
+                              args=(module, file_name, max_file_size, release_on_data, separator, stream_duration, in_memory_data, output_file_handle, use_gzip))
         # Start the thread
         t1.start()
 
@@ -213,7 +213,7 @@ class QisInterface:
         deprecated:: 2.2.13
         Use `start_stream` instead.
         """
-        return self.start_stream(self, module, fileName, fileMaxMB, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip)
+        return self.start_stream(module, fileName, fileMaxMB, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip)
 
     def start_stream_qps(self, module: str, file_name: str, max_file_size: float, release_on_data: bool):
         """
@@ -381,7 +381,7 @@ class QisInterface:
         # Send stream command so the module starts streaming data into the backends buffer
         stream_res = self.sendAndReceiveCmd(self.streamSock, 'rec stream', device=module, betweenCommandDelay=0)
         # Check the stream started
-        if 'rec stream : OK' in stream_res:
+        if 'OK' in stream_res:
             if not release_on_data:
                 self.StreamRunSentSemaphore.release()
                 self.stripesEvent.clear()
@@ -426,6 +426,7 @@ class QisInterface:
         remaining_stripes = []
         stream_overrun = False
         stream_complete = False
+        stream_status_str = ""
 
         # Calculate and verify stripe rate information
         if 'ns' in base_sample_period.lower():
@@ -456,15 +457,20 @@ class QisInterface:
                 while self.stopFlagList[i] and (not stream_overrun) and (not stream_complete):
 
                     # Read a block of stripes from QIS
-                    stream_overrun, new_stripes = self.stream_get_stripes_text(self.streamSock, module)
-                    new_stripes = new_stripes.replace(' ', separator)
+                    stream_status_str, new_stripes = self.stream_get_stripes_text(self.streamSock, module)
 
-                    # Overrun is a termination event where there will be no further data
-                    if stream_overrun:
+                    # Overrun is a termination event where the stream stopped earlier than desired and must
+                    # be flagged to the user
+                    if "overrun" in stream_status_str:
+                        stream_overrun = True
                         self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun']
+                    if "eof" in stream_status_str:
+                        stream_complete = True
 
                     # Continue here if there are stripes to process
                     if len(new_stripes) > 0:
+                        # switch in the correct value seperator
+                        new_stripes = new_stripes.replace(' ', separator)
 
                         # Track the total size of the file here if needed
                         if max_file_size is not None:
@@ -489,7 +495,7 @@ class QisInterface:
                                 current_file_mb = 0.0
 
                             # Flag the limit has been exceeded
-                            if current_file_mb < max_mb_val:
+                            if current_file_mb > max_mb_val:
                                 max_file_exceeded = True
                                 max_file_status = self.streamBufferStatus(device=module, sock=self.streamSock)
                                 f.write('Warning: Max file size exceeded before end of stream.\n')
@@ -525,17 +531,14 @@ class QisInterface:
                             f.write(new_stripes)
                     # If we have no data
                     else:
-                        # Pause a little before checking again
-                        time.sleep(0.1)
-                        stream_status = self.streamRunningStatus(device=module, sock=self.streamSock)
                         if stream_overrun:
                             break  # Exit stream processing loop
-                        elif "Stopped" in stream_status:
+                        elif "stopped" in stream_status_str:
                             self.deviceDict[module][0:3] = [True, 'Stopped', 'User halted stream']
                             break  # Exit stream processing loop
                 # End of stream data processing loop
 
-                # Ensure the stream is fully stopped TODO: AN - This should already be the case, veriofy it!
+                # Ensure the stream is fully stopped TODO: AN - This should already be the case, verify it!
                 self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay=0)
                 stream_state = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)
                 while "stopped" not in stream_state.lower():
@@ -1105,31 +1108,55 @@ class QisInterface:
             logging.error(device + ' Unable to get stream  format.' + self.host + ':' + '{}'.format(self.port))
             raise e
 
-    # Get stripes out of the backends stream buffer for the specified device using text commands
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamGetStripesText(self, sock, device, numStripes=4096, skipStatusCheck=False):
+    def stream_get_stripes_text(self, sock, device: str) -> tuple[str, str]:
+        """
+        Retrieve and process text data from a QIS stream.
+        We try to ready a block of data and also check for end of data and error cases
 
-        bufferStatus = False
-        # Allows the status check to be skipped when emptying the buffer after streaming has stopped (saving time)
-        if (skipStatusCheck == False):
-            streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
-            if ('Overrun' in streamStatus) or ('8388608 of 8388608' in streamStatus):
-                bufferStatus = True
+        Parameters:
+        sock: Socket
+            The socket instance used for communication with the device.
+        device: str
+            The device ID string
+
+        Returns:
+        tuple[str, str]
+            A tuple containing:
+            - The status of the data stream as a comma seperated list of status items
+            - The retrieved text data from the stream.
+        """
+
+        stream_status = "running"
+        is_end_of_block = False
+
+        # Try and read the next blocks of stripes from QIS
         stripes = self.sendAndReceiveText(sock, 'stream text all', device, readUntilCursor=True)
-#            time.sleep(0.001)
-        if stripes[-1:] != self.cursor:
-            return "Error no cursor returned."
-        else:
-            genEndOfFile = 'eof\r\n>'
-            if stripes[-6:] == genEndOfFile:
-                removeChar = -6
-            else:
-                removeChar = -1
 
-        # stripes = stripes.split('\r\n')
-        # stripes = filter(None, stripes) #remove empty sting elements
-        #printText(stripes)
-        return bufferStatus, removeChar, stripes
+        # The 'eof' marker ONLY indicates that the full number of requested stripes was not available.
+        # More may be found later.
+        if stripes.endswith("eof\r\n>"):
+            is_end_of_block = True
+            stripes = stripes.rstrip("eof\r\n>")
+        # The current reader seems to lose the final line feeds, so check for this
+        if len(stripes) > 0:
+            if not stripes.endswith("\r\n"):
+                stripes += "\r\n"
+
+        # If there is an unusually small data set, check the stream status to make sure data is coming
+        # 7 is a little arbitrary, but smaller than any possible stripe size.  Over calling will not matter anyway
+        if len(stripes) < 7 or is_end_of_block:
+            current_status = self.sendAndReceiveText(sock, 'stream?', device).lower()
+            if "running" in current_status:
+                stream_status = "running"
+            elif "overrun" in current_status or "out of buffer" in current_status:
+                stream_status = "overrun"
+            elif "stopped" in current_status:
+                stream_status = "stopped"
+                # If the stream is stopped and at end of block, we have read all the data
+                if is_end_of_block:
+                    stream_status = stream_status + "eof"
+
+        return stream_status, stripes
 
     def avgStringFromPwr(self, avgPwrTwo):
         if(avgPwrTwo==0):

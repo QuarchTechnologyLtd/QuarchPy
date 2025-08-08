@@ -306,7 +306,7 @@ class QisInterface:
     def start_stream_thread(self, module: str, file_name: str, max_file_size: float, release_on_data: bool, separator: str,
                           stream_duration: int=None, in_memory_data=None, output_file_handle=None, use_gzip: bool=False):
         """
-        Starts a streaming thread to collect data from a specified module and writes it to a file, an
+        Runs as a separate thread to collect data from a specified module and writes it to a CSV file, an
         in-memory buffer, or an existing file handle. Manages file opening and closing, as well as data
         streaming. All major data processing is done here.
 
@@ -452,7 +452,8 @@ class QisInterface:
         is_run = True
         while is_run:
             try:
-                # Check for exit flags
+                # Check for exit flags.  These can be from user request (stopFlagList) or from the stream
+                # process ending
                 i = self.deviceMulti(module)
                 while self.stopFlagList[i] and (not stream_overrun) and (not stream_complete):
 
@@ -538,7 +539,7 @@ class QisInterface:
                             break  # Exit stream processing loop
                 # End of stream data processing loop
 
-                # Ensure the stream is fully stopped TODO: AN - This should already be the case, verify it!
+                # Ensure the stream is fully stopped, though standard exit cases should have ended it already
                 self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay=0)
                 stream_state = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)
                 while "stopped" not in stream_state.lower():
@@ -551,8 +552,6 @@ class QisInterface:
                 elif not max_file_exceeded:
                     self.deviceDict[module][0:3] = [False, 'Stopped', 'Stream stopped']
 
-
-                time.sleep(0.2)
                 is_run = False  # Exit main while loop
             except IOError as err:
                 logging.error(f"IOError in startStreamThread for module {module}: {err}")
@@ -583,55 +582,64 @@ class QisInterface:
                 # If output_file_handle was passed, the caller is responsible for closing.
                 # If inMemoryData was passed, it's managed by the caller.
 
-
-
     def startStreamThreadQPS(self, module, fileName, releaseOnData, separator):
-        # This is the function that is ran when t1 is created. It is ran in a seperate thread from
-        # the main application so streaming can happen without blocking the main application from
-        # doing other things. Within this function/thread you have to be very careful not to try
-        # and 'communicate'  with anything from other threads. If you do, you MUST use a thread safe
-        # way of communicating. The thread creates it's own socket and should use that NOT the objects socket
-        # (which some of the comms with module functions will use by default).
+        """
+        deprecated:: 2.2.13
+        Use `start_stream_thread_qps` instead.
+        """
+        self.start_stream_thread_qps(module, fileName, releaseOnData, separator)
+
+    def start_stream_thread_qps(self, module, file_name: str, release_on_data: bool):
+        """
+        Runs as a separate thread to collect data from a specified module and writes it to a QPS
+        formal analysis file. Manages file opening and closing, as well as data streaming.
+        All major data processing is done here.
+
+        Arguments:
+            module : str
+                The name of the module from which data is to be streamed.
+            file_name : str
+                The path to the file where streamed data will be written.
+            release_on_data : bool
+                True to prevent the stream lock from releasing until data has been received
+
+        Raises:
+            IOError: If there are excessive IO errors while managing the stream.
+        """
 
         separator = ','
-
-        # Start module streaming and then read stream data
-        # self.sendAndReceiveCmd(self.streamSock, 'stream mode resample 10mS', device=module, betweenCommandDelay=0)
-        self.sendAndReceiveCmd(self.streamSock, 'stream mode header v3', device=module, betweenCommandDelay=0)
-        self.sendAndReceiveCmd(self.streamSock, 'stream mode power enable', device=module, betweenCommandDelay=0)
-        self.sendAndReceiveCmd(self.streamSock, 'stream mode power total enable', device=module, betweenCommandDelay=0)
-
         self.qps_record_start_time = time.time() * 1000
 
-        stripes = ['Empty Header']
         # Send stream command so module starts streaming data into the backends buffer
-        streamRes = self.sendAndReceiveCmd(self.streamSock, 'rec stream', device=module, betweenCommandDelay=0)
-        # printText(streamRes)
-        if ('rec stream : OK' in streamRes):
-            if (releaseOnData == False):
+        stream_res = self.sendAndReceiveCmd(self.streamSock, 'rec stream', device=module, betweenCommandDelay=0)
+        # Check the stream started
+        if 'OK' in stream_res:
+            if not release_on_data:
                 self.StreamRunSentSemaphore.release()
                 self.stripesEvent.clear()
             self.deviceDict[module][0:3] = [False, 'Running', 'Stream Running']
         else:
             self.StreamRunSentSemaphore.release()
             self.stripesEvent.clear()
-            self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start because " + streamRes]
+            self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start because " + stream_res]
             return
 
         # If recording to file then get header for file
-        if (fileName is not None):
+        if file_name is None:
+            self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start - file path not specified"]
+            return
 
-            baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
-            count = 0
-            maxTries = 10
-            while 'Header Not Available' in baseSamplePeriod:
-                baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
-                time.sleep(0.1)
-                count += 1
-                if count > maxTries:
-                    self.deviceDict[module][0:3] = [True, 'Stopped', 'Header not available']
-                    exit()
-            version = self.streamHeaderVersion(device=module, sock=self.streamSock)
+        # Poll for the stream header to become available. This is needed to configure the output file
+        base_sample_period = self.streamHeaderAverage(device=module, sock=self.streamSock)
+        count = 0
+        max_tries = 10
+        while 'Header Not Available' in base_sample_period:
+            base_sample_period = self.streamHeaderAverage(device=module, sock=self.streamSock)
+            time.sleep(0.1)
+            count += 1
+            if count > max_tries:
+                self.deviceDict[module][0:3] = [True, 'Stopped', 'Header not available']
+                return
 
         numStripesPerRead = 4096
         maxFileExceeded = False
@@ -639,10 +647,6 @@ class QisInterface:
         leftover = 0
         remainingStripes = []
         streamOverrun = False
-        # if streamAverage != None:
-        #     # Matt converting streamAveraging into number
-        #     streamAverage = self.convertStreamAverage(streamAverage)
-        #     stripesPerAverage = float(streamAverage) / (float(baseSamplePeriodS) * 4e-6)
 
         isRun = True
 

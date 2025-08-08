@@ -47,7 +47,7 @@ class QisInterface:
         welcome_string = self.streamSock.recv(self.maxRxBytes).rstrip()
 
 
-    def connect(self, connection_message = True):
+    def connect(self, connection_message: bool = True) -> str:
         """
         Connects to the backend QIS instance using a socket.  Host and port parameters
         were set during class init and are generally the localhost
@@ -127,7 +127,7 @@ class QisInterface:
             raise e
         return res
 
-    def close_connection(self, sock=None, con_string=None):
+    def close_connection(self, sock=None, con_string: str=None) -> str:
         """
         Instructs QIS to close the connection to physical device(s).  This will release the device such
         that it is accessible by other users.
@@ -135,10 +135,10 @@ class QisInterface:
         Parameters:
             sock: Optional; The socket object to close the connection to. Defaults to
                   the existing socket.
-            conString: Optional; Specify the device ID to close, otherwise all devices will be closed
+            con_string: Optional; Specify the device ID to close, otherwise all devices will be closed
 
         Returns:
-            str: The response received after sending the close command. On success, this will be: 'OK
+            str: The response received after sending the close command. On success, this will be: 'OK'
 
         Raises:
             ConnectionResetError: Raised if the socket connection has already been
@@ -157,44 +157,36 @@ class QisInterface:
             logging.error('Unable to close connection to device(s), QIS may be already closed')
             return "FAIL: Unable to close connection to device(s), QIS may be already closed"
 
-    def closeConnection(self, sock=None, conString=None):
+    def closeConnection(self, sock=None, conString: str=None) -> str:
         """
         deprecated:: 2.2.13
         Use `close_connection` instead.
         """
         return self.close_connection (self, sock, conString)
 
-    def startStream(self, module, fileName, fileMaxMB, releaseOnData, separator, streamDuration=None, inMemoryData=None, outputFileHandle=None, useGzip=None):
+    def start_stream(self, module: str, file_name: str, max_file_size: int, release_on_data: bool, separator: str, stream_duration: float=None, in_memory_data: StringIO=None, output_file_handle=None, use_gzip: bool=None):
         """
-        Initiates a data streaming process which will capture data from the current instrument and write it to file.
-        It is also possible to stream to RAM and then process the data yourself.
-
-        Streaming runs in a separate Python thread, so this function will return as soon as the process has begun.
-
+        Initiates a data streaming process against a specified module. This is done by beginning a new thread
 
         Parameters:
         module : str
             The ID of the module for which the stream is being initiated.
-        fileName : str
-            The target file name for storing the streamed data.
-        fileMaxMB : int
+        file_name : str
+            The target file path+name for storing the  streamed data in CSV form.
+        max_file_size : int
             The maximum size in megabytes allowed for the output file.
-        streamName : str
-            The name identifier for the stream (UNUSED)
-        streamAverage : float
-            The average data rate for the stream (UNUSED)
-        releaseOnData : bool
-            A flag to indicate whether to release data when available.
+        release_on_data : bool
+            If set, blocks further streams until this one has started fully
         separator : str
-            The separator that is used to format the streamed data.
-        streamDuration : float, optional
+            The value separator used to format the streamed CSV data.
+        stream_duration : float, optional
             The duration (in seconds) for which the streaming process should run. Unlimited if None.
-        inMemoryData : object, optional
-            An object representing data kept in memory during the streaming process.
-        outputFileHandle : object, optional
-            A file handle to an output file where the stream data is written.
-        useGzip : bool, optional
-            A flag indicating whether the output file should be compressed using gzip.
+        in_memory_data : object, optional
+            An in memory CSV StringIO as an alternate to file output
+        output_file_handle : object, optional
+            A file handle to an output file where the stream data is written as an alternate to a file name
+        use_gzip : bool, optional
+            A flag indicating whether the output file should be compressed using gzip to reduce disk use
 
         Raises:
         None
@@ -206,19 +198,37 @@ class QisInterface:
         self.stripesEvent.set()
         self.module_xml_header = None
 
-        # Create the thread
-        t1 = threading.Thread(target=self.startStreamThread, name=module,
-                              args=(module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip))
+        # Create the worker thread to handle stream processing
+        t1 = threading.Thread(target=self.start_stream_thread, name=module,
+                              args=(module, file_name, max_file_size, None, None, release_on_data, separator, stream_duration, in_memory_data, output_file_handle, use_gzip))
         # Start the thread
         t1.start()
 
-        # count = 0
-        while (self.stripesEvent.is_set()):
-            # count += 1                         --debugging to show delay
+        while self.stripesEvent.is_set():
             pass
-            # just wait until event is cleared
 
-    def startStreamQPS(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator):
+    def startStream(self, module: str, fileName: str, fileMaxMB: int, releaseOnData: bool, separator: str,
+                    streamDuration: int = None, inMemoryData=None, outputFileHandle=None, useGzip: bool = None):
+        """
+        deprecated:: 2.2.13
+        Use `start_stream` instead.
+        """
+        return self.start_stream(self, module, fileName, fileMaxMB, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip)
+
+    def start_stream_qps(self, module: str, file_name: str, max_file_size: float, release_on_data: bool):
+        """
+        Similar to start_stream, but the output is a QPS-compatible analysis file.
+
+        Parameters:
+        module: str
+            The ID of the module for which to start the streaming operation.
+        file_name: str
+            The path of the file to which the streamed data will be saved.
+        max_file_size: int
+            Maximum total size of the streamed data in MB.
+        release_on_data: Any
+            Indicates whether to release a lock or semaphore after data streaming.
+        """
         self.StreamRunSentSemaphore.acquire()
         self.deviceDictSetup('QIS')
         i = self.deviceMulti(module)
@@ -228,324 +238,334 @@ class QisInterface:
 
         # Create the thread
         t1 = threading.Thread(target=self.startStreamThreadQPS, name=module,
-                              args=(module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator))
+                              args=(module, file_name, max_file_size, release_on_data))
         # Start the thread
         t1.start()
 
-        # count = 0
-        while (self.stripesEvent.is_set()):
-            # count += 1                         --debugging to show delay
+        while self.stripesEvent.is_set():
             pass
-            # just wait until event is cleared
 
-    def stopStream(self, module, blocking = True):
-        moduleName=module.ConString
-        i = self.deviceMulti(moduleName)
+    def startStreamQPS(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator):
+        """
+        deprecated:: 2.2.13
+        Use `start_stream_qps` instead.
+        """
+        self.start_stream_qps (module, fileName, fileMaxMB, releaseOnData)
+
+    def stop_stream(self, module, blocking:bool = True):
+        """
+        Stops the data streaming process for a specified module ID. When blocking is requested, the function will
+        not return until the data streaming process has stopped and all data has been written to the file.
+
+        Parameters
+        ----------
+        module
+            The quarchPPM module instance for which the streaming process is to be stopped.
+        blocking : bool
+            If set to True, the function will block and wait until the module has
+            completely stopped streaming. Defaults to True.
+
+        Raises
+        ------
+        None
+
+        Returns
+        -------
+        None
+        """
+
+        module_name=module.ConString
+        i = self.deviceMulti(module_name)
         self.stopFlagList[i] = False
-        # Wait until the stream thread is finished before returning to user.
+
+        # Wait until the stream thread is finished before returning to the user.
         # This means this function will block until the QIS buffer is emptied by the second while
         # loop in startStreanThread. This may take some time, especially at low averaging but
         # should gurantee the data won't be lost and QIS buffer is emptied.
         if blocking:
             running = True
             while running:
-                threadNameList = []
+                thread_name_list = []
                 for t1 in threading.enumerate():
-                    threadNameList.append(t1.name)
-                moduleStreaming= module.sendCommand("rec stream?").lower() #checking if module thinks its streaming.
-                moduleStreaming2= module.sendCommand("stream?").lower() #checking if the module has told qis it has stopped streaming.
+                    thread_name_list.append(t1.name)
+                module_streaming= module.sendCommand("rec stream?").lower() #checking if module thinks its streaming.
+                module_streaming2= module.sendCommand("stream?").lower() #checking if the module has told qis it has stopped streaming.
 
-                if (moduleName in threadNameList or "running" in moduleStreaming or "running" in moduleStreaming2):
+                if module_name in thread_name_list or "running" in module_streaming or "running" in module_streaming2:
                     time.sleep(0.1)
-
                 else:
                     running = False
-        time.sleep(0.1)
 
-    def startStreamThread(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator,
-                          streamDuration=None, inMemoryData=None, output_file_handle=None, use_gzip=False):
-        # This is the function that is run when t1 is created. It is run in a seperate thread from
-        # the main application so streaming can happen without blocking the main application from
-        # doing other things. Within this function/thread you have to be very careful not to try
-        # and 'communicate'  with anything from other threads. If you do, you MUST use a thread safe
-        # way of communicating. The thread creates it's own socket and should use that, NOT the objects socket
-        # (which some of the comms with module functions will use by default).
+    def stopStream(self, module, blocking=True):
+        """
+        deprecated:: 2.2.13
+        Use `stop_stream` instead.
+        """
+        self.stop_stream(module, blocking)
+
+    def start_stream_thread(self, module: str, file_name: str, max_file_size: float, release_on_data: bool, separator: str,
+                          stream_duration: int=None, in_memory_data=None, output_file_handle=None, use_gzip: bool=False):
+        """
+        Starts a streaming thread to collect data from a specified module and writes it to a file, an
+        in-memory buffer, or an existing file handle. Manages file opening and closing, as well as data
+        streaming. All major data processing is done here.
+
+        Arguments:
+        module : str
+            The name of the module from which data is to be streamed.
+        file_name : str
+            The path to the file where streamed data will be written. Mandatory if neither an in-memory
+            buffer (in_memory_data) nor an external file handle (output_file_handle) is provided.
+        max_file_size : float
+            The maximum permissible file size in MB. After reaching this limit, streaming to the current
+            file will stop
+        release_on_data : bool
+            True to prevent the stream lock from releasing until data has been received
+        separator : str
+            Custom separator used to CSV data
+        stream_duration : int, optional
+            Duration of streaming in seconds, relative to sampling period. Defaults to streaming
+            indefinitely.
+        in_memory_data : StringIO, optional
+            An in-memory buffer of type StringIO to hold streamed data. If set, data is written here
+            instead of a file.
+        output_file_handle : file-like object, optional
+            A pre-opened file handle where data will be written. If set, file_name is ignored.
+        use_gzip : bool, default False
+            If True, writes streamed data to a gzip-compressed file.
+
+        Raises:
+        TypeError
+            If in_memory_data is passed but is not of type StringIO.
+        ValueError
+            If file_name is not provided and neither in_memory_data nor output_file_handle is given.
+            Also raised for invalid or undecodable sampling periods.
+        """
 
         f = None
+        max_mb_val = 0
         file_opened_by_function = False  # True if this function opens the file
         is_in_memory_stream = False  # True if using inMemoryData (StringIO)
 
-        # Priority: 1. output_file_handle, 2. inMemoryData, 3. open new file
+        # Output priority: 1. output_file_handle, 2. inMemoryData, 3. A new a file
         if output_file_handle is not None:
             f = output_file_handle
             # Caller is responsible for the handle's mode (e.g., text/binary) and type.
-        elif inMemoryData is not None:
-            if not isinstance(inMemoryData, StringIO):
+        elif in_memory_data is not None:
+            if not isinstance(in_memory_data, StringIO):
                 raise TypeError("Error! The parameter 'inMemoryData' must be of type StringIO.")
-            f = inMemoryData
+            f = in_memory_data
             is_in_memory_stream = True
         else:
             # No external handle or in-memory buffer, so open a file.
-            if not fileName:  # fileName is mandatory if we are to open a file.
-                raise ValueError("fileName must be provided if output_file_handle and inMemoryData are None.")
+            if not file_name:  # fileName is mandatory if we are to open a file.
+                raise ValueError("fie_name must be provided if output_file_handle and in_memory_data are None.")
             file_opened_by_function = True
             if use_gzip:
                 # Open in text mode ('wt'). Encoding 'utf-8' is a good default.
                 # gzip.open in text mode handles newline conversions.
-                f = gzip.open(fileName, 'wt', encoding='utf-8')
+                f = gzip.open(file_name, 'wt', encoding='utf-8')
             else:
                 # Open in text mode ('w').
                 # newline='' ensures that '\n' is written as '\n' on all platforms.
-                f = open(fileName, 'w', encoding='utf-8', newline='')
+                f = open(file_name, 'w', encoding='utf-8', newline='')
 
-        # This variable was declared but seemed unused before its first assignment.
-        stripes = ['Empty Header']
+        # Check for a valid max file size limit
+        if max_file_size is not None:
+            try:
+                max_mb_val = int(max_file_size)
+            except (ValueError, TypeError):
+                logging.warning(f"Invalid max_file_size parameter: {max_file_size}. No limit will be applied")
+                max_file_size = None
 
-        # Send stream command so module starts streaming data into the backends buffer
-        streamRes = self.sendAndReceiveCmd(self.streamSock, 'rec stream', device=module, betweenCommandDelay=0)
-        # printText(streamRes) # Assuming printText is a custom logging/debug function
-        if 'rec stream : OK' in streamRes:
-            if releaseOnData is False:
+        # Send stream command so the module starts streaming data into the backends buffer
+        stream_res = self.sendAndReceiveCmd(self.streamSock, 'rec stream', device=module, betweenCommandDelay=0)
+        # Check the stream started
+        if 'rec stream : OK' in stream_res:
+            if not release_on_data:
                 self.StreamRunSentSemaphore.release()
                 self.stripesEvent.clear()
             self.deviceDict[module][0:3] = [False, 'Running', 'Stream Running']
         else:
             self.StreamRunSentSemaphore.release()
             self.stripesEvent.clear()
-            self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start because " + streamRes]
+            self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start because " + stream_res]
             if file_opened_by_function and f:
                 try:
                     f.close()
                 except Exception as e_close:
-                    logging.error(f"Error closing file {fileName} on stream start failure: {e_close}")
+                    logging.error(f"Error closing file {file_name} on stream start failure: {e_close}")
             return
 
-        baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
+        # Poll for the stream header to become available. This is needed to configure the output file
+        base_sample_period = self.streamHeaderAverage(device=module, sock=self.streamSock)
         count = 0
-        maxTries = 10
-        while 'Header Not Available' in baseSamplePeriod:
-            baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
+        max_tries = 10
+        while 'Header Not Available' in base_sample_period:
+            base_sample_period = self.streamHeaderAverage(device=module, sock=self.streamSock)
             time.sleep(0.1)
             count += 1
-            if count > maxTries:
+            if count > max_tries:
                 self.deviceDict[module][0:3] = [True, 'Stopped', 'Header not available']
                 if file_opened_by_function and f:
                     try:
                         f.close()
                     except Exception as e_close:
-                        logging.error(f"Error closing file {fileName} on header failure: {e_close}")
+                        logging.error(f"Error closing file {file_name} on header failure: {e_close}")
                 return  # Changed from exit() for cleaner thread termination
 
-        version = self.streamHeaderVersion(device=module, sock=self.streamSock)  # version seems unused
-        timeStampHeader = datetime.datetime.now().strftime("%H:%M:%S:%f %d/%m/%y")  # timeStampHeader seems unused
-        formatHeader = self.streamHeaderFormat(device=module, sock=self.streamSock)
-        formatHeader = formatHeader.replace(", ", separator)
-        f.write(formatHeader + '\n')
+        # Format the header and write it to the output file
+        format_header = self.streamHeaderFormat(device=module, sock=self.streamSock)
+        format_header = format_header.replace(", ", separator)
+        f.write(format_header + '\n')
 
-        numStripesPerRead = 4096
-        maxFileExceeded = False
-        openAttempts = 0  # Used in except IOError block
+        # Initialize stream variables
+        max_file_exceeded = False
+        open_attempts = 0
         leftover = 0
-        remainingStripes = []
-        streamOverrun = False
-        streamComplete = False
+        remaining_stripes = []
+        stream_overrun = False
+        stream_complete = False
 
-        if 'ns' in baseSamplePeriod.lower():
-            baseSampleUnitText = 'ns'
-            baseSampleUnitExponent = -9
-        elif 'us' in baseSamplePeriod.lower():
-            baseSampleUnitText = 'us'
-            baseSampleUnitExponent = -6
-        elif 'ms' in baseSamplePeriod.lower():
-            baseSampleUnitText = 'ms'
-            baseSampleUnitExponent = -3
-        elif 'S' in baseSamplePeriod.lower():  # Original was 'S', assuming it means 's'
-            baseSampleUnitText = 's'
-            baseSampleUnitExponent = 0
+        # Calculate and verify stripe rate information
+        if 'ns' in base_sample_period.lower():
+            base_sample_unit_exponent = -9
+        elif 'us' in base_sample_period.lower():
+            base_sample_unit_exponent = -6
+        elif 'ms' in base_sample_period.lower():
+            base_sample_unit_exponent = -3
+        elif 'S' in base_sample_period.lower():  # Original was 'S', assuming it means 's'
+            base_sample_unit_exponent = 0
         else:
             # Clean up and raise error if baseSamplePeriod is undecodable
             if file_opened_by_function and f:
                 try:
                     f.close()
                 except Exception as e_close:
-                    logging.error(f"Error closing file {fileName} due to ValueError: {e_close}")
-            raise ValueError(f"couldn't decode samplePeriod: {baseSamplePeriod}")
+                    logging.error(f"Error closing file {file_name} due to ValueError: {e_close}")
+            raise ValueError(f"couldn't decode samplePeriod: {base_sample_period}")
 
-        baseSamplePeriodS = int(re.search(r'^\d*\.?\d*', baseSamplePeriod).group()) * (10 ** baseSampleUnitExponent)
+        base_sample_period_period_s = int(re.search(r'^\d*\.?\d*', base_sample_period).group()) * (10 ** base_sample_unit_exponent)
 
-        # The following re-opening of the file is removed as f is already open in 'w' or 'wt' mode
-        # and subsequent writes will append.
-        # if inMemoryData is None:
-        #     f = open(fileName, 'a', newline='')
-
-        isRun = True
-        while isRun:
+        # Now we loop to process the stripes of data as they are available
+        is_run = True
+        while is_run:
             try:
+                # Check for exit flags
                 i = self.deviceMulti(module)
-                while self.stopFlagList[i] and (not streamOverrun) and (not streamComplete):
-                    streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module, numStripesPerRead)
-                    newStripes = newStripes.replace(' ', separator)  # Replace spaces globally first
-                    if streamOverrun:
+                while self.stopFlagList[i] and (not stream_overrun) and (not stream_complete):
+
+                    # Read a block of stripes from QIS
+                    stream_overrun, new_stripes = self.stream_get_stripes_text(self.streamSock, module)
+                    new_stripes = new_stripes.replace(' ', separator)
+
+                    # Overrun is a termination event where there will be no further data
+                    if stream_overrun:
                         self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun']
 
-                    isEmpty = (removeChar == -6 and len(newStripes) == 6)
+                    # Continue here if there are stripes to process
+                    if len(new_stripes) > 0:
 
-                    if not isEmpty:
-                        current_file_mb = 0.0
-                        if is_in_memory_stream:
-                            current_file_mb = f.tell() / 1048576.0
-                        elif fileName:  # For file-based output (opened here or external handle with known fileName)
-                            try:
-                                # os.stat reflects the size on disk. For buffered writes (incl. gzip),
-                                # this might not be the exact current unwritten buffer size + disk size
-                                # without a flush, but it's what the original code relied on.
-                                statInfo = os.stat(fileName)
-                                current_file_mb = statInfo.st_size / 1048576.0
-                            except FileNotFoundError:
-                                current_file_mb = 0.0  # File might not exist yet or fileName is not locatable
-                            except Exception as e_stat:
-                                logging.warning(f"Could not get file size for {fileName}: {e_stat}")
-                                current_file_mb = 0.0  # Default to small size on error
-                        else:
-                            # output_file_handle was given, but fileName was None. Cannot check disk size.
-                            # Assume it's okay or managed by caller. fileMaxMB check effectively bypassed.
+                        # Track the total size of the file here if needed
+                        if max_file_size is not None:
                             current_file_mb = 0.0
-
-                        try:
-                            # Ensure fileMaxMB can be converted to int. If not, skip file size check for this iteration.
-                            max_mb_val = int(fileMaxMB)
-                        except (ValueError, TypeError):
-                            logging.warning(f"Invalid fileMaxMB value: {fileMaxMB}. Skipping size check for this iteration.")
-                            max_mb_val = float('inf')  # Effectively disable check if invalid
-
-                        if current_file_mb < max_mb_val:
-                            if releaseOnData:  # Note: Original was `releaseOnData == True`
-                                self.StreamRunSentSemaphore.release()
-                                self.stripesEvent.clear()
-                                releaseOnData = False  # Prevent re-releasing
-                            if streamAverage is not None:
-                                # Assuming self.averageStripes handles writing to f
-                                leftover, remainingStripes = self.averageStripes(leftover, stripesPerAverage,
-                                                                                 newStripes[:removeChar], f,
-                                                                                 remainingStripes)
+                            if is_in_memory_stream:
+                                current_file_mb = f.tell() / 1048576.0
+                            elif file_name:
+                                try:
+                                    # os.stat reflects the size on disk. For buffered writes (incl. gzip),
+                                    # this might not be the exact current unwritten buffer size + disk size
+                                    # without a flush, but it's an decent estimate.
+                                    stat_info = os.stat(file_name)
+                                    current_file_mb = stat_info.st_size / 1048576.0
+                                except FileNotFoundError:
+                                    current_file_mb = 0.0  # File might not exist yet or fileName is not locatable
+                                except Exception as e_stat:
+                                    logging.warning(f"Could not get file size for {file_name}: {e_stat}")
+                                    current_file_mb = 0.0  # Default to small size on error
                             else:
-                                if streamDuration is not None:
-                                    lastLine = newStripes.splitlines()[-3]  # the last data line is followed by 'eof' and '>'
-                                    lastTime = lastLine.split(separator)[0]
+                                # output_file_handle was given, but fileName was None. Cannot check disk size.
+                                # Assume it's okay or managed by the caller. fileMaxMB check effectively bypassed.
+                                current_file_mb = 0.0
 
-                                    if int(lastTime) < int(streamDuration / (10 ** baseSampleUnitExponent)):
-                                        # newStripes was already globally space-replaced.
-                                        f.write(newStripes[:removeChar])
+                            # Flag the limit has been exceeded
+                            if current_file_mb < max_mb_val:
+                                max_file_exceeded = True
+                                max_file_status = self.streamBufferStatus(device=module, sock=self.streamSock)
+                                f.write('Warning: Max file size exceeded before end of stream.\n')
+                                f.write('Unrecorded stripes in buffer when file full: ' + max_file_status + '.\n')
+                                self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
+                                break  # Exit stream processing loop
+
+                        # Release the stream semaphore now we have data
+                        if release_on_data:
+                            self.StreamRunSentSemaphore.release()
+                            self.stripesEvent.clear()
+                            release_on_data = False
+
+                        # If a duration has been set, track it based on the time of the last stripe
+                        if stream_duration is not None:
+                            last_line = new_stripes.splitlines()[-1]
+                            last_time = last_line.split(separator)[0]
+
+                            # Write all the stripes if we can
+                            if int(last_time) < int(stream_duration / (10 ** base_sample_unit_exponent)):
+                                f.write(new_stripes)
+                            # Otherwise only write stripes within the duration limit
+                            else:
+                                for this_line in new_stripes.splitlines():
+                                    this_time_str = this_line.split(separator)[0]
+                                    if int(this_time_str) < int(stream_duration / (10 ** base_sample_unit_exponent)):
+                                        f.write(this_line + '\r\n')  # Put the CR back on the end
                                     else:
-                                        for thisLine in newStripes.splitlines()[:-2]:  # Process lines before 'eof' and '>'
-                                            thisTimeStr = thisLine.split(separator)[0]
-                                            if int(thisTimeStr) < int(streamDuration / (10 ** baseSampleUnitExponent)):
-                                                f.write(thisLine + '\r\n')  # Put the CR back on the end
-                                            else:
-                                                streamComplete = True
-                                                break
-                                else:
-                                    # newStripes was already globally space-replaced.
-                                    f.write(newStripes[:removeChar])
+                                        stream_complete = True
+                                        break
+                        # Default to writing all stripes
                         else:
-                            maxFileExceeded = True
-                            maxFileStatus = self.streamBufferStatus(device=module, sock=self.streamSock)
-                            f.write('Warning: Max file size exceeded before end of stream.\n')
-                            f.write(
-                                'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.\n')  # Added newline for clarity
-                            self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
-                            break  # Exit inner while loop
-                    else:  # isEmpty == True
+                            f.write(new_stripes)
+                    # If we have no data
+                    else:
+                        # Pause a little before checking again
                         time.sleep(0.1)
-                        streamStatus = self.streamRunningStatus(device=module, sock=self.streamSock)
-                        if streamOverrun:
-                            break  # Exit inner while loop
-                        elif "Stopped" in streamStatus:
+                        stream_status = self.streamRunningStatus(device=module, sock=self.streamSock)
+                        if stream_overrun:
+                            break  # Exit stream processing loop
+                        elif "Stopped" in stream_status:
                             self.deviceDict[module][0:3] = [True, 'Stopped', 'User halted stream']
-                            break  # Exit inner while loop
-                # End of inner while self.stopFlagList... loop
+                            break  # Exit stream processing loop
+                # End of stream data processing loop
 
+                # Ensure the stream is fully stopped TODO: AN - This should already be the case, veriofy it!
                 self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay=0)
-                streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)
-                while "stopped" not in streamState.lower():
+                stream_state = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)
+                while "stopped" not in stream_state.lower():
                     logging.debug("waiting for stream? to return stopped")
                     time.sleep(0.1)
-                    streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)
+                    stream_state = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)
 
-                if (not streamOverrun) and (not maxFileExceeded):
-                    self.deviceDict[module][0:3] = [False, 'Stopped', 'Stream stopped - emptying buffer']
-
-                if not maxFileExceeded:
-                    streamOverrun_final, removeChar_final, newStripes_final = self.streamGetStripesText(self.streamSock, module, numStripesPerRead)
-                    isEmpty_final = (removeChar_final == -6 and len(newStripes_final) == 6)
-
-                    while not isEmpty_final:
-                        current_file_mb_final = 0.0
-                        if is_in_memory_stream:
-                            current_file_mb_final = f.tell() / 1048576.0
-                        elif fileName:
-                            try:
-                                statInfo = os.stat(fileName)
-                                current_file_mb_final = statInfo.st_size / 1048576.0
-                            except Exception:
-                                current_file_mb_final = 0.0
-                        else:
-                            current_file_mb_final = 0.0
-
-                        try:
-                            max_mb_val_final = int(fileMaxMB)
-                        except (ValueError, TypeError):
-                            max_mb_val_final = float('inf')  # Effectively disable
-
-                        if current_file_mb_final < max_mb_val_final:
-                            if not streamComplete:  # Check if stream was already completed due to duration
-                                if (streamAverage != None):
-                                    leftover, remainingStripes = self.averageStripes(leftover, stripesPerAverage,
-                                                                                     newStripes_final[
-                                                                                     :removeChar_final], f,
-                                                                                     remainingStripes)
-                                else:
-                                    newStripes_final = newStripes_final.replace(' ', separator)  # Ensure replacement
-                                    f.write(newStripes_final[:removeChar_final])
-                        else:
-                            if not maxFileExceeded:  # Only write warning if not already written
-                                maxFileStatus_final = self.streamBufferStatus(device=module, sock=self.streamSock)
-                                f.write('Warning: Max file size exceeded before end of stream.\n')  # Changed from b''
-                                f.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus_final + '.\n')  # Changed from b'', added newline
-                                logging.warning('Max file size exceeded. Some data has not been saved to file: ' + maxFileStatus_final + '.')
-                                maxFileExceeded = True  # Set flag
-                                self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
-                            break  # Exit emptying loop
-
-                        streamOverrun_final, removeChar_final, newStripes_final = self.streamGetStripesText(
-                            self.streamSock, module, numStripesPerRead, skipStatusCheck=True)
-                        isEmpty_final = (removeChar_final == -6 and len(newStripes_final) == (
-                            6 if newStripes_final else 0))  # handle newStripes_final potentially being None
-
-                if streamOverrun:  # This check is after emptying buffer; might need re-evaluation if overrun can happen during emptying
+                if stream_overrun:
                     self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun - QIS buffer empty']
-                elif not maxFileExceeded:  # If not overrun and not exceeded file size
+                elif not max_file_exceeded:
                     self.deviceDict[module][0:3] = [False, 'Stopped', 'Stream stopped']
-                # If maxFileExceeded is true, the status is already set.
+
 
                 time.sleep(0.2)
-                isRun = False  # Exit main while isRun loop
+                is_run = False  # Exit main while loop
             except IOError as err:
                 logging.error(f"IOError in startStreamThread for module {module}: {err}")
-                # f might have been closed by the system if it's a pipe and the other end closed,
-                # or other severe IO errors.
-                # Attempt to close only if this function opened it and it seems like it might be openable/closable.
+                # f might have been closed by the system if it's a pipe and the other end closed or other severe errors.
+                # Attempt to close only if this function opened it, and it seems like it might be openable/closable.
                 if file_opened_by_function and f is not None:
                     try:
                         if not f.closed:
                             f.close()
                     except Exception as e_close:
-                        logging.error(f"Error closing file {fileName} during IOError handling: {e_close}")
+                        logging.error(f"Error closing file {file_name} during IOError handling: {e_close}")
                     f = None  # Avoid trying to close again in finally if error persists
 
                 time.sleep(0.5)
-                openAttempts += 1
-                if openAttempts > 4:
+                open_attempts += 1
+                if open_attempts > 4:
                     logging.error(f"Too many IOErrors in QisInterface for module {module}. Raising error.")
                     # Set device status before raising, if possible
                     self.deviceDict[module][0:3] = [True, 'Stopped', f'IOError limit exceeded: {err}']
@@ -556,11 +576,13 @@ class QisInterface:
                         if not f.closed:  # Check if not already closed (e.g. in IOError block)
                             f.close()
                     except Exception as e_close:
-                        logging.error(f"Error closing file {fileName} in finally block: {e_close}")
-                # If output_file_handle was passed, caller is responsible for closing.
-                # If inMemoryData was passed, it's managed by caller.
-                # The original `else: inMemoryData = f` is removed as inMemoryData (StringIO) is mutated in-place.
+                        logging.error(f"Error closing file {file_name} in finally block: {e_close}")
+                # If output_file_handle was passed, the caller is responsible for closing.
+                # If inMemoryData was passed, it's managed by the caller.
 
+
+
+    def startStreamThreadQPS(self, module, fileName, releaseOnData, separator):
         # This is the function that is ran when t1 is created. It is ran in a seperate thread from
         # the main application so streaming can happen without blocking the main application from
         # doing other things. Within this function/thread you have to be very careful not to try
@@ -568,7 +590,7 @@ class QisInterface:
         # way of communicating. The thread creates it's own socket and should use that NOT the objects socket
         # (which some of the comms with module functions will use by default).
 
-    def startStreamThreadQPS(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator):
+        separator = ','
 
         # Start module streaming and then read stream data
         # self.sendAndReceiveCmd(self.streamSock, 'stream mode resample 10mS', device=module, betweenCommandDelay=0)

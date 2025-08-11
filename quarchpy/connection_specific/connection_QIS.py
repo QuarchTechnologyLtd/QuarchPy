@@ -159,13 +159,6 @@ class QisInterface:
             logging.error('Unable to close connection to device(s), QIS may be already closed')
             return "FAIL: Unable to close connection to device(s), QIS may be already closed"
 
-    def closeConnection(self, sock=None, conString: str=None) -> str:
-        """
-        deprecated:: 2.2.13
-        Use `close_connection` instead.
-        """
-        return self.close_connection (self, sock, conString)
-
     def start_stream(self, module: str, file_name: str, max_file_size: int, release_on_data: bool, separator: str, stream_duration: float=None, in_memory_data: StringIO=None, output_file_handle=None, use_gzip: bool=None):
         """
         Initiates a data streaming process against a specified module. This is done by beginning a new thread
@@ -209,14 +202,6 @@ class QisInterface:
         while self.stripesEvent.is_set():
             pass
 
-    def startStream(self, module: str, fileName: str, fileMaxMB: int, releaseOnData: bool, separator: str,
-                    streamDuration: int = None, inMemoryData=None, outputFileHandle=None, useGzip: bool = None):
-        """
-        deprecated:: 2.2.13
-        Use `start_stream` instead.
-        """
-        return self.start_stream(module, fileName, fileMaxMB, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip)
-
     def start_stream_qps(self, module: str, file_name: str, max_file_size: float, release_on_data: bool):
         """
         Similar to start_stream, but the output is a QPS-compatible analysis file.
@@ -247,13 +232,6 @@ class QisInterface:
         while self.stripesEvent.is_set():
             pass
 
-    def startStreamQPS(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator):
-        """
-        deprecated:: 2.2.13
-        Use `start_stream_qps` instead.
-        """
-        self.start_stream_qps (module, fileName, fileMaxMB, releaseOnData)
-
     def stop_stream(self, module, blocking:bool = True):
         """
         Stops the data streaming process for a specified module ID. When blocking is requested, the function will
@@ -282,8 +260,8 @@ class QisInterface:
 
         # Wait until the stream thread is finished before returning to the user.
         # This means this function will block until the QIS buffer is emptied by the second while
-        # loop in startStreanThread. This may take some time, especially at low averaging but
-        # should gurantee the data won't be lost and QIS buffer is emptied.
+        # loop in startStreamThread. This may take some time, especially at low averaging,
+        # but should guarantee the data won't be lost and QIS buffer is emptied.
         if blocking:
             running = True
             while running:
@@ -297,13 +275,6 @@ class QisInterface:
                     time.sleep(0.1)
                 else:
                     running = False
-
-    def stopStream(self, module, blocking=True):
-        """
-        deprecated:: 2.2.13
-        Use `stop_stream` instead.
-        """
-        self.stop_stream(module, blocking)
 
     def start_stream_thread(self, module: str, file_name: str, max_file_size: float, release_on_data: bool, separator: str,
                           stream_duration: int=None, in_memory_data=None, output_file_handle=None, use_gzip: bool=False):
@@ -326,7 +297,7 @@ class QisInterface:
         separator : str
             Custom separator used to CSV data
         stream_duration : int, optional
-            Duration of streaming in seconds, relative to sampling period. Defaults to streaming
+            Duration of streaming in seconds, relative to the sampling period. Defaults to streaming
             indefinitely.
         in_memory_data : StringIO, optional
             An in-memory buffer of type StringIO to hold streamed data. If set, data is written here
@@ -400,11 +371,11 @@ class QisInterface:
             return
 
         # Poll for the stream header to become available. This is needed to configure the output file
-        base_sample_period = self.streamHeaderAverage(device=module, sock=self.streamSock)
+        base_sample_period = self.stream_header_average(device=module, sock=self.streamSock)
         count = 0
         max_tries = 10
         while 'Header Not Available' in base_sample_period:
-            base_sample_period = self.streamHeaderAverage(device=module, sock=self.streamSock)
+            base_sample_period = self.stream_header_average(device=module, sock=self.streamSock)
             time.sleep(0.1)
             count += 1
             if count > max_tries:
@@ -417,7 +388,7 @@ class QisInterface:
                 return  # Changed from exit() for cleaner thread termination
 
         # Format the header and write it to the output file
-        format_header = self.streamHeaderFormat(device=module, sock=self.streamSock)
+        format_header = self.stream_header_format(device=module, sock=self.streamSock)
         format_header = format_header.replace(", ", separator)
         f.write(format_header + '\n')
 
@@ -500,7 +471,7 @@ class QisInterface:
                             # Flag the limit has been exceeded
                             if current_file_mb > max_mb_val:
                                 max_file_exceeded = True
-                                max_file_status = self.streamBufferStatus(device=module, sock=self.streamSock)
+                                max_file_status = self.stream_buffer_status(device=module, sock=self.streamSock)
                                 f.write('Warning: Max file size exceeded before end of stream.\n')
                                 f.write('Unrecorded stripes in buffer when file full: ' + max_file_status + '.\n')
                                 self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
@@ -584,13 +555,6 @@ class QisInterface:
                 # If output_file_handle was passed, the caller is responsible for closing.
                 # If inMemoryData was passed, it's managed by the caller.
 
-    def startStreamThreadQPS(self, module, fileName, releaseOnData, separator):
-        """
-        deprecated:: 2.2.13
-        Use `start_stream_thread_qps` instead.
-        """
-        self.start_stream_thread_qps(module, fileName, releaseOnData)
-
     def start_stream_thread_qps(self, module, file_name: str, release_on_data: bool):
         """
         Runs as a separate thread to collect data from a specified module and writes it to a QPS
@@ -632,11 +596,11 @@ class QisInterface:
             return
 
         # Poll for the stream header to become available. This is needed to configure the output file
-        base_sample_period = self.streamHeaderAverage(device=module, sock=self.streamSock)
+        base_sample_period = self.stream_header_average(device=module, sock=self.streamSock)
         count = 0
         max_tries = 10
         while 'Header Not Available' in base_sample_period:
-            base_sample_period = self.streamHeaderAverage(device=module, sock=self.streamSock)
+            base_sample_period = self.stream_header_average(device=module, sock=self.streamSock)
             time.sleep(0.1)
             count += 1
             if count > max_tries:
@@ -802,13 +766,6 @@ class QisInterface:
                         # logging.debug(item, x)
                         file1.write(x)
 
-    def getDeviceList(self, sock=None):
-        """
-        deprecated:: 2.2.13
-        Use `start_stream_thread_qps` instead.
-        """
-        self.get_device_list(sock)
-
     def get_device_list(self, sock=None):
         """
         Retrieves the list of devices connected to QIS.  This does NOT re-scan, just returns the current list
@@ -849,13 +806,6 @@ class QisInterface:
         dev_string = [x for x in dev_string if x]  # remove empty elements
         return dev_string
 
-    def scanIP(self, QisConnection, ipAddress):
-        """
-        deprecated:: 2.2.13
-        Use `scan_ip` instead.
-        """
-        self.scan_ip(QisConnection, ipAddress)
-
     def scan_ip(self, qis_connection, ip_address):
         """
         Triggers QIS to look at a specific IP address for a module
@@ -889,11 +839,6 @@ class QisInterface:
             logging.warning(e)
             if "startup" not in response.lower():
                 logging.warning("No module found at " + ip_address)
-
-
-    def GetQisModuleSelection(self, favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'],
-                          scan=True):
-        self.get_qis_module_selection(favouriteOnly, additionalOptions, scan)
 
     def get_qis_module_selection(self, preferred_connection_only=True , additional_options=['rescan', 'all con types', 'ip scan'], scan=True):
         """
@@ -1121,7 +1066,7 @@ class QisInterface:
             # Check for the header format.  If XML, process here
             if (self.is_xml_header(stream_status)):
                 # Get the basic averaging rate (V3 header)
-                xml_root = self.getStreamXmlHeader(device=device, sock=sock)
+                xml_root = self.get_stream_xml_header(device=device, sock=sock)
                 self.module_xml_header = xml_root
 
                 # Return the time-based averaging string
@@ -1159,7 +1104,7 @@ class QisInterface:
             The socket to communicate over, or None to use the default.
 
         Returns:
-            str: CSV formatted header string for the current stream
+            str: Get the CSV formatted header string for the current stream
         """
         try:
             if sock is None:
@@ -1170,7 +1115,7 @@ class QisInterface:
             # Check if this is a XML form header
             if self.is_xml_header (stream_status):
                # Get the basic averaging rate (V3 header)
-               xml_root = self.getStreamXmlHeader (device=device, sock=sock)
+               xml_root = self.get_stream_xml_header (device=device, sock=sock)
                # Return the time-based averaging string
                device_period = xml_root.find('.//devicePeriod')
                time_unit = 'uS'
@@ -1394,427 +1339,6 @@ class QisInterface:
             logging.error(device + ' Exception while parsing stream header XML.' + self.host + ':' + str(self.port))
             raise e
 
-    def create_dir_structure(self, module, directory=None):
-        """
-        Creates the QPS directory structure and (empty) files to be written to
-
-        Parameters:
-        module: str
-            The module ID string
-        directory: str
-             Name of directory for QPS stream (defaults to default recording location when None)
-
-        Returns: bool
-            Flag confirming the structure was created successfully
-        """
-        directory = self.create_qps_directory(directory)
-
-        digital_count = 0
-        non_dig_counter = 0
-        self.streamGroups = StreamGroups()
-        for index, i in enumerate(self.module_xml_header.findall('.//channels')):
-            self.streamGroups.add_group(index)
-            for item in i.findall('.//channel'):
-                self.streamGroups.groups[index].add_channel(item.find(".//name"), item.find(".//group"), item.find(".//dataPosition"))
-                if item.find(".//group").text == "Digital":
-                    digital_count += 1
-                    self.has_digitals = True
-                else:
-                    non_dig_counter += 1
-
-        # Inner folders for analogue and digital signals streaming
-        in_folder_analogue = "data000"
-        inner_path_analogues = ""
-        try:
-            inner_path_analogues = os.path.join(directory, in_folder_analogue)
-            os.mkdir(inner_path_analogues)
-        except:
-            logging.warning("Failed to make inner directory for analogue signals " + inner_path_analogues)
-            return False
-
-        in_folder_digitals = "data101"
-        inner_path_digitals = ""
-        if self.has_digitals:
-            try:
-                inner_path_digitals = os.path.join(directory, in_folder_digitals)
-                os.mkdir(inner_path_digitals)
-            except:
-                logging.warning("Failed to make inner directory for digital signals "+ inner_path_digitals)
-                return False
-
-        logging.debug("Steaming to : " + self.qps_record_dir_path)
-
-        logging.debug("Creating qps data files")
-        try:
-            for i in range(non_dig_counter):
-                file_name = "data000_00" + str(i) + "_000000000"
-                f = open(os.path.join(inner_path_analogues, file_name), "w")
-                f.close()
-            for i in range(digital_count):
-                x = i
-                while len(str(x)) < 3:
-                    x = "0" + str(x)
-                file_name = "data101_" + x + "_000000000"
-                f = open(os.path.join(inner_path_digitals, file_name), "w")
-                f.close()
-        except Exception as err:
-            logging.warning("failed to create qps data files for analogue signals: " + str(err))
-            return False
-
-        logging.debug("Finished creating qps data files")
-
-        logging.debug("Creating qps upper level files")
-        try:
-            file_names = ["annotations.xml", "notes.txt", "triggers.txt"]
-            for file_name in file_names:
-                f = open(os.path.join(self.qps_record_dir_path, file_name), "w")
-                f.close()
-        except Exception as err:
-            logging.warning("failed to create qps upper level files, " + str(err))
-            return False
-
-        try:
-            # Adding data000.idx separate as it's written in bytes not normal text
-            f = open(os.path.join(self.qps_record_dir_path, "data000.idx"), "wb")
-            f.close()
-            if digital_count > 0:
-                f = open(os.path.join(self.qps_record_dir_path, "data101.idx"), "wb")
-                f.close()
-        except Exception as err:
-            logging.warning("failed to create data000.idx file, " + str(err))
-            return False
-
-        logging.debug("Finished creating QPS dir structure")
-
-        return True
-
-    def create_qps_directory(self, directory):
-        folder_name = None
-        # Checking if there was a directory passed; and if it's a valid directory
-        if not directory:
-            directory = os.path.join(os.path.expanduser("~"), "AppData", "Local", "Quarch", "QPS", "Recordings")
-            logging.debug("No directory specified")
-        elif not os.path.isdir(directory):
-            new_dir = os.path.join(str(os.path.expanduser("~"), "AppData", "Local", "Quarch", "QPS", "Recordings"))
-            logging.warning(directory+" was not a valid directory, streaming to default location: \n" + new_dir)
-            directory = new_dir
-        else:
-            # Split the directory into a path of folders
-            folder_name = str(directory).split(os.sep)
-            # The last folder name is the name we want
-            folder_name = folder_name[-1]
-            # Make it known to the entire class that the path we're streaming to is the one sent across by the user
-            self.qps_record_dir_path = directory
-
-        # If no folder name for the stream was passed, then default to 'quarchpy_recording' and a timestamp
-        if not folder_name:
-            folder_name = "quarchpy_recording"
-            folder_name = folder_name + "-" + str(time.time())
-            path = os.path.join(directory, self.qps_stream_folder_name)
-            os.mkdir(path)
-            self.qps_record_dir_path = path
-
-        self.qps_stream_folder_name = folder_name
-
-        return directory
-
-    def create_index_file(self):
-        """
-        Create the necessary index file for QPS data000.idx
-
-        For future revisions, this should be updated if there are file limits on each data file
-        Current implementation assumes only 1 of each data file are made.
-
-        No Return./
-        """
-
-        tree = self.module_xml_header
-
-        return_b_array = []
-        out_buffer = []
-        x = 20
-        stream_header_size = 20
-
-        temp_dict = {"channels": 0}
-
-        return_b_array, stream_header_size = self.add_header_to_byte_array(return_b_array, stream_header_size,
-                                                                           temp_dict, tree, is_digital=False)
-
-        self.add_header_to_buffer(out_buffer, return_b_array, stream_header_size, temp_dict)
-
-        # Attempting to read the size of the first file in data files
-        file = os.path.join(self.qps_record_dir_path, "data000", "data000_000_000000000")
-        data = None
-        with open(file, "rb") as f:
-            data = f.read()  # if you only wanted to read 512 bytes, do .read(512)
-
-        if not data:
-            raise "No data written to file"
-
-        num_records = len(data) / 8
-        logging.debug("num_record = " + str(num_records))
-        return_b_array.append(int(num_records).to_bytes(4, byteorder='big'))
-
-        start_number = 0
-        logging.debug("start_record = " + str(start_number))
-        return_b_array.append(start_number.to_bytes(8, byteorder='big'))
-
-        num_records = num_records - 1
-        logging.debug("last_Record_number = " + str(num_records))
-        return_b_array.append(int(num_records).to_bytes(8, byteorder='big'))
-
-        # Add names of every file in data000 dir here.
-        files = os.listdir(os.path.join(self.qps_record_dir_path, "data000"))
-        for file3 in files:
-            # print(file)
-            item = strToBb(file3, False)
-            # print(item)
-            while len(item) < 32:
-                item.append("\x00")
-            # print(item)
-            return_b_array.append(item)
-
-        with open(os.path.join(self.qps_record_dir_path, "data000.idx"), "ab") as f:
-            for item in out_buffer:
-                # print(item)
-                # print(type(item))
-                f.write(bytes(item))
-            # f.write(outBuffer)
-
-        with open(os.path.join(self.qps_record_dir_path, "data000.idx"), "ab") as f:
-            self.write_b_array_to_idx_file(f, return_b_array)
-
-    def create_index_file_digitals(self):
-        """
-        Create the necessary index file for QPS data101.idx
-
-        For future revisions, this should be updated if there are file limits on each data file
-        Current implementation assumes only 1 of each data file are made.
-
-        No Return.
-        """
-
-        stream_header_size = -1
-        my_byte_array = []
-        tree = self.module_xml_header
-        return_b_array = []
-        out_buffer = []
-        temp_dict = {}
-
-        return_b_array, stream_header_size = self.add_header_to_byte_array(return_b_array, stream_header_size,
-                                                                           temp_dict, tree, is_digital=True)
-
-        self.add_header_to_buffer(out_buffer, return_b_array, stream_header_size, temp_dict)
-
-        # Attempting to read the size of the first file in data files
-        file = os.path.join(self.qps_record_dir_path, "data101", "data101_000_000000000")
-        data = None
-        with open(file, "rb") as f:
-            data = f.read()  # if you only wanted to read 512 bytes, do .read(512)
-
-        if not data:
-            raise "No data written to file"
-
-        num_records = len(data) / 8
-        logging.debug("num_record = "+ str(num_records))
-        return_b_array.append(int(num_records).to_bytes(4, byteorder='big'))
-
-        start_number = 0
-        logging.debug("start_record = " + str(start_number))
-        return_b_array.append(start_number.to_bytes(8, byteorder='big'))
-
-        num_records = num_records - 1
-        logging.debug("last_Record_number = " + str(num_records))
-        return_b_array.append(int(num_records).to_bytes(8, byteorder='big'))
-
-        # Add names of every file in data000 dir here.
-        files = os.listdir(os.path.join(self.qps_record_dir_path, "data101"))
-        for file3 in files:
-            # print(file)
-            item = strToBb(file3, False)
-            # print(item)
-            while len(item) < 32:
-                item.append("\x00")
-            # print(item)
-            return_b_array.append(item)
-
-        with open(os.path.join(self.qps_record_dir_path, "data101.idx"), "ab") as f:
-            for item in out_buffer:
-                f.write(bytes(item))
-
-        with open(os.path.join(self.qps_record_dir_path, "data101.idx"), "ab") as f:
-            self.write_b_array_to_idx_file(f, return_b_array)
-
-    def add_header_to_byte_array(self, return_b_array, stream_header_size, temp_dict, tree, is_digital=False):
-        for element in tree:
-            if "legacyVersion" in element.tag:
-                intItem = element.text
-                temp_dict[element.tag] = intItem
-                # my_byte_array.append(int.to_bytes(intItem, 'big'))
-            if "legacyAverage" in element.tag:
-                intItem = element.text
-                temp_dict[element.tag] = intItem
-                # my_byte_array.append(int.to_bytes(intItem, 'big'))
-            if "legacyFormat" in element.tag:
-                intItem = element.text
-                temp_dict[element.tag] = intItem
-                # my_byte_array.append(int.to_bytes(intItem, 'big'))
-            if "mainPeriod" in element.tag:
-                intItem = element.text
-                intItem = intItem[:-2]
-                temp_dict[element.tag] = intItem
-            if "channels" in element.tag:
-                counter = 0
-                for child in element:
-                    for child2 in child:
-                        if "group" in child2.tag:
-                            if is_digital:
-                                if str(child2.text).lower() == "digital":
-                                    counter += 1
-                            else:
-                                if str(child2.text).lower() != "digital":
-                                    counter += 1
-
-                temp_dict[element.tag] = counter
-
-                return_b_array = []
-
-                stream_header_size = 20
-
-                # Cycle through all the channels.
-                for child in element:
-
-                    if child.tag == "groupId":
-                        continue
-
-                    if is_digital:
-                        # skip channel if we're only looking for digitals
-                        if not str(child.find(".//group").text).lower() == "digital":
-                            continue
-                    else:
-                        # skip if we're looking for analogues
-                        if str(child.find(".//group").text).lower() == "digital":
-                            continue
-
-                    # my_byte_array.append(int.to_bytes(5, 'big'))
-                    return_b_array.append(int(5).to_bytes(4, byteorder='big'))
-                    stream_header_size += 4
-                    name = None
-
-                    for child2 in child:
-
-                        if "group" in child2.tag:
-                            my_byte_array = strToBb(str(child2.text))
-                            return_b_array.append(my_byte_array)
-                            # QPS index file requires name tag come after group tag.
-                            return_b_array.append(name)
-                            stream_header_size += len(my_byte_array)
-
-                        if "name" in child2.tag:
-                            my_byte_array = strToBb(str(child2.text))
-                            name = my_byte_array
-                            stream_header_size += len(my_byte_array)
-
-                        if "units" in child2.tag:
-                            my_byte_array = strToBb(str(child2.text))
-                            return_b_array.append(my_byte_array)
-                            stream_header_size += len(my_byte_array)
-
-                            """
-                            # Unclear if the only thing here is TRUE
-                            bb = strToBB( Boolean.toString( cdr.isUsePrefixStr() ));
-                            bbList.add(bb);
-                            retVal += bb.capacity();
-                            """
-                            my_byte_array = strToBb(str("true"))
-                            return_b_array.append(my_byte_array)
-                            stream_header_size += len(my_byte_array)
-
-                        if "maxTValue" in child2.tag:
-                            my_byte_array = strToBb(str(child2.text))
-                            return_b_array.append(my_byte_array)
-                            stream_header_size += len(my_byte_array)
-
-        return return_b_array, stream_header_size
-
-    def add_header_to_buffer(self, outBuffer, return_b_array, stream_header_size, temp_dict):
-        number = 2
-        outBuffer.append(number.to_bytes(4, byteorder='big'))
-        logging.debug("indexVersion : "+ number)
-
-        number = 1 if self.has_digitals else 0
-        outBuffer.append(number.to_bytes(4, byteorder='big'))
-        logging.debug("value0 : "+ number)
-        number = stream_header_size
-        outBuffer.append(number.to_bytes(4, byteorder='big'))
-        logging.debug("header_size : "+number)
-        logging.debug("legacyVersion : "+ temp_dict['legacyVersion'])
-        outBuffer.append(int(temp_dict["legacyVersion"]).to_bytes(4, byteorder='big'))
-        logging.debug("legacyAverage : " + temp_dict['legacyAverage'])
-        outBuffer.append(int(temp_dict["legacyAverage"]).to_bytes(4, byteorder='big'))
-        logging.debug("legacyFormat : "+temp_dict['legacyFormat'])
-        outBuffer.append(int(temp_dict["legacyFormat"]).to_bytes(4, byteorder='big'))
-        logging.debug("mainPeriod : "+temp_dict['mainPeriod'])
-        outBuffer.append(int(temp_dict["mainPeriod"]).to_bytes(4, byteorder='big'))
-        logging.debug("channels : "+temp_dict['channels'])
-        outBuffer.append(int(temp_dict["channels"]).to_bytes(4, byteorder='big'))
-        return_b_array.append(int(self.qps_record_start_time).to_bytes(8, byteorder='big'))
-        index_record_state = True
-        logging.debug(int(1))
-        return_b_array.append(int(1).to_bytes(1, byteorder='big'))
-        record_type = 1
-        logging.debug("record type : "+int(index_record_state))
-        return_b_array.append(int(record_type).to_bytes(1, byteorder='big'))
-
-    def write_b_array_to_idx_file(self, f, return_b_array):
-        # print(return_b_array)
-        for item in return_b_array:
-            # print(item)
-            if isinstance(item, int):
-                # 'f.write(str(item).encode())
-                # print(item)
-                f.write(bytes([item]))
-                continue
-            if isinstance(item, bytes):
-                # print(item)
-                f.write(bytes(item))
-                continue
-            if isinstance(item, list):
-                for character in item:
-                    if isinstance(character, int):
-                        f.write(bytes([character]))
-                        continue
-                    elif isinstance(item, bytes):
-                        f.write(item)
-                        continue
-                    else:
-                        f.write(str(character).encode())
-                        continue
-
-    def create_qps_file(self, module):
-        """
-        Creates the end QPS file that is used to open QPS
-
-        :param module: Module QTL number that was used for the stream
-        :return:
-        """
-
-        with open(os.path.join(self.qps_record_dir_path, self.qps_stream_folder_name + ".qps"), "w") as f:
-            x = datetime.datetime.fromtimestamp(self.qps_record_start_time / 1000.0)
-            x = str(x).split(".")
-            x = x[0]
-            x = x.replace("-", " ")
-            f.write("Started: "+x+"\n")
-            f.write("Device: " + module + "\n")
-            f.write("Fixture: \n")
-
-            x = datetime.datetime.now()
-            x = str(x).split(".")
-            x = x[0]
-            x = x.replace("-", " ")
-            f.write("Saved: "+x+ "\n")
-
-
     def sendCommand(self, cmd, device="", timeout=20,sock=None,readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse=True):
         '''Send command is used to send a command to QIS and as far as I can see it has no difference than sendAndReceiveCmd'''
         if expectedResponse is True:
@@ -2026,13 +1550,60 @@ class QisInterface:
                 logging.error('Max exceptions exceeded - exiting') #exceptions are probably 10035 non-blocking socket could not complete immediatley
                 exit()
 
+    def closeConnection(self, sock=None, conString: str=None) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `close_connection` instead.
+        """
+        return self.close_connection (self, sock, conString)
 
-def strToBb(string_in, add_length=True):
-    length = len(str(string_in))
-    b_array = []
-    if add_length:
-        b_array.append(length)
-    for character in str(string_in):
-        b_array.append(character)
+    def startStream(self, module: str, fileName: str, fileMaxMB: int, releaseOnData: bool, separator: str,
+                    streamDuration: int = None, inMemoryData=None, outputFileHandle=None, useGzip: bool = None):
+        """
+        deprecated:: 2.2.13
+        Use `start_stream` instead.
+        """
+        return self.start_stream(module, fileName, fileMaxMB, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip)
 
-    return b_array
+    def startStreamQPS(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator):
+        """
+        deprecated:: 2.2.13
+        Use `start_stream_qps` instead.
+        """
+        self.start_stream_qps (module, fileName, fileMaxMB, releaseOnData)
+
+    def stopStream(self, module, blocking=True):
+        """
+        deprecated:: 2.2.13
+        Use `stop_stream` instead.
+        """
+        self.stop_stream(module, blocking)
+
+    def startStreamThreadQPS(self, module, fileName, releaseOnData, separator):
+        """
+        deprecated:: 2.2.13
+        Use `start_stream_thread_qps` instead.
+        """
+        self.start_stream_thread_qps(module, fileName, releaseOnData)
+
+    def getDeviceList(self, sock=None):
+        """
+        deprecated:: 2.2.13
+        Use `start_stream_thread_qps` instead.
+        """
+        self.get_device_list(sock)
+
+    def scanIP(self, QisConnection, ipAddress):
+        """
+        deprecated:: 2.2.13
+        Use `scan_ip` instead.
+        """
+        self.scan_ip(QisConnection, ipAddress)
+
+    def GetQisModuleSelection(self, favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'],
+                          scan=True):
+        """
+        deprecated:: 2.2.13
+        Use `get_qis_module_selection` instead.
+        """
+        self.get_qis_module_selection(favouriteOnly, additionalOptions, scan)

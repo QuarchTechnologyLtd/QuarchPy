@@ -2,6 +2,8 @@ import socket
 import re
 import gzip
 import datetime
+from unittest.mock import open_spec
+
 import select
 import threading
 import struct
@@ -587,7 +589,7 @@ class QisInterface:
         deprecated:: 2.2.13
         Use `start_stream_thread_qps` instead.
         """
-        self.start_stream_thread_qps(module, fileName, releaseOnData, separator)
+        self.start_stream_thread_qps(module, fileName, releaseOnData)
 
     def start_stream_thread_qps(self, module, file_name: str, release_on_data: bool):
         """
@@ -610,7 +612,7 @@ class QisInterface:
         separator = ','
         self.qps_record_start_time = time.time() * 1000
 
-        # Send stream command so module starts streaming data into the backends buffer
+        # Send stream command so the module starts streaming data into the backends buffer
         stream_res = self.sendAndReceiveCmd(self.streamSock, 'rec stream', device=module, betweenCommandDelay=0)
         # Check the stream started
         if 'OK' in stream_res:
@@ -621,10 +623,10 @@ class QisInterface:
         else:
             self.StreamRunSentSemaphore.release()
             self.stripesEvent.clear()
-            self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start because " + stream_res]
+            self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start because: " + stream_res]
             return
 
-        # If recording to file then get header for file
+        # Ensure a file is specified
         if file_name is None:
             self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start - file path not specified"]
             return
@@ -641,38 +643,39 @@ class QisInterface:
                 self.deviceDict[module][0:3] = [True, 'Stopped', 'Header not available']
                 return
 
-        numStripesPerRead = 4096
-        maxFileExceeded = False
-        openAttempts = 0
-        leftover = 0
-        remainingStripes = []
-        streamOverrun = False
+        open_attempts = 0
+        stream_overrun = False
+        stream_complete = False
+        is_run = True
 
-        isRun = True
+        # Create the analysis file structure including subfolders
+        self.create_dir_structure(module, file_name)
 
-        self.create_dir_structure(module, fileName)
-
-        while isRun:
+        # Now we loop to process the stripes of data as they are available
+        while is_run:
             try:
-                # with open(fileName, 'ab') as f:
-                # Until the event threadRunEvent is set externally to this thread,
-                # loop and read from the stream
+                # Check for exit flags.  These can be from user request (stopFlagList) or from the stream
+                # process ending
                 i = self.deviceMulti(module)
-                while self.stopFlagList[i] and (not streamOverrun):
-                    # now = time.time()
-                    streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module,
-                                                                                      numStripesPerRead)
-                    newStripes = newStripes.replace(' ',separator)
+                while self.stopFlagList[i] and (not stream_overrun) and (not stream_complete):
 
-                    if streamOverrun:
+                    # Read a block of stripes from QIS
+                    stream_status_str, new_stripes = self.stream_get_stripes_text(self.streamSock, module)
+
+                    # Overrun is a termination event where the stream stopped earlier than desired and must
+                    # be flagged to the user
+                    if "overrun" in stream_status_str:
+                        stream_overrun = True
                         self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun']
-                    if (removeChar == -6 and len(newStripes) == 6):
-                        isEmpty = True
-                    else:
-                        isEmpty = False
-                    if isEmpty == False:
-                        # Writes in file if not too big else stops streaming
-                        # Writing multiple stripes
+                    if "eof" in stream_status_str:
+                        stream_complete = True
+
+                    # Continue here if there are stripes to process
+                    if len(new_stripes) > 0:
+                        # switch in the correct value seperator
+                        new_stripes = new_stripes.replace(' ', separator)
+
+                        # Write the stripes into the analysis file format
                         if "\r\n" in y:
                             y = y.split("\r\n")
 
@@ -681,13 +684,13 @@ class QisInterface:
                                 for stripes in y:
                                     if stripes:
                                         stripe = stripes.split(",")
-                                        self.write_stripe_to_files_PAM(stripe)
+                                        self.write_stripe_to_files_pam(stripe)
                             else:
                                 # Write qps files for PPM
                                 for stripes in y:
                                     if stripes:
                                         stripe = stripes.split(",")
-                                        self.write_stripe_to_files_HD(stripe)
+                                        self.write_stripe_to_files_hd(stripe)
 
                         else:
                             if self.has_digitals:
@@ -695,72 +698,86 @@ class QisInterface:
                                 for stripes in y:
                                     if stripes:
                                         stripe = stripes.split(",")
-                                        self.write_stripe_to_files_PAM(stripe)
+                                        self.write_stripe_to_files_pam(stripe)
                             else:
                                 # Write qps files for PPM
                                 for stripes in y:
                                     if stripes:
                                         stripe = stripes.split(",")
-                                        self.write_stripe_to_files_HD(stripe)
+                                        self.write_stripe_to_files_hd(stripe)
 
 
                     else:
-                        # there's no stripes in the buffer - it's not filling up fast -
-                        # sleeps so we don't spam qis with requests (seems to make QIS crash)
-                        # it might be clever to change the sleep time accoring to the situation
-                        # e.g. wait longer with higher averaging or lots of no stripes in a row
-                        time.sleep(0.1)
-                        streamStatus = self.streamRunningStatus(device=module, sock=self.streamSock)
-                        if streamOverrun:
-                            # printText('QisInterface overrun - breaking')
-                            break
-                        elif "Stopped" in streamStatus:
+                        if stream_overrun:
+                            break  # Exit stream processing loop
+                        elif "stopped" in stream_status_str:
                             self.deviceDict[module][0:3] = [True, 'Stopped', 'User halted stream']
-                            break
+                            break  # Exit stream processing loop
+                # End of stream data processing loop
 
-                # printText('Left while 1')
+                # Ensure the stream is fully stopped, though standard exit cases should have ended it already
                 self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay=0)
-                # streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0) # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
-                # while "stopped" not in streamState.lower():
-                #     logging.debug("waiting for stream? to contained stopped")
-                #     time.sleep(0.1)
-                #     streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module,betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
+                stream_state = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module,
+                                                      betweenCommandDelay=0)
+                while "stopped" not in stream_state.lower():
+                    logging.debug("waiting for stream? to return stopped")
+                    time.sleep(0.1)
+                    stream_state = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module,
+                                                                      betweenCommandDelay=0)
 
-                isRun = False
+                if stream_overrun:
+                    self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun - QIS buffer empty']
+
+                is_run = False  # Exit main while loop
             except IOError as err:
-                # printText('\n\n!!!!!!!!!!!!!!!!!!!! IO Error in QisInterface !!!!!!!!!!!!!!!!!!!!\n\n')
+                logging.error(f"IOError in startStreamThread for module {module}: {err}")
                 time.sleep(0.5)
-                openAttempts += 1
-                if openAttempts > 4:
-                    logging.error(
-                        '\n\n!!!!!!!!!!!!!!!!!!!! Too many IO Errors in QisInterface !!!!!!!!!!!!!!!!!!!!\n\n')
+                open_attempts += 1
+                if open_attempts > 4:
+                    logging.error(f"Too many IOErrors in QisInterface for module {module}. Raising error.")
+                    # Set device status before raising, if possible
+                    self.deviceDict[module][0:3] = [True, 'Stopped', f'IOError limit exceeded: {err}']
                     raise err
 
+        # Finish up be creating the remaining items needed for the analysis file structure
         self.create_index_file()
         if self.has_digitals:
             self.create_index_file_digitals()
-
         self.create_qps_file(module)
 
-    def write_stripe_to_files_HD(self, stripe):
+    def write_stripe_to_files_hd(self, stripe):
+        """
+        Writes data from a given stripe in legacy HD format
+
+        Arguments:
+            stripe : str
+                CSV form stripe from QIS
+        """
+
         # Cycle through items in stripe
         for index, item in enumerate(stripe):
             if index == 0:
                 continue
-            with open(os.path.join(self.qps_record_dir_path, "data000",
-                                   "data000_00" + index - 1 + "_000000000"),
-                      "a") as file1:#changed from ab to a as all data should be in string format now regardless of py2 or py3
+            with (open(os.path.join(self.qps_record_dir_path, "data000", "data000_00" + str(index - 1) + "_000000000"),
+                       "a") as file1):
 
                 x = struct.pack(">d", int(item))
-                # logging.debug(item, x)
                 file1.write(x)
 
-    def write_stripe_to_files_PAM(self, stripe):
+    def write_stripe_to_files_pam(self, stripe):
+        """
+        Writes data from a given stripe in PAM format
+
+        Arguments:
+            stripe : str
+                CSV form stripe from QIS
+        """
+
         # Note to reader - List should be ordered 1>x on analogue and digitals
         counter = 0
         for group in self.streamGroups.groups:
             for i, channel in enumerate(group.channels):
-                # incrementing here so we skip stripe[0] which is time
+                # incrementing here, so we skip stripe[0] which is time
                 counter += 1
 
                 x = i
@@ -785,329 +802,435 @@ class QisInterface:
                         # logging.debug(item, x)
                         file1.write(x)
 
-    # Query the backend for a list of connected modules. A $scan command is sent to refresh the list of devices,
-    # Then a wait occurs while the backend discovers devices (network ones can take a while) and then a list of device name strings is returned
-    # The objects connection needs to be opened (connect()) before this is used
     def getDeviceList(self, sock=None):
+        """
+        deprecated:: 2.2.13
+        Use `start_stream_thread_qps` instead.
+        """
+        self.get_device_list(sock)
 
-        if sock == None:
+    def get_device_list(self, sock=None):
+        """
+        Retrieves the list of devices connected to QIS.  This does NOT re-scan, just returns the current list
+
+        This method communicates with the server to retrieve information about
+        the devices currently connected. The list of devices is processed and
+        formatted into a clean list of device names or identifiers.
+
+        Arguments:
+        sock : Optional
+            The network socket used for communication. If not provided, the
+            class's default socket will be used.
+
+        Returns:
+        list
+            A list of device identifiers retrieved from the QIS.
+        """
+
+        if sock is None:
             sock = self.sock
-        devString = self.sendAndReceiveText(sock, '$list')
-        devString = devString.replace('>', '')
-        devString = devString.replace(r'\d+\) ', '')
-        devString = devString.split('\r\n')
-        devString = filter(None, devString) #remove empty elements
-        return devString
+
+        dev_string = self.sendAndReceiveText(sock, '$list')
+        dev_string = dev_string.replace('>', '')
+        dev_string = dev_string.replace(r'\d+\) ', '')
+        dev_string = dev_string.split('\r\n')
+        dev_string = filter(None, dev_string) #remove empty elements
+
+        return dev_string
 
     def get_list_details(self, sock=None):
-        if sock == None:
+        if sock is None:
             sock = self.sock
 
-        devString = self.sendAndReceiveText(sock, '$list details')
-        devString = devString.replace('>', '')
-        devString = devString.replace(r'\d+\) ', '')
-        devString = devString.split('\r\n')
-        devString = [x for x in devString if x]  # remove empty elements
-        return devString
+        dev_string = self.sendAndReceiveText(sock, '$list details')
+        dev_string = dev_string.replace('>', '')
+        dev_string = dev_string.replace(r'\d+\) ', '')
+        dev_string = dev_string.split('\r\n')
+        dev_string = [x for x in dev_string if x]  # remove empty elements
+        return dev_string
 
-    def scanIP(QisConnection, ipAddress):
+    def scanIP(self, QisConnection, ipAddress):
         """
-        Triggers QIS to look at a specific IP address for a quarch module
+        deprecated:: 2.2.13
+        Use `scan_ip` instead.
+        """
+        self.scan_ip(QisConnection, ipAddress)
 
-        Parameters
-        ----------
+    def scan_ip(self, qis_connection, ip_address):
+        """
+        Triggers QIS to look at a specific IP address for a module
+
+        Arguments
+
         QisConnection : QpsInterface
-            The interface to the instance of QPS you would like to use for the scan.
+            The interface to the instance of QIS you would like to use for the scan.
         ipAddress : str
             The IP address of the module you are looking for eg '192.168.123.123'
-        sleep : int, optional
-            This optional variable sleeps to allow the network to scan for the module before allowing new commands to be sent to QIS.
         """
 
-        logging.debug("Starting QIS IP Address Lookup at " + ipAddress)
-        if not ipAddress.lower().__contains__("tcp::"):
-            ipAddress = "TCP::" + ipAddress
+        logging.debug("Starting QIS IP Address Lookup at " + ip_address)
+        if not ip_address.lower().__contains__("tcp::"):
+            ip_address = "TCP::" + ip_address
         response = "No response from QIS Scan"
         try:
-            response = QisConnection.sendCmd(cmd="$scan " + ipAddress, expectedResponse=True)
-            # valid response is "Located device: 192.168.1.2"
+            response = qis_connection.sendCmd(cmd="$scan " + ip_address, expectedResponse=True)
+            # The valid response is "Located device: 192.168.1.2"
             if "located" in response.lower():
                 logging.debug(response)
                 # return the valid response
                 return response
             else:
                 if "startup" not in response.lower():
-                    logging.warning("No module found at " + ipAddress)
+                    logging.warning("No module found at " + ip_address)
                     logging.warning(response)
                 return response
 
         except Exception as e:
             logging.warning(e)
             if "startup" not in response.lower():
-                logging.warning("No module found at " + ipAddress)
+                logging.warning("No module found at " + ip_address)
 
-    def GetQisModuleSelection(self, favouriteOnly=True , additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
-        '''
-        Fuction used to list the available deviced to QIS and present them to the user for selection.
 
-        Returns myDeviceID - Str the connection string used to connect to the selected device.
-        '''
-        tableHeaders =["Modules"]
+    def GetQisModuleSelection(self, favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'],
+                          scan=True):
+        self.get_qis_module_selection(favouriteOnly, additionalOptions, scan)
+
+    def get_qis_module_selection(self, preferred_connection_only=True , additional_options=['rescan', 'all con types', 'ip scan'], scan=True):
+        """
+        Scans for available modules and allows the user to select one through an interactive selection process.
+
+        Arguments:
+            preferred_connection_only : bool
+                by default (True), returns only one preferred connection eg: USB for simplicity
+            additional_options: list
+                Additional operational options provided during module selection, such as rescan,
+                all connection types, and IP scan. Defaults to ['rescan', 'all con types', 'ip scan']. These allow the
+                additional options to be given to the user and handled in the top level script
+            scan : bool
+                Indicates whether to initiate a rescanning process for devices prior to listing. Defaults to True and
+                will take longer to return
+
+        Returns:
+            str: The identifier of the selected module, or the action selected from the additional options.
+
+        Raises:
+            KeyError: Raised when unexpected keys are found in the scanned device data.
+            ValueError: Raised if no valid selection is made or the provided IP address is invalid.
+        """
+        table_headers = ["Modules"]
         ip_address = None
-        favourite = favouriteOnly
+        favourite = preferred_connection_only
         while True:
             printText("Scanning for modules...")
+            found_devices = None
             if scan and ip_address is None:
-                foundDevices = self.qis_scan_devices(scan=scan, favouriteOnly=favourite)
+                found_devices = self.qis_scan_devices(scan=scan, preferred_connection_only=favourite)
             elif scan and ip_address is not None:
-                foundDevices = self.qis_scan_devices(scan=scan, favouriteOnly=favourite, ipAddress=ip_address)
+                found_devices = self.qis_scan_devices(scan=scan, preferred_connection_only=favourite, ip_address=ip_address)
 
-            myDeviceID = listSelection(title="Select a module",message="Select a module",selectionList=foundDevices,
-                                       additionalOptions= additionalOptions, nice=True, tableHeaders=tableHeaders,
-                                       indexReq=True)
-            if myDeviceID.lower() == 'rescan':
+            my_device_id = listSelection(title="Select a module",message="Select a module",
+                                          selectionList=found_devices, additionalOptions= additional_options,
+                                          nice=True, tableHeaders=table_headers, indexReq=True)
+
+            if my_device_id.lower() == 'rescan':
                 favourite = True
                 ip_address = None
                 continue
-            elif myDeviceID.lower() == 'all con types':
+            elif my_device_id.lower() == 'all con types':
                 favourite = False
                 printText("Displaying all connection types...")
                 continue
-            elif myDeviceID.lower() == 'ip scan':
+            elif my_device_id.lower() == 'ip scan':
                 ip_address = requestDialog(title="Please input the IP Address you would like to scan")
                 favourite = False
                 continue
             break
 
-        return myDeviceID
+        return my_device_id
 
-    def qis_scan_devices(self, scan=True, favouriteOnly=True, ipAddress=None):
-        deviceList = []
-        foundDevices = "1"
-        foundDevices2 = "2"  # this is used to check if new modules are being discovered or if all have been found.
-        scanWait = 2  # The number of seconds waited between the two scans.
+    def qis_scan_devices(self, scan=True, preferred_connection_only=True, ip_address=None):
+        """
+        Begins a scan for new devices.  If you want a specific module by IP address instead of a general
+        scan, you can supply it with the ip_address parameter.
+
+        Arguments
+
+        scan : bool
+            Should a scan be initiated?  If False, the function will return immediately with the list
+        preferred_connection_only : bool
+            Tby default (True), returns only one preferred connection eg: USB for simplicity
+        ip_address: str
+            IP address of the module you are looking for eg '192.168.123.123'
+        Returns:
+            list: List of module strings found during scan
+        """
+
+        device_list = []
+        found_devices = "1"
+        found_devices2 = "2"  # this is used to check if new modules are being discovered or if all have been found.
+        scan_wait = 2  # The number of seconds waited between the scan and the initial list
+        list_wait = 1  # The time between checks for new devices in the list
 
         if scan:
-            if ipAddress == None:
-                devString = self.sendAndReceiveText(self.sock, '$scan')
+            # Perform the initial scan attempt
+            if ip_address is None:
+                dev_string = self.sendAndReceiveText(self.sock, '$scan')
             else:
-                devString = self.sendAndReceiveText(self.sock, '$scan TCP::' + ipAddress)
-            time.sleep(scanWait)
-            while foundDevices not in foundDevices2:
-                foundDevices = self.sendAndReceiveText(self.sock, '$list')
-                time.sleep(scanWait)
-                foundDevices2 = self.sendAndReceiveText(self.sock, '$list')
+                dev_string = self.sendAndReceiveText(self.sock, '$scan TCP::' + ip_address)
+            # Wait for devices to enumerate
+            time.sleep(scan_wait)
+            # While new devices are being found, extend the wait time
+            while found_devices not in found_devices2:
+                found_devices = self.sendAndReceiveText(self.sock, '$list')
+                time.sleep(list_wait)
+                found_devices2 = self.sendAndReceiveText(self.sock, '$list')
         else:
-            foundDevices = self.sendAndReceiveText(self.sock, '$list')
+            found_devices = self.sendAndReceiveText(self.sock, '$list')
 
-        if not "no devices found" in foundDevices.lower():
-            foundDevices = foundDevices.replace('>', '')
-            #foundDevices = foundDevices.replace(r'\d\) ', '')
-            # printText('"' + devString + '"')
-            foundDevices = foundDevices.split('\r\n')
-            #Can't stream over REST! Removing all REST connections.
-            tempList= list()
-            for item in foundDevices:
+        # If we found devices, process them into a list to return
+        if not "no devices found" in found_devices.lower():
+            found_devices = found_devices.replace('>', '')
+            found_devices = found_devices.split('\r\n')
+            # Can't stream over REST. Removing all REST connections.
+            temp_list= list()
+            for item in found_devices:
                 if item is None or "rest" in item.lower() or item == "":
                     pass
                 else:
-                    tempList.append(item.split(")")[1].strip())
-            foundDevices = tempList
+                    temp_list.append(item.split(")")[1].strip())
+            found_devices = temp_list
 
-            #If favourite only is True then only show one connection type for each module connected.
-            #First order the devices in preference type and then pick the first con type found for each module.
-            if (favouriteOnly):
-                foundDevices = self.sortFavourite(foundDevices)
+            # If the preferred connection only flag is True, then only show one connection type for each module connected.
+            # First, order the devices by their preference type and then pick the first con type found for each module.
+            if preferred_connection_only:
+                found_devices = self.sortFavourite(found_devices)
         else:
-            foundDevices = ["***No Devices Found***"]
+            found_devices = ["***No Devices Found***"]
 
-        return foundDevices
+        return found_devices
 
-    def sortFavourite(self, foundDevices):
+    def sort_favourite(self, found_devices):
+        """
+        Reduces the list of located devices by referencing to the preferred type of connection.  Only
+        one connection type will be returned for each module for easier user selection. ie: A module connected
+        on both USB and TCP will now only return with USB
+
+        Arguments
+
+        found_devices : list
+            List of located devices from a scan operation
+
+        Returns:
+            list: Filtered list of modules with only one connection type.
+        """
+
         index = 0
-        sortedFoundDevices = []
-        conPref = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
-        while len(sortedFoundDevices) != len(foundDevices):
-            for device in foundDevices:
-                if conPref[index] in device.upper():
-                    sortedFoundDevices.append(device)
+        sorted_found_devices = []
+        con_pref = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
+        while len(sorted_found_devices) != len(found_devices):
+            for device in found_devices:
+                if con_pref[index] in device.upper():
+                    sorted_found_devices.append(device)
             index += 1
-        foundDevices = sortedFoundDevices
+        found_devices = sorted_found_devices
+
         # new dictionary only containing one favourite connection to each device.
-        favConFoundDevices = []
+        fav_con_found_devices = []
         index = 0
-        for device in sortedFoundDevices:
-            if (favConFoundDevices == [] or not device.split("::")[1] in str(favConFoundDevices)):
-                favConFoundDevices.append(device)
-        foundDevices = favConFoundDevices
-        return foundDevices
+        for device in sorted_found_devices:
+            if fav_con_found_devices == [] or not device.split("::")[1] in str(fav_con_found_devices):
+                fav_con_found_devices.append(device)
+        found_devices = fav_con_found_devices
+        return found_devices
 
-    # Query stream status for a device attached to backend
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamRunningStatus(self, device, sock=None):
-        if sock == None:
-            sock = self.sock
-        index = 0 # index of relevant line in split string
-        streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
-        streamStatus = streamStatus.split('\r\n')
-        streamStatus[index] = re.sub(r':', '', streamStatus[index]) #remove :
-        return streamStatus[index]
+    def stream_running_status(self, device, sock=None):
+        """
+        returns a single word status string for a given device.  Generally this will be running, overrun, or stopped
 
-    # Query stream buffer status for a device attached to backend
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamBufferStatus(self, device, sock=None):
-        if sock == None:
+        Arguments
+
+        device : str
+            The device ID to target
+        sock:
+            The socket to communicate over, or None to use the default.
+
+        Returns:
+            str: Single word status string to show the operation of streaming
+        """
+        if sock is None:
             sock = self.sock
-        index = 1 # index of relevant line in split string
-        streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
-        streamStatus = streamStatus.split('\r\n')
-        streamStatus[index] = re.sub(r'^Stripes Buffered: ', '', streamStatus[index])
-        return streamStatus[index]
+
+        index = 0
+        stream_status = self.sendAndReceiveText(sock, 'stream?', device)
+
+        # Split the response, select the first time and trim the colon
+        stream_status = stream_status.split('\r\n')
+        stream_status[index] = re.sub(r':', '', stream_status[index])
+        return stream_status[index]
+
+    def stream_buffer_status(self, device, sock=None):
+        """
+        returns the info on the stripes buffered during the stream
+
+        Arguments
+
+        device : str
+            The device ID to target
+        sock:
+            The socket to communicate over, or None to use the default.
+
+        Returns:
+            str: String with the numbers of stripes buffered
+        """
+        if sock is None:
+            sock = self.sock
+
+        index = 1
+        stream_status = self.sendAndReceiveText(sock, 'stream?', device)
+
+        # Split the response, select the second the info on the stripes buffered
+        stream_status = stream_status.split('\r\n')
+        stream_status[index] = re.sub(r'^Stripes Buffered: ', '', stream_status[index])
+        return stream_status[index]
 
     # TODO: MD - This function should be replaced with a more generic method of accessing the header
     # The return of a string with concatenated value and units should be replaced with something easier to parse
-    #
-    # Get the averaging used on the last/current stream
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamHeaderAverage(self, device, sock=None):
-        try:
-            if sock == None:
-                sock = self.sock
-            index = 2 # index of relevant line in split string
-            streamStatus = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
+    def stream_header_average(self, device, sock=None):
+        """
+        Gets the averaging used on the current stream, required for processing the stripe data returned from QIS
 
-            self.qps_stream_header = streamStatus
+        Arguments
+
+        device : str
+            The device ID to target
+        sock:
+            The socket to communicate over, or None to use the default.
+
+        Returns:
+            str: String with the rate and unit
+        """
+        try:
+            if sock is None:
+                sock = self.sock
+
+            index = 2 # index of relevant line in split string
+            stream_status = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
+
+            self.qps_stream_header = stream_status
 
             # Check for the header format.  If XML, process here
-            if (self.isXmlHeader(streamStatus)):
+            if (self.is_xml_header(stream_status)):
                 # Get the basic averaging rate (V3 header)
                 xml_root = self.getStreamXmlHeader(device=device, sock=sock)
-
-                # For QPS streaming, stream header v3 command has already been issued before this
                 self.module_xml_header = xml_root
 
-                # Return the time based averaging string
+                # Return the time-based averaging string
                 device_period = xml_root.find('.//devicePeriod')
-                if device_period == None:
+                if device_period is None:
                     device_period = xml_root.find('.//devicePerioduS')
-                    if device_period == None:
+                    if device_period is None:
                         device_period = xml_root.find('.//mainPeriod')
-                averageStr = device_period.text
-                return averageStr
+                average_str = device_period.text
+                return average_str
             # For legacy text headers, process here
             else:
-                streamStatus = streamStatus.split('\r\n')
-                if('Header Not Available' in streamStatus[0]):
-                    dummy = streamStatus[0] + '. Check stream has been run on device.'
+                stream_status = stream_status.split('\r\n')
+                if 'Header Not Available' in stream_status[0]:
+                    dummy = stream_status[0] + '. Check stream has been run on device.'
                     return dummy
-                streamStatus[index] = re.sub(r'^Average: ', '', streamStatus[index])
-                avg = streamStatus[index]
+                stream_status[index] = re.sub(r'^Average: ', '', stream_status[index])
+                avg = stream_status[index]
                 avg = 2 ** int(avg)
                 return '{}'.format(avg)
         except Exception as e:
             logging.error(device + ' Unable to get stream average.' + self.host + ':' + str(self.port))
             raise e
 
-    # Get the version of the stream and convert to string for the specified device
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamHeaderVersion(self, device, sock=None):
-        try:
-            if sock == None:
-                sock = self.sock
-            index = 0 # index of relevant line in split string
-            streamStatus = self.sendAndReceiveText(sock,'stream text header', device)
-            streamStatus = streamStatus.split('\r\n')
-            if 'Header Not Available' in streamStatus[0]:
-                str = streamStatus[0] + '. Check stream has been ran on device.'
-                logging.error(str)
-                return str
-            version = re.sub(r'^Version: ', '', streamStatus[index])
-            if version == '3':
-                version = 'Original PPM'
-            elif version == '4':
-                version = 'XLC PPM'
-            elif version == '5':
-                version = 'HD PPM'
-            else:
-                version = 'Unknown stream version'
-            return version
-        except Exception as e:
-            logging.error(device + ' Unable to get stream version.' + self.host + ':' + str(self.port))
-            raise e
+    def stream_header_format(self, device, sock=None):
+        """
+        Formats the stream header for use at the top of a CSV file.  This adds the appropriate time column and
+        each of the channel data columns
 
-    # Get a header string giving which measurements are returned in the string for the specified device
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamHeaderFormat(self, device, sock=None):
+        Arguments
+
+        device : str
+            The device ID to target
+        sock:
+            The socket to communicate over, or None to use the default.
+
+        Returns:
+            str: CSV formatted header string for the current stream
+        """
         try:
-            if sock == None:
+            if sock is None:
                 sock = self.sock
-            index = 1 # index of relevant line in split string STREAM MODE HEADER [?|V1,V2,V3]
-            streamStatus = self.sendAndReceiveText(sock,'stream text header', device)
-            # Check if this is a new XML form header
-            if (self.isXmlHeader (streamStatus)):
+
+            index = 1
+            stream_status = self.sendAndReceiveText(sock,'stream text header', device)
+            # Check if this is a XML form header
+            if self.is_xml_header (stream_status):
                # Get the basic averaging rate (V3 header)
                xml_root = self.getStreamXmlHeader (device=device, sock=sock)
-               # Return the time based averaging string
+               # Return the time-based averaging string
                device_period = xml_root.find('.//devicePeriod')
                time_unit = 'uS'
-               if device_period == None:
+               if device_period is None:
                    device_period = xml_root.find('.//devicePerioduS')
-                   if device_period == None:
+                   if device_period is None:
                        device_period = xml_root.find('.//mainPeriod')
-                       if ('ns' in  device_period.text):
+                       if 'ns' in  device_period.text:
                         time_unit = 'nS'
-               averageStr = device_period.text
 
-               # Time column always first
-               formatHeader = 'Time ' + time_unit + ','
+               # The time column always first
+               format_header = 'Time ' + time_unit + ','
                # Find the channels section of each group and iterate through it to add the channel columns
                for group in xml_root.iter():
-                   if (group.tag == "channels"):
+                   if group.tag == "channels":
                        for chan in group:
                         # Avoid children that are not named channels
-                        if (chan.find('.//name') is not None):
-                            nameStr = chan.find('.//name').text
-                            unitStr = chan.find('.//units').text
-                            formatHeader = formatHeader +  nameStr + " " + unitStr + ","
-               return formatHeader
-            # Handle legacy text headers here
+                        if chan.find('.//name') is not None:
+                            name_str = chan.find('.//name').text
+                            unit_str = chan.find('.//units').text
+                            format_header = format_header +  name_str + " " + unit_str + ","
+               return format_header
+            # Handle legacy HD text headers here.  This is only to support remaining users on very old versions
             else:
-                streamStatus = streamStatus.split('\r\n')
-                if 'Header Not Available' in streamStatus[0]:
-                    str = streamStatus[0] + '. Check stream has been ran on device.'
-                    logging.error(str)
-                    return str
-                outputMode = self.sendAndReceiveText(sock,'Config Output Mode?', device)
-                powerMode = self.sendAndReceiveText(sock,'stream mode power?', device)
-                format = int(re.sub(r'^Format: ', '', streamStatus[index]))
+                stream_status = stream_status.split('\r\n')
+                if 'Header Not Available' in stream_status[0]:
+                    err_str = stream_status[0] + '. Check stream has been ran on device.'
+                    logging.error(err_str)
+                    return err_str
+                output_mode = self.sendAndReceiveText(sock,'Config Output Mode?', device)
+                power_mode = self.sendAndReceiveText(sock,'stream mode power?', device)
+                data_format = int(re.sub(r'^Format: ', '', stream_status[index]))
                 b0 = 1              #12V_I
                 b1 = 1 << 1         #12V_V
                 b2 = 1 << 2         #5V_I
                 b3 = 1 << 3         #5V_V
-                formatHeader = 'StripeNum, Trig, '
-                if format & b3:
-                    if ('3V3' in outputMode):
-                        formatHeader = formatHeader +  '3V3_V,'
+                format_header = 'StripeNum, Trig, '
+                if data_format & b3:
+                    if '3V3' in output_mode:
+                        format_header = format_header +  '3V3_V,'
                     else:
-                        formatHeader = formatHeader +  '5V_V,'
-                if format & b2:
-                    if ('3V3' in outputMode):
-                        formatHeader = formatHeader +  ' 3V3_I,'
+                        format_header = format_header +  '5V_V,'
+                if data_format & b2:
+                    if '3V3' in output_mode:
+                        format_header = format_header +  ' 3V3_I,'
                     else:
-                        formatHeader = formatHeader +  ' 5V_I,'
+                        format_header = format_header +  ' 5V_I,'
 
-                if format & b1:
-                    formatHeader = formatHeader + ' 12V_V,'
-                if format & b0:
-                    formatHeader = formatHeader + ' 12V_I'
-                if 'Enabled' in powerMode:
-                    if ('3V3' in outputMode):
-                        formatHeader = formatHeader + ' 3V3_P'
+                if data_format & b1:
+                    format_header = format_header + ' 12V_V,'
+                if data_format & b0:
+                    format_header = format_header + ' 12V_I'
+                if 'Enabled' in power_mode:
+                    if '3V3' in output_mode:
+                        format_header = format_header + ' 3V3_P'
                     else:
-                        formatHeader = formatHeader + ' 5V_P'
-                    if ((format & b1) or (format & b0)):
-                        formatHeader = formatHeader + ' 12V_P'
-                return formatHeader
+                        format_header = format_header + ' 5V_P'
+                    if (data_format & b1) or (data_format & b0):
+                        format_header = format_header + ' 12V_P'
+                return format_header
         except Exception as e:
             logging.error(device + ' Unable to get stream  format.' + self.host + ':' + '{}'.format(self.port))
             raise e
@@ -1162,31 +1285,8 @@ class QisInterface:
 
         return stream_status, stripes
 
-    def avgStringFromPwr(self, avgPwrTwo):
-        if(avgPwrTwo==0):
-            return '0'
-        elif(avgPwrTwo==1):
-            return '2'
-        elif(avgPwrTwo > 1 and avgPwrTwo < 10 ):
-            avg = 2 ** int(avgPwrTwo)
-            return '{}'.format(avg)
-        elif(avgPwrTwo==10):
-            return '1k'
-        elif(avgPwrTwo==11):
-            return '2k'
-        elif(avgPwrTwo==12):
-            return '4k'
-        elif(avgPwrTwo==13):
-            return '8k'
-        elif(avgPwrTwo==14):
-            return '16k'
-        elif(avgPwrTwo==15):
-            return '32k'
-        else:
-            return 'Invalid Average Value'
-
     def deviceMulti(self, device):
-        if (device in self.deviceList):
+        if device in self.deviceList:
             return self.deviceList.index(device)
         else:
             self.listSemaphore.acquire()
@@ -1246,42 +1346,44 @@ class QisInterface:
         return returnValue
 
     # Pass in a stream header and we check if it is XML or legacy format
-    def isXmlHeader (self, headerText):
-        if('?xml version=' not in headerText):
-            return False;
+    def is_xml_header (self, header_text):
+        if '?xml version=' not in header_text:
+            return False
         else:
             return True
 
     # Internal function.  Gets the stream header and parses it into useful information
-    def getStreamXmlHeader (self, device, sock=None):
+    def get_stream_xml_header (self, device, sock=None):
+        header_data = None
+
         try:
-            if sock == None:
+            if sock is None:
                 sock = self.sock
             count = 0
-            while(True):
+            while True:
                 if count > 5:
                     break
                 count += 1
                 # Get the raw data
-                headerData = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
+                header_data = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
 
                 # Check for no header (no stream started)
-                if('Header Not Available' in headerData):
+                if 'Header Not Available' in header_data:
                     logging.error(device + ' Stream header not available.' + self.host + ':' + str(self.port))
                     continue
 
                 # Check for XML format
-                if('?xml version=' not in headerData):
+                if '?xml version=' not in header_data:
                     logging.error(device + ' Header not in XML form.' + self.host + ':' + str(self.port))
                     continue
 
                 break
-            # Parse XML into structured format
-            xml_root = ET.fromstring(headerData)
+            # Parse XML into a structured format
+            xml_root = ET.fromstring(header_data)
 
             # Check header format is supported by quarchpy
-            versionStr = xml_root.find('.//version').text
-            if ('V3' not in versionStr):
+            version_str = xml_root.find('.//version').text
+            if 'V3' not in version_str:
                 logging.error(device + ' Stream header version not compatible: ' + xml_root['version'].text + '.' + self.host + ':' + str(self.port))
                 raise Exception ("Stream header version not supported");
 
@@ -1296,14 +1398,15 @@ class QisInterface:
         """
         Creates the QPS directory structure and (empty) files to be written to
 
-        I've put a bunch of try-except just to be sure the directory is correctly created.
-        ( There's probably a better way of doing this than this )
+        Parameters:
+        module: str
+            The module ID string
+        directory: str
+             Name of directory for QPS stream (defaults to default recording location when None)
 
-        :param:    module: String  - Module string
-        :param: directory: String  - Name of directory for QPS stream (defaults to default recording location if invalid)
-        :return:  success: Boolean - Was the file structure created successfully?
+        Returns: bool
+            Flag confirming the structure was created successfully
         """
-
         directory = self.create_qps_directory(directory)
 
         digital_count = 0
@@ -1321,6 +1424,7 @@ class QisInterface:
 
         # Inner folders for analogue and digital signals streaming
         in_folder_analogue = "data000"
+        inner_path_analogues = ""
         try:
             inner_path_analogues = os.path.join(directory, in_folder_analogue)
             os.mkdir(inner_path_analogues)
@@ -1329,6 +1433,7 @@ class QisInterface:
             return False
 
         in_folder_digitals = "data101"
+        inner_path_digitals = ""
         if self.has_digitals:
             try:
                 inner_path_digitals = os.path.join(directory, in_folder_digitals)
@@ -1342,18 +1447,18 @@ class QisInterface:
         logging.debug("Creating qps data files")
         try:
             for i in range(non_dig_counter):
-                file_name = "data000_00"+i+"_000000000"
+                file_name = "data000_00" + str(i) + "_000000000"
                 f = open(os.path.join(inner_path_analogues, file_name), "w")
                 f.close()
             for i in range(digital_count):
                 x = i
                 while len(str(x)) < 3:
                     x = "0" + str(x)
-                file_name = "data101_"+x+"_000000000"
+                file_name = "data101_" + x + "_000000000"
                 f = open(os.path.join(inner_path_digitals, file_name), "w")
                 f.close()
-        except:
-            logging.warning("failed to create qps data files for analogue signals")
+        except Exception as err:
+            logging.warning("failed to create qps data files for analogue signals: " + str(err))
             return False
 
         logging.debug("Finished creating qps data files")
@@ -1361,11 +1466,11 @@ class QisInterface:
         logging.debug("Creating qps upper level files")
         try:
             file_names = ["annotations.xml", "notes.txt", "triggers.txt"]
-            for file_nome in file_names:
-                f = open(os.path.join(self.qps_record_dir_path, file_nome), "w")
+            for file_name in file_names:
+                f = open(os.path.join(self.qps_record_dir_path, file_name), "w")
                 f.close()
         except Exception as err:
-            logging.warning("failed to create qps upper level files, "+err)
+            logging.warning("failed to create qps upper level files, " + str(err))
             return False
 
         try:
@@ -1376,7 +1481,7 @@ class QisInterface:
                 f = open(os.path.join(self.qps_record_dir_path, "data101.idx"), "wb")
                 f.close()
         except Exception as err:
-            logging.warning("failed to create data000.idx file, "+err)
+            logging.warning("failed to create data000.idx file, " + str(err))
             return False
 
         logging.debug("Finished creating QPS dir structure")
@@ -1391,12 +1496,12 @@ class QisInterface:
             logging.debug("No directory specified")
         elif not os.path.isdir(directory):
             new_dir = os.path.join(str(os.path.expanduser("~"), "AppData", "Local", "Quarch", "QPS", "Recordings"))
-            logging.warning(directory+" was not a valid directory, streaming to default location: \n"+new_dir)
+            logging.warning(directory+" was not a valid directory, streaming to default location: \n" + new_dir)
             directory = new_dir
         else:
             # Split the directory into a path of folders
             folder_name = str(directory).split(os.sep)
-            # last folder name is the name we want
+            # The last folder name is the name we want
             folder_name = folder_name[-1]
             # Make it known to the entire class that the path we're streaming to is the one sent across by the user
             self.qps_record_dir_path = directory
@@ -1404,7 +1509,7 @@ class QisInterface:
         # If no folder name for the stream was passed, then default to 'quarchpy_recording' and a timestamp
         if not folder_name:
             folder_name = "quarchpy_recording"
-            folder_name = folder_name + "-" + time.time()
+            folder_name = folder_name + "-" + str(time.time())
             path = os.path.join(directory, self.qps_stream_folder_name)
             os.mkdir(path)
             self.qps_record_dir_path = path
@@ -1423,15 +1528,10 @@ class QisInterface:
         No Return./
         """
 
-        stream_header_size = -1
-
-        my_byte_array = []
-
-        # tree = ET.ElementTree(ET.fromstring(self.module_xml_header[:-1]))
         tree = self.module_xml_header
 
         return_b_array = []
-        outBuffer = []
+        out_buffer = []
         x = 20
         stream_header_size = 20
 
@@ -1440,7 +1540,7 @@ class QisInterface:
         return_b_array, stream_header_size = self.add_header_to_byte_array(return_b_array, stream_header_size,
                                                                            temp_dict, tree, is_digital=False)
 
-        self.add_header_to_buffer(outBuffer, return_b_array, stream_header_size, temp_dict)
+        self.add_header_to_buffer(out_buffer, return_b_array, stream_header_size, temp_dict)
 
         # Attempting to read the size of the first file in data files
         file = os.path.join(self.qps_record_dir_path, "data000", "data000_000_000000000")
@@ -1452,15 +1552,15 @@ class QisInterface:
             raise "No data written to file"
 
         num_records = len(data) / 8
-        logging.debug("num_record = " + num_records)
+        logging.debug("num_record = " + str(num_records))
         return_b_array.append(int(num_records).to_bytes(4, byteorder='big'))
 
         start_number = 0
-        logging.debug("start_record = " + start_number)
+        logging.debug("start_record = " + str(start_number))
         return_b_array.append(start_number.to_bytes(8, byteorder='big'))
 
         num_records = num_records - 1
-        logging.debug("last_Record_number = "+num_records)
+        logging.debug("last_Record_number = " + str(num_records))
         return_b_array.append(int(num_records).to_bytes(8, byteorder='big'))
 
         # Add names of every file in data000 dir here.
@@ -1475,7 +1575,7 @@ class QisInterface:
             return_b_array.append(item)
 
         with open(os.path.join(self.qps_record_dir_path, "data000.idx"), "ab") as f:
-            for item in outBuffer:
+            for item in out_buffer:
                 # print(item)
                 # print(type(item))
                 f.write(bytes(item))
@@ -1498,13 +1598,13 @@ class QisInterface:
         my_byte_array = []
         tree = self.module_xml_header
         return_b_array = []
-        outBuffer = []
+        out_buffer = []
         temp_dict = {}
 
         return_b_array, stream_header_size = self.add_header_to_byte_array(return_b_array, stream_header_size,
                                                                            temp_dict, tree, is_digital=True)
 
-        self.add_header_to_buffer(outBuffer, return_b_array, stream_header_size, temp_dict)
+        self.add_header_to_buffer(out_buffer, return_b_array, stream_header_size, temp_dict)
 
         # Attempting to read the size of the first file in data files
         file = os.path.join(self.qps_record_dir_path, "data101", "data101_000_000000000")
@@ -1516,15 +1616,15 @@ class QisInterface:
             raise "No data written to file"
 
         num_records = len(data) / 8
-        logging.debug("num_record = "+ num_records)
+        logging.debug("num_record = "+ str(num_records))
         return_b_array.append(int(num_records).to_bytes(4, byteorder='big'))
 
         start_number = 0
-        logging.debug("start_record = "+start_number)
+        logging.debug("start_record = " + str(start_number))
         return_b_array.append(start_number.to_bytes(8, byteorder='big'))
 
         num_records = num_records - 1
-        logging.debug("last_Record_number = "+ num_records)
+        logging.debug("last_Record_number = " + str(num_records))
         return_b_array.append(int(num_records).to_bytes(8, byteorder='big'))
 
         # Add names of every file in data000 dir here.
@@ -1539,7 +1639,7 @@ class QisInterface:
             return_b_array.append(item)
 
         with open(os.path.join(self.qps_record_dir_path, "data101.idx"), "ab") as f:
-            for item in outBuffer:
+            for item in out_buffer:
                 f.write(bytes(item))
 
         with open(os.path.join(self.qps_record_dir_path, "data101.idx"), "ab") as f:

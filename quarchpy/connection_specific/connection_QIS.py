@@ -1,16 +1,14 @@
-import socket
-import re
 import gzip
-import datetime
-from unittest.mock import open_spec
+import re
+import socket
+import threading
+import xml.etree.ElementTree as ET
+from io import StringIO
 
 import select
-import threading
-import struct
-from io import StringIO
-from quarchpy.user_interface import *
-import xml.etree.ElementTree as ET
 from connection_specific.StreamChannels import StreamGroups
+
+from quarchpy.user_interface import *
 
 
 # QisInterface provides a way of connecting to a Quarch backend running at the specified ip address and port, defaults to localhost and 9722
@@ -1127,7 +1125,7 @@ class QisInterface:
             Command response string or None if no response expected
         """
         if no_response_expected:
-            self.sendText(qis_socket, command, device)
+            self.send_text(qis_socket, command, device)
             return ""
         else:
             if qis_socket is None:
@@ -1348,7 +1346,7 @@ class QisInterface:
         deprecated:: 2.2.13
         Use `close_connection` instead.
         """
-        return self.close_connection (self, sock, conString)
+        return self.close_connection (sock=sock, con_string=conString)
 
     def startStream(self, module: str, fileName: str, fileMaxMB: int, releaseOnData: bool, separator: str,
                     streamDuration: int = None, inMemoryData=None, outputFileHandle=None, useGzip: bool = None):
@@ -1358,40 +1356,26 @@ class QisInterface:
         """
         return self.start_stream(module, fileName, fileMaxMB, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip)
 
-    def startStreamQPS(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator):
-        """
-        deprecated:: 2.2.13
-        Use `start_stream_qps` instead.
-        """
-        self.start_stream_qps (module, fileName, fileMaxMB, releaseOnData)
-
     def stopStream(self, module, blocking=True):
         """
         deprecated:: 2.2.13
         Use `stop_stream` instead.
         """
-        self.stop_stream(module, blocking)
-
-    def startStreamThreadQPS(self, module, fileName, releaseOnData, separator):
-        """
-        deprecated:: 2.2.13
-        Use `start_stream_thread_qps` instead.
-        """
-        self.start_stream_thread_qps(module, fileName, releaseOnData)
+        return self.stop_stream(module, blocking)
 
     def getDeviceList(self, sock=None):
         """
         deprecated:: 2.2.13
         Use `start_stream_thread_qps` instead.
         """
-        self.get_device_list(sock)
+        return self.get_device_list(sock)
 
     def scanIP(self, QisConnection, ipAddress):
         """
         deprecated:: 2.2.13
         Use `scan_ip` instead.
         """
-        self.scan_ip(QisConnection, ipAddress)
+        return self.scan_ip(QisConnection, ipAddress)
 
     def GetQisModuleSelection(self, favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'],
                           scan=True):
@@ -1399,28 +1383,42 @@ class QisInterface:
         deprecated:: 2.2.13
         Use `get_qis_module_selection` instead.
         """
-        self.get_qis_module_selection(favouriteOnly, additionalOptions, scan)
+        return self.get_qis_module_selection(favouriteOnly, additionalOptions, scan)
 
-    def sendCommand(self, cmd, device="", timeout=20,sock=None,readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse=True):
+    def sendCommand(self, cmd, device="", timeout=20,sock=None,readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse=True) -> str:
         """
         deprecated:: 2.2.13
         Use `send_command` instead.
         """
         return self.send_command(cmd, device, sock, False, not expectedResponse, betweenCommandDelay)
 
-    def sendCmd(self, device='', cmd='$help', sock=None, readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse = True):
+    def sendCmd(self, device='', cmd='$help', sock=None, readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse = True) -> str:
         """
         deprecated:: 2.2.13
         Use `send_command` instead.
         """
-        self.send_command(cmd, device, sock, not readUntilCursor, not expectedResponse, betweenCommandDelay)
+        return self.send_command(cmd, device, sock, not readUntilCursor, not expectedResponse, betweenCommandDelay)
 
-    def sendAndReceiveCmd(self, sock=None, cmd='$help', device='', readUntilCursor=True, betweenCommandDelay=0.0):
+    def sendAndReceiveCmd(self, sock=None, cmd='$help', device='', readUntilCursor=True, betweenCommandDelay=0.0) -> str:
         """
         deprecated:: 2.2.13
         Use `send_command` instead.
         """
-        self.send_command(cmd, device, sock, not readUntilCursor, no_response_expected=False, command_delay=betweenCommandDelay)
+        return self.send_command(cmd, device, sock, not readUntilCursor, no_response_expected=False, command_delay=betweenCommandDelay)
+
+    def streamRunningStatus(self, device: str) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `stream_running_status` instead.
+        """
+        return self.stream_running_status(device)
+
+    def streamHeaderFormat(self, device, sock=None) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `stream_header_format` instead.
+        """
+        return self.stream_header_format(device, sock)
 
     def streamInterrupt(self) -> bool:
         """

@@ -58,7 +58,7 @@ def isQisRunningAndResponding(timeout=2):
     maxCounter = 20
     while counter <= maxCounter:
         versionResponse = myQis.sendAndReceiveCmd(cmd="$version")
-        if ": v" in versionResponse.lower():
+        if "v" in versionResponse.lower():
             qisResponding = True
             break
         else:

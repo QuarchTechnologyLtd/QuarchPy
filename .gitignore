@@ -188,3 +188,5 @@ QpsRecordingExample.py
 /quarchpy/__pycache__
 *.pyc
 /quarchpy/.idea
+/quarchpy/connection_specific/jdk_j21_jres
+/quarchpy/connection_specific/QPS

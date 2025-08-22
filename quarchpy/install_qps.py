@@ -6,9 +6,9 @@ import shutil  # Import the shutil module for moving directories
 import xml.etree.ElementTree as ET
 
 # --- Configuration ---
-QPS_VERSION = "1.47"
+QPS_VERSION_FOR_DOWNLOAD = "1.47"
 # The single URL for the combined ZIP file.
-QPS_DOWNLOAD_URL = f"https://quarch.com/software_update/qps/QPS_{QPS_VERSION}.zip"
+QPS_DOWNLOAD_URL = f"https://quarch.com/software_update/qps/QPS_{QPS_VERSION_FOR_DOWNLOAD}.zip"
 QPS_DOWNLOAD_URL_LATEST = "https://quarch.com/software_update/qps/QPS.zip"
 
 # --- Path definitions using __file__ (as requested) ---
@@ -74,7 +74,7 @@ def find_qps():
 
         if response == 'y':
             url_to_use = QPS_DOWNLOAD_URL
-            version_to_use = QPS_VERSION
+            version_to_use = QPS_VERSION_FOR_DOWNLOAD
 
             # 1. Check if the primary URL is valid
             if not is_download_url_valid(url_to_use):
@@ -83,7 +83,7 @@ def find_qps():
 
                 # 2. Check if the latest version is different and warn the user
                 latest_version = get_latest_qps_version()
-                if latest_version != QPS_VERSION:
+                if latest_version != QPS_VERSION_FOR_DOWNLOAD:
                     print(f"Warning! The version of QuarchPy you are using does not officially support the latest version of QPS ({latest_version}).")
                     print("Please consider upgrading QuarchPy.")
                     proceed_response = input("Would you like to proceed with downloading the latest version? (y/n): ").lower()
@@ -114,7 +114,8 @@ def find_qps():
         print(f"  {QPS_DOWNLOAD_URL}")
         print("\n If the link above does not work please try the following link:")
         print(f"  {QPS_DOWNLOAD_URL_LATEST}")
-        response = input("\nWould you like to locate a manually downloaded ZIP file to install from? (y/n): ").lower()
+        input("Press Enter to Continue.")
+        response = input("\nWould you like to select the manually downloaded ZIP file and install the required dependencies? (y/n) ").lower()
         if response == 'y':
             installation_successful = install_offline()
 
@@ -130,6 +131,7 @@ def find_qps():
         return True
     else:
         print("\nInstallation failed. Some components are still missing.")
+        print("\nPlease contact Quarch Support for further help: https://quarch.com/contact/")
         return False
 
 
@@ -304,8 +306,8 @@ def get_latest_qps_version():
         print(f"  - Error parsing XML response: {e}")
 
     # If any step fails, fall back to the script's configured version
-    print(f"  - Could not determine latest version. Falling back to {QPS_VERSION}.")
-    return QPS_VERSION
+    print(f"  - Could not determine latest version. Falling back to {QPS_VERSION_FOR_DOWNLOAD}.")
+    return QPS_VERSION_FOR_DOWNLOAD
 
 def is_download_url_valid(url):
     """

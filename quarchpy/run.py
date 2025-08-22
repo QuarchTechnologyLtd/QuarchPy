@@ -260,8 +260,7 @@ def _run_calibration_function(args=None):
     except ImportError as err:
         #TODO check err for a more specific "quarchCalibration" cannot be found rather than a generic import error
 
-        logging.error(
-            "Quarch Calibration is now in the quarchCalibration package. Please install the quarchCalibration package via:")
+        logging.error("Quarch Calibration is now in the quarchCalibration package. Please install the quarchCalibration package via:")
         logging.error("'pip install quarchCalibration'")
         logging.error("Then retry this command")
         traceback.print_exc()

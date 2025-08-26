@@ -228,6 +228,9 @@ def fix_usb():
 
     print("USB rule added to file : /etc/udev/rules.d/20-quarchmodules.rules")
 
+def _check_fw():
+    scanDevices()
+
 
 def main (args=None):
     """
@@ -235,23 +238,28 @@ def main (args=None):
     """
     bool_test_system_info = True
     bool_test_communication = True
-    bool_fixusb=False
+    bool_fix_usb=False
+    bool_check_fw=False
     if args is not None and len(args)>0:
         for arg in args:
             if "--fixusb" in str(arg).lower():
-                bool_fixusb=True
+                bool_fix_usb = True
                 # todo: Should we still be running the debug info stuff after this?
             if "--skipsysteminfo" in str(arg).lower():
-                bool_test_system_info=False
+                bool_test_system_info = False
             if "--skipcommstest" in str(arg).lower():
-                bool_test_communication=False
+                bool_test_communication = False
+            if "--checkfw" in str(arg).lower():
+                bool_check_fw = True
 
-    if bool_fixusb:
+    if bool_fix_usb:
         fix_usb()
     if bool_test_system_info:
         _test_system_info()
     if bool_test_communication:
         _test_communication()
+    if bool_check_fw:
+        _check_fw()
 
 
 

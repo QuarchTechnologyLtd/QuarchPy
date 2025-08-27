@@ -1,17 +1,19 @@
+import logging
 import operator
 import socket
 from sys import platform
+from typing import Optional, List
 
 from quarchpy.config_files.quarch_config_parser import return_module_type_list
 from quarchpy.user_interface import *
 from quarchpy.user_interface import User_interface
 
 try:
-    from quarchpy.connection_specific.connection_USB import importUSB  # , USBConn
+    from quarchpy.connection_specific.connection_USB import importUSB
 except:
     printText("System Compatibility issue - Is your Python architecture consistent with the Operating System?")
     pass
-from quarchpy.device import quarchDevice, quarchArray
+from quarchpy.device import quarchDevice, quarchArray, decode_locate_packet, DiscoveredDevice
 from quarchpy.connection_specific.connection_Serial import serialList, serial
 from quarchpy.device.quarchArray import isThisAnArrayController
 from quarchpy.connection_specific.connection_USB import TQuarchUSB_IF
@@ -37,7 +39,7 @@ Scan for Quarch modules across all available COM ports
 '''
 
 
-def list_serial(debuPrint=False):
+def list_serial(debugPrint=False):
     serial_ports = serialList.comports()
     serial_modules = dict()
 
@@ -74,7 +76,7 @@ Scan for all Quarch devices available over USB
 '''
 
 
-def list_USB(debuPrint=False):
+def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice]] = None):
     QUARCH_VENDOR_ID = 0x16d0
     QUARCH_PRODUCT_ID1 = 0x0449
 
@@ -142,12 +144,11 @@ def list_USB(debuPrint=False):
                 logging.error("Exception on closing USB port: " + str(err))
                 continue
 
-    # before returning the list of usb modules scan through the list for a 1944 create a quarch device and use sendCommand("*enclosure?")
-
+    # Before returning the list of usb modules scan through the list for a 1944 create a quarch device and use sendCommand("*enclosure?")
     for module in hdList:
-        quarchDevice = module
+        quarchUSBDevice = module
         QquarchDevice = TQuarchUSB_IF(context)
-        QquarchDevice.connection = quarchDevice
+        QquarchDevice.connection = quarchUSBDevice
         QquarchDevice.OpenPort()
         time.sleep(0.02)  # sleep sometimes needed before sending comand directly after opening device
         QquarchDevice.SetTimeout(2000)
@@ -168,6 +169,29 @@ def list_USB(debuPrint=False):
         logging.warning("Potential permission error accessing Quarch module(s) via USB.")
         logging.warning("If unknown, run the command 'sudo python3 -m quarchpy.run debug --fixusb' to add a new usb rule.")
 
+    # Ensure discovered usb devices are populated if required.
+    # Devices connected via USB must be enquired via *IDN?
+    if discovered_devices is not None:
+        try:
+            index = 0
+            cmd = "*IDN?"
+            # Create a temporary list to ensure nothing is overwritten.
+            temp_discovered_devices_list: List[DiscoveredDevice] = []
+            for key, value in usb_modules:
+                # Ensure to skip any locked modules.
+                if key != "USB:???":
+                    temp_discovered_devices_list[index] = DiscoveredDevice(None, None, None)
+                    quarch_device = quarchDevice(key)
+                    response = quarch_device.send_command(cmd)
+                    temp_discovered_devices_list[index].idn_info.parse_idn_response(response)
+                    # Cleanup connection to module
+                    quarch_device.close_connection()
+                    del quarch_device
+                    index += 1
+            discovered_devices.extend(temp_discovered_devices_list)
+        except Exception as e:
+            logging.debug(str(e))
+
     return usb_modules
 
 
@@ -176,7 +200,7 @@ List all Quarch devices found over LAN, using a UDP broadcast scan
 '''
 
 
-def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLookup=None):
+def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLookup=None, discovered_devices: Optional[List[DiscoveredDevice]] = None):
     retVal = {}
     lan_modules = dict()
     specifiedDevice = None
@@ -202,8 +226,7 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
 
         if ipAddressLookup is not None:
             # Attempts to find the device through UDP then REST
-            specifiedDevice, moduleFound = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules,
-                                                        moduleFound)
+            specifiedDevice, moduleFound = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules, moduleFound)
 
         mySocket.sendto(b'Discovery: Who is out there?\0\n', ('255.255.255.255', 30303))
         counter = 0
@@ -216,6 +239,7 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
             try:
                 msg_received = mySocket.recvfrom(1024)
             except Exception as e:
+                logging.debug(str(e))
                 # check if any a device was targeted directly and allow parse
                 if specifiedDevice is not None:
                     msg_received = specifiedDevice
@@ -228,6 +252,14 @@ def list_network(target_conn="all", debugPring=False, lanTimeout=1, ipAddressLoo
             # This fixes for all cases except if 13 is followed by 10.
             splits = msg_received[0].split(b"\r\n")
             del splits[-1]
+
+            # Decode the discovered device and extend the provided discovered_devices list if required
+            if discovered_devices is not None:
+                i = counter - 1
+                discovered_device: DiscoveredDevice = DiscoveredDevice(None, None, None)
+                discovered_device.device_info = decode_locate_packet(splits)
+                discovered_devices.append(discovered_device)
+
             for lines in splits:
                 if cont <= 1:
                     index = cont
@@ -423,7 +455,7 @@ def get_connection_target(module_string, scan_dictionary=None, connection_prefer
                             The Connection target of the supplied device.
     """
     logging.debug("Getting connection target for : " + str(module_string))
-    if connection_preference == None:
+    if connection_preference is None:
         connection_preference = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
     module_string.replace("::", ":")  #QIS/QPS format to QuarchPy format
     delimeter_pos = module_string.find(":")
@@ -502,8 +534,7 @@ Scans for Quarch modules across the given interface(s). Returns a dictionary of 
 '''
 
 
-def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly=True, filterStr=None,
-                module_type_filter=None, ipAddressLookup=None):
+def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly=True, populate_idn=False, filterStr=None, module_type_filter=None, ipAddressLookup=None):
     foundDevices = dict()
     scannedArrays = list()
 
@@ -515,19 +546,13 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
     browser = scan_mDNS(mdns_listener, zeroconf)
     # Set target_conn
     mdns_listener.target_conn = target_conn.lower()
-    # Setup mdns discovery that stays persistent in the background - (could be removed)
-    # if not mdns_listener.mdns_service_running:
-    #     from zeroconf import ServiceBrowser, Zeroconf
-    #     scan_mDNS(mdns_listener, None)
-    #     mdns_listener.mdns_service_running = True
 
     if target_conn.lower() == "all":
         foundDevices = list_USB()
         foundDevices = mergeDict(foundDevices, list_serial())
         try:
-            #This will fail if the test machine is not connected to a network
-            foundDevices = mergeDict(foundDevices,
-                                     list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
+            # This will fail if the test machine is not connected to a network
+            foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
             foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
         except Exception as e:
             logging.error(e)
@@ -543,23 +568,23 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         foundDevices = list_network(target_conn, ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout)
         foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
 
-    if (scanInArray):
+    if scanInArray:
         for k, v in foundDevices.items():  # k=Connection target, v=serial number
-            if (k not in scannedArrays):
+            if k not in scannedArrays:
                 scannedArrays.append(k)
-                if (isThisAnArrayController(v)):
+                if isThisAnArrayController(v):
                     try:
                         myQuarchDevice = quarchDevice(k)
-                        myArrayControler = quarchArray(myQuarchDevice)
-                        scanDevices = myArrayControler.scanSubModules()
-                        foundDevices = mergeDict(foundDevices, scanDevices)
-                        myArrayControler.close_connection()
+                        myArrayController = quarchArray(myQuarchDevice)
+                        scannedDevices = myArrayController.scanSubModules()
+                        foundDevices = mergeDict(foundDevices, scannedDevices)
+                        myArrayController.close_connection()
                     except Exception as e:
                         logging.debug(e, exc_info=True)
                         logging.debug("Cannot get serial number. Quarch device may be in use by another program.")
                         foundDevices[k] = "DEVICE IN USE"
 
-    if (favouriteOnly):
+    if favouriteOnly:
 
         # Sort list in order of connection type preference. Can be changed by changing position in conPref list. This must be done so that it is in the correct format for picking the favourite connections.
         index = 0
@@ -622,29 +647,29 @@ Requests the user to select one of the devices in the given list
 '''
 
 
-def userSelectDevice(scanDictionary=None, scanFilterStr=None, favouriteOnly=True, message=None, title=None, nice=False,
-                     additionalOptions=None, target_conn="all"):
+def userSelectDevice(scanDictionary=None, scanFilterStr=None, favouriteOnly=True, message=None, title=None, nice=False, additionalOptions=None, target_conn="all"):
     if User_interface.instance is not None and User_interface.instance.selectedInterface == "testcenter":
         nice = False
-    if message is None: message = "Please select a quarch device"
-    if title is None: title = "Select a Device"
+    if message is None:
+        message = "Please select a quarch device"
+    if title is None:
+        title = "Select a Device"
     ip_address = None
     while True:
         # Scan first, if no list is supplied
         if scanDictionary is None:
             printText("Scanning for devices...")
             if ip_address is None:
-                scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly,
-                                             target_conn=target_conn)
+                scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly, target_conn=target_conn)
             else:
-                scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly,
-                                             target_conn=target_conn, ipAddressLookup=ip_address)
+                scanDictionary = scanDevices(filterStr=scanFilterStr, favouriteOnly=favouriteOnly, target_conn=target_conn, ipAddressLookup=ip_address)
 
         if len(scanDictionary) < 1:
             scanDictionary["***No Devices Found***"] = "***No Devices Found***"
 
-        if nice:  #Prepair the data for niceListSelection using displayTable().
-            if additionalOptions is None: additionalOptions = ["Specify IP Address", "Rescan", "Quit"]
+        if nice:  # Prepare the data for niceListSelection using displayTable().
+            if additionalOptions is None:
+                additionalOptions = ["Specify IP Address", "Rescan", "Quit"]
             tempList = []
             for k, v in scanDictionary.items():
                 tempEl = [v]

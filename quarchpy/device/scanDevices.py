@@ -13,7 +13,12 @@ try:
 except:
     printText("System Compatibility issue - Is your Python architecture consistent with the Operating System?")
     pass
-from quarchpy.device import quarchDevice, quarchArray, decode_locate_packet, DiscoveredDevice
+from quarchpy.device import quarchDevice, quarchArray
+from quarchpy.device.device_idn_info import IDNInfo
+from quarchpy.device.device_fixture_idn_info import FixtureIDNInfo
+from quarchpy.device.device_network_info import DeviceNetworkInfo
+from quarchpy.device.packet_processing import decode_locate_packet
+from quarchpy.device.discovered_device import DiscoveredDevice
 from quarchpy.connection_specific.connection_Serial import serialList, serial
 from quarchpy.device.quarchArray import isThisAnArrayController
 from quarchpy.connection_specific.connection_USB import TQuarchUSB_IF
@@ -177,17 +182,22 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
             cmd = "*IDN?"
             # Create a temporary list to ensure nothing is overwritten.
             temp_discovered_devices_list: List[DiscoveredDevice] = []
-            for key, value in usb_modules:
+            for key, value in usb_modules.items():
                 # Ensure to skip any locked modules.
                 if key != "USB:???":
-                    temp_discovered_devices_list[index] = DiscoveredDevice(None, None, None)
+                    idn_info = IDNInfo()
+                    fix_idn_info = FixtureIDNInfo()
+                    device_net_info = DeviceNetworkInfo()
+                    discovered_device = DiscoveredDevice(idn_info, fix_idn_info, device_net_info)
+                    temp_discovered_devices_list.append(discovered_device)
                     quarch_device = quarchDevice(key)
                     response = quarch_device.send_command(cmd)
-                    temp_discovered_devices_list[index].idn_info.parse_idn_response(response)
+                    is_idn_valid = temp_discovered_devices_list[index].idn_info.parse_idn_response(response)
                     # Cleanup connection to module
                     quarch_device.close_connection()
                     del quarch_device
-                    index += 1
+                    if is_idn_valid:
+                        index += 1
             discovered_devices.extend(temp_discovered_devices_list)
         except Exception as e:
             logging.debug(str(e))
@@ -255,9 +265,12 @@ def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLoo
 
             # Decode the discovered device and extend the provided discovered_devices list if required
             if discovered_devices is not None:
-                i = counter - 1
-                discovered_device: DiscoveredDevice = DiscoveredDevice(None, None, None)
+                idn_info = IDNInfo()
+                fix_idn_info = FixtureIDNInfo()
+                device_net_info = DeviceNetworkInfo()
+                discovered_device: DiscoveredDevice = DiscoveredDevice(idn_info, fix_idn_info, device_net_info)
                 discovered_device.device_info = decode_locate_packet(splits)
+                discovered_device.populate_device_info()
                 discovered_devices.append(discovered_device)
 
             for lines in splits:
@@ -534,7 +547,7 @@ Scans for Quarch modules across the given interface(s). Returns a dictionary of 
 '''
 
 
-def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly=True, populate_idn=False, filterStr=None, module_type_filter=None, ipAddressLookup=None):
+def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly=True, filterStr=None, module_type_filter=None, ipAddressLookup=None, discovered_devices=None):
     foundDevices = dict()
     scannedArrays = list()
 
@@ -548,11 +561,11 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
     mdns_listener.target_conn = target_conn.lower()
 
     if target_conn.lower() == "all":
-        foundDevices = list_USB()
+        foundDevices = list_USB(discovered_devices=discovered_devices)
         foundDevices = mergeDict(foundDevices, list_serial())
         try:
             # This will fail if the test machine is not connected to a network
-            foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout))
+            foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout, discovered_devices=discovered_devices))
             foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
         except Exception as e:
             logging.error(e)

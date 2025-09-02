@@ -86,16 +86,15 @@ class IDNInfo:
 
         return was_successful
 
-    def set_idn_info_fields_from_device_info_dict(self, device_info: {}):
+    def set_idn_info_fields_from_device_info_dict(self, device_info: dict):
         self.family = None  # Unknown
-        self.name = device_info['legacy_name']
+        self.name = device_info.get('legacy_name')
         self.part_number = None  # Unknown
-        self.firmware = device_info['firmware_version']
-        self.alias = device_info['enclosure_alias']
-        self.enclosure_position = device_info['enclosure_position']
-        self.enclosure_serial_number = device_info['enclosure_serial_number']
-        self.serial_number = device_info['serial_number']
-        self.fpga_1 = device_info['fpga_1']
-        self.bootloader = device_info['bootloader']
+        self.firmware = device_info.get('firmware_version')
+        self.alias = device_info.get('enclosure_alias')
+        self.enclosure_position = device_info.get('enclosure_position')
+        self.enclosure_serial_number = device_info.get('enclosure_serial_number')
+        self.serial_number = device_info.get('serial_number')
+        self.fpga_1 = device_info.get('fpga_1')
+        self.bootloader = device_info.get('bootloader')
         self.bootloader_mode = None  # Unknown
-

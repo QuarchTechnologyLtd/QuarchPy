@@ -2,6 +2,7 @@ import os
 import platform
 import sys
 import subprocess
+from typing import List
 
 from quarchpy import *
 from quarchpy.device import *
@@ -229,10 +230,16 @@ def fix_usb():
     print("USB rule added to file : /etc/udev/rules.d/20-quarchmodules.rules")
 
 def _check_fw():
-    scanDevices()
+    print("")
+    print("FIRMWARE CHECK")
+    print("--------------")
+    print("")
+    discovered_devices: List[DiscoveredDevice] = []
+    scanDevices(discovered_devices=discovered_devices)
+    for module in discovered_devices:
+        module.is_update_available()
 
-
-def main (args=None):
+def main(args=None):
     """
     Main function to allow the system test to be called direct from the command line
     """
@@ -260,7 +267,6 @@ def main (args=None):
         _test_communication()
     if bool_check_fw:
         _check_fw()
-
 
 
 if __name__ == "__main__":

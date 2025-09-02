@@ -8,11 +8,11 @@ class DeviceNetworkInfo:
         self.rest_port = None
         self.telnet_port = None
 
-    def set_network_info_fields_from_device_info_dict(self, device_info: {}):
-        self.mac_address = device_info['mac_address']
-        self.mac_type = device_info['mac_type']
-        self.host_name = device_info['host_name']
-        self.ip_address = device_info['ipv4_address']
-        self.tcp_port = device_info['tcp_port']
-        self.rest_port = device_info['rest_port']
-        self.telnet_port = device_info['telnet_port']
+    def set_network_info_fields_from_device_info_dict(self, device_info: dict):
+        self.mac_address = device_info.get('mac_address')
+        self.mac_type = device_info.get('mac_type')
+        self.host_name = device_info.get('host_name')
+        self.ip_address = device_info.get('ipv4_address')
+        self.tcp_port = device_info.get('tcp_port')
+        self.rest_port = device_info.get('rest_port')
+        self.telnet_port = device_info.get('telnet_port')

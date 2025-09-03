@@ -952,8 +952,10 @@ class QisInterface:
                         # Avoid children that are not named channels
                         if (chan.find('.//name') is not None):
                             nameStr = chan.find('.//name').text
+                            groupStr = chan.find('.//group').text
                             unitStr = chan.find('.//units').text
-                            formatHeader = formatHeader +  nameStr + " " + unitStr + ","
+                            formatHeader = formatHeader +  nameStr + " " + groupStr + " " + unitStr + ","
+               formatHeader = formatHeader.rstrip(",")
                return formatHeader
             # Handle legacy text headers here
             else:

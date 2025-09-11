@@ -188,3 +188,4 @@ QpsRecordingExample.py
 /quarchpy/__pycache__
 *.pyc
 /quarchpy/.idea
+*.bak

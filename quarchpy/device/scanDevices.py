@@ -198,6 +198,9 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
                     del quarch_device
                     if is_idn_valid:
                         index += 1
+                    else:
+                        temp_discovered_devices_list.remove(discovered_device)
+
             discovered_devices.extend(temp_discovered_devices_list)
         except Exception as e:
             logging.debug(str(e))

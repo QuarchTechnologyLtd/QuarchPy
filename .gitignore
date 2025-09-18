@@ -194,3 +194,4 @@ QpsRecordingExample.py
 /quarchpy/connection_specific/jdk_jres/win_amd64_jdk_jre
 /quarchpy/connection_specific/jdk_jres/mac_amd64_jdk_jre
 /quarchpy/connection_specific/jdk_jres/lin_amd64_jdk_jre
+*.bak

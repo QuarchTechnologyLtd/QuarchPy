@@ -49,6 +49,11 @@ jobs:
           # workflow runs much faster.
           cache: 'pip'
 
+      - name: Clean pycache and .pyc files
+        run: |
+          find . -type d -name "__pycache__" -exec rm -r {} +
+          find . -type f -name "*.pyc" -delete
+
       - name: Install Dependencies
         # Specifies the shell to use for the 'run' command.
         shell: bash
@@ -72,14 +77,11 @@ jobs:
         # 'id' gives this step a unique identifier ('get_version'). This is crucial because
         # we need to reference the output of this step in a later step.
         id: get_version
-        # 'pr-mpt/action-versioning@2.0.0' is a community-made action that simplifies
-        # reading version numbers from project files, avoiding complex shell commands.
-        uses: pr-mpt/action-versioning@2.0.0
-        with:
-          # Tells the action the path to the file containing the version variable.
-          version-file: 'quarchpy/_version.py'
-          # Tells the action the name of the variable to look for inside that file.
-          version-variable: '__version__'
+        # This 'run' step now uses a short Python script instead of shell commands.
+        # This is more robust and works consistently across different systems (like act on Windows).
+        run: |
+          VERSION_STRING=$(python -c "import re; f=open('quarchpy/_version.py').read(); print(re.search(r'__version__\s*=\s*[\'\"]([^\'\"]+)[\'\"]', f).group(1))")
+          echo "version=$VERSION_STRING" >> $GITHUB_OUTPUT
 
       - name: Check if version is a dev release
         # This step also has an 'id' so its output can be used later.
@@ -112,7 +114,7 @@ jobs:
           # This acts as a critical safety check.
           exit 1
 
-      # This step was added to get the short commit hash
+      # This step gets the short commit hash, which is needed for the release notes.
       - name: Get commit information
         id: get_info
         run: |
@@ -125,7 +127,7 @@ jobs:
         run: |
           # This is the modern, recommended command to build your package. It will create a .whl file
           # and a source distribution (.tar.gz) in a new 'dist/' directory.
-          python -m build
+          python setup.py bdist_wheel --universal
 
       - name: Delete Previous Development Release
         # This step uses the GitHub CLI ('gh') to manage releases.

@@ -1,6 +1,6 @@
 from packaging.version import Version
 
-__version__ = "2.2.12.dev1"
+__version__ = "2.2.12.dev2"
 
 # Parse the version string into a Version object
 parsed_version = Version(__version__)

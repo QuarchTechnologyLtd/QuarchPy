@@ -1,0 +1,176 @@
+# .github/workflows/dev-build.yml
+# This is the full name of the workflow. It's displayed on the GitHub Actions page.
+name: QuarchPy Development Build and Release
+
+# The 'on' keyword defines the events that trigger this workflow to run.
+on:
+  # 'push' triggers the workflow on every push event.
+  push:
+    # We only care about pushes to the 'Development' branch.
+    branches:
+      - '813-developmental-workflow'
+  # 'workflow_dispatch' allows you to trigger this workflow manually from the GitHub UI.
+  workflow_dispatch:
+
+# A workflow run is made up of one or more 'jobs' that can run sequentially or in parallel.
+jobs:
+  # This is the unique ID of the job.
+  build-and-release-dev:
+    # The name of the job displayed on GitHub.
+    name: Build and Create Development Release
+    # Specifies the type of virtual machine to run the job on. 'ubuntu-latest' is a standard, fast choice.
+    runs-on: ubuntu-latest
+
+    # 'permissions' grants specific permissions to the GITHUB_TOKEN for this job.
+    permissions:
+      # 'contents: write' is required for actions that create or update releases and git tags.
+      contents: write
+
+    # 'steps' are the sequence of tasks that will be executed as part of the job.
+    steps:
+      # Each '-' is a new step. 'name' is the title shown in the logs.
+      - name: Checkout repository
+        # 'uses' specifies that this step will run a pre-built action.
+        # 'actions/checkout@v5' is a standard action that downloads your repository's code
+        # into the runner, so the subsequent steps can work with it.
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.13
+        # 'actions/setup-python@v6' is an action that installs a specific Python version
+        # and can configure caching for package managers like pip.
+        uses: actions/setup-python@v6
+        with:
+          # Specifies the exact version of Python to install on the runner.
+          python-version: '3.13'
+          # Tells the caching mechanism which file to monitor. If this file's contents change,
+          # the cache will be invalidated and dependencies will be re-installed from scratch.
+          cache-dependency-path: '.github/workflows/requirements-dev.txt'
+          # Enables caching for pip. This saves the downloaded packages, making future
+          # workflow runs much faster.
+          cache: 'pip'
+
+      - name: Clean pycache and .pyc files
+        run: |
+          find . -type d -name "__pycache__" -exec rm -r {} +
+          find . -type f -name "*.pyc" -delete
+
+      - name: Install Dependencies
+        # Specifies the shell to use for the 'run' command.
+        shell: bash
+        # 'run' executes command-line commands.
+        run: |
+          # It's good practice to ensure pip itself is up-to-date.
+          python -m pip install --upgrade pip
+          # Installs all required packages listed in the requirements-dev.txt file.
+          pip install -r .github/workflows/requirements-dev.txt
+          # Also install build dependencies from its own requirements file.
+          pip install -r .github/workflows/requirements-build.txt
+
+      - name: Test with pytest and coverage
+        run: |
+          # 'coverage run' executes the tests with pytest while monitoring which lines of code are run.
+          coverage run -m pytest
+          # 'coverage report' prints a simple text-based summary of the coverage results to the log.
+          coverage report
+
+      - name: Get project version from file
+        # 'id' gives this step a unique identifier ('get_version'). This is crucial because
+        # we need to reference the output of this step in a later step.
+        id: get_version
+        # This 'run' step now uses a short Python script instead of shell commands.
+        # This is more robust and works consistently across different systems (like act on Windows).
+        run: |
+          VERSION_STRING=$(python -c "import re; f=open('quarchpy/_version.py').read(); print(re.search(r'__version__\s*=\s*[\'\"]([^\'\"]+)[\'\"]', f).group(1))")
+          echo "version=$VERSION_STRING" >> $GITHUB_OUTPUT
+
+      - name: Check if version is a dev release
+        # This step also has an 'id' so its output can be used later.
+        id: version_check
+        run: |
+          # Get the version string that the previous step ('get_version') extracted.
+          # We access it using the syntax: ${{ steps.STEP_ID.outputs.OUTPUT_NAME }}
+          VERSION_STRING="${{ steps.get_version.outputs.version }}"
+
+          # Run a short Python script using the 'packaging' library to check if the version is a dev release.
+          # The result ('true' or 'false') is stored in the IS_DEV shell variable.
+          IS_DEV=$(python -c "from packaging.version import Version; print(str(Version('$VERSION_STRING').is_devrelease).lower())")
+          
+          # This command creates a step output named 'is_dev_release' and sets its value.
+          # This makes the result available to subsequent steps in the job.
+          echo "is_dev_release=$IS_DEV" >> $GITHUB_OUTPUT
+
+          # This line is for logging purposes, making it easy to see the result in the workflow logs.
+          echo "Version found: $VERSION_STRING (Is dev: $IS_DEV)"
+
+      - name: Verify it is a dev release
+        # The 'if' conditional makes this step run ONLY if the 'is_dev_release' output
+        # from the 'version_check' step is 'false'.
+        if: steps.version_check.outputs.is_dev_release == 'false'
+        run: |
+          # If the version is not a dev release, print an error message to the log.
+          echo "Error: The version is not a dev release."
+          echo "Builds on the 'Development' branch must have a dev version (e.g., 1.2.3.dev1)."
+          # 'exit 1' is a standard command to signal an error, which will cause the job to fail.
+          # This acts as a critical safety check.
+          exit 1
+
+      # This step gets the short commit hash, which is needed for the release notes.
+      - name: Get commit information
+        id: get_info
+        run: |
+          # This command gets the first 7 characters of the commit SHA and saves it as an output.
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build wheel package
+        # This step runs ONLY if the 'is_dev_release' output is 'true'.
+        if: steps.version_check.outputs.is_dev_release == 'true'
+        run: |
+          # This is the modern, recommended command to build your package. It will create a .whl file
+          # and a source distribution (.tar.gz) in a new 'dist/' directory.
+          python setup.py bdist_wheel --universal
+
+      - name: Delete Previous Development Release
+        # This step uses the GitHub CLI ('gh') to manage releases.
+        # The GITHUB_TOKEN is automatically created by Actions and is required for authentication.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # This command deletes the GitHub release with the tag 'developmental'.
+          # --yes: Skips the interactive confirmation prompt.
+          # --cleanup-tag: Also deletes the underlying git tag.
+          # The '||' part ensures that the workflow doesn't fail if the release doesn't exist yet.
+          gh release delete developmental --yes --cleanup-tag 2>/dev/null || echo "No previous developmental release to delete."
+
+      - name: Force-update the 'developmental' Git Tag
+        # After deleting the old tag, we create a new one pointing to the latest commit.
+        run: |
+          # Configure git with a user name and email, which is required to create a tag.
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          # Create a new tag named 'developmental'. The '-f' (force) flag overwrites it if it exists locally.
+          git tag -f developmental
+          # Force-push the new tag to the repository on GitHub, replacing the old one.
+          git push -f origin refs/tags/developmental
+
+      - name: Create Development Release
+        # 'softprops/action-gh-release' is a popular action for creating and managing GitHub releases.
+        uses: softprops/action-gh-release@v2
+        with:
+          # The name of the release displayed on the releases page.
+          # It uses the version from the 'get_version' step.
+          name: "Development Snapshot - ${{ steps.get_version.outputs.version }}"
+          # The git tag this release will be attached to. Must match the tag we just created.
+          tag_name: "developmental"
+          # The description body of the release. It uses context variables to include commit info.
+          body: |
+            **Latest Development build from the `Development` branch.**
+            This is an unstable pre-release and is updated automatically on every push.
+
+            **Commit:** [`${{ steps.get_info.outputs.sha_short }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            **Commit Message:**
+            > ${{ github.event.head_commit.message }}
+          # Marks this release as a 'pre-release' on the GitHub UI, which is appropriate for dev builds.
+          prerelease: true
+          # Specifies the files to upload as release assets. 'dist/*.whl' will upload the wheel file we built.
+          files: |
+            dist/*.whl

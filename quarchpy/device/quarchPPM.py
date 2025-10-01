@@ -34,7 +34,6 @@ class quarchPPM(quarchDevice):
             skipDefaultSyntheticChannels (bool): If True, skips the creation
                 of default synthetic channels on QIS-based devices.
         """
-        super().__init__(originObj.ConString)
         self.connectionObj = originObj.connectionObj
         self.ConString = originObj.ConString
         self.ConType = originObj.ConType
@@ -57,9 +56,7 @@ class quarchPPM(quarchDevice):
         self,
         file_name: str = 'streamData.txt',
         file_max_mb: int = 200000,
-        stream_name: str = 'Stream With No Name',
         stream_duration: Optional[float] = None,
-        stream_average: Optional[int] = None,
         release_on_data: bool = False,
         separator: str = ",",
         in_memory_data: Optional[StringIO] = None,
@@ -91,8 +88,7 @@ class quarchPPM(quarchDevice):
             str: The response from the device after starting the stream.
         """
         return self.connectionObj.qis.startStream(
-            self.ConString, file_name, file_max_mb, stream_name,
-            stream_average, release_on_data, separator, stream_duration,
+            self.ConString, file_name, file_max_mb, release_on_data, separator, stream_duration,
             in_memory_data, output_file_handle, use_gzip
         )
 
@@ -298,8 +294,8 @@ class quarchPPM(quarchDevice):
             str: The response from the device after starting the stream.
         """
         return self.start_stream(
-            file_name=fileName, file_max_mb=fileMaxMB, stream_name=streamName,
-            stream_duration=streamDuration, stream_average=streamAverage,
+            file_name=fileName, file_max_mb=fileMaxMB,
+            stream_duration=streamDuration,
             release_on_data=releaseOnData, separator=separator,
             in_memory_data=inMemoryData, output_file_handle=outputFileHandle,
             use_gzip=useGzip

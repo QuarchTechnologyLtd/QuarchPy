@@ -10,6 +10,7 @@ from threading import Thread, Lock, Event, active_count
 from queue import Queue, Empty
 from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
+from quarchpy.install_qps import find_qps
 from quarchpy.user_interface.user_interface import printText, logDebug
 import subprocess
 import logging
@@ -58,7 +59,7 @@ def isQisRunningAndResponding(timeout=2):
     maxCounter = 20
     while counter <= maxCounter:
         versionResponse = myQis.sendAndReceiveCmd(cmd="$version")
-        if ": v" in versionResponse.lower():
+        if "v" in versionResponse.lower():
             qisResponding = True
             break
         else:
@@ -88,6 +89,11 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
         List of additional parameters to be supplied to QIS on the command line
 
     """
+
+    # Check if QPS is installed
+    if not find_qps():
+        logging.error("Unable to find or install QPS... Aborting...")
+        return
 
     # java path
     java_path = os.path.dirname(os.path.abspath(__file__))

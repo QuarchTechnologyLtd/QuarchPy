@@ -14,6 +14,18 @@ Change Log
 ----------
 
 
+2.2.13
+------
+- New QPS 1.49 and QIS 1.49
+
+2.2.12
+------
+- Minor bug fix
+
+2.2.11
+------
+- Minor bug fix
+
 2.2.10
 ------
 - Fix for new HDPPM FW discovery over eithernet

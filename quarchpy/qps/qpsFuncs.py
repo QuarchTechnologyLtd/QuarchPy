@@ -1,6 +1,8 @@
-from threading import Thread, Lock, Event, active_count
+from threading import Thread, Lock, Event
 from queue import Queue, Empty
 import platform
+
+from quarchpy.install_qps import find_qps
 from quarchpy.qis import isQisRunning, startLocalQis
 from quarchpy.connection_specific.connection_QPS import QpsInterface
 from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
@@ -67,6 +69,12 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
 
 
 def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=True):
+
+    # Check if QPS is installed
+    if not find_qps():
+        logging.error("Unable to find or install QPS... Aborting...")
+        return
+
     if keepQisRunning:
         if not isQisRunning():
             startLocalQis()
@@ -301,4 +309,3 @@ def GetQpsModuleSelection(QpsConnection, favouriteOnly=True, additionalOptions=[
             continue
         else:
             return myDeviceID
-

@@ -70,7 +70,7 @@ class MyListener:
         """
         Handle service addition event.
         """
-        logging.debug("Adding service: " +name)
+        logging.debug("Adding service: " + name)
         info = zc.get_service_info(type_, name)
         # Log the service name
         if "Quarch:" in str(info):
@@ -82,9 +82,6 @@ class MyListener:
             #decoded_properties = {key.decode('utf-8'): value.decode('utf-8') for key, value in info.properties.items()}
             decoded_ip = ".".join(str(byte) for byte in info.addresses[0])
             self.get_instance().add_device(decoded_properties, decoded_ip)
-
-
-
 
     def add_device(self, properties_dict, ip_address):
         """
@@ -123,11 +120,11 @@ class MyListener:
         remove_device = False
         for key, value in list(temp_dict.items()):
             can_ping = ping(key[key.index(":") + 1:])
-            if can_ping is False:
+            if not can_ping:
                 remove_device=True # Remove the device if it can't be pinged
             elif self.get_instance().target_conn not in key.lower() and self.get_instance().target_conn.lower() != "all":
                 remove_device = True # or if its of the wrong connection type.
-            if remove_device is True:
+            if remove_device:
                 del self.get_instance().found_devices[key]
         logging.debug("Returning found devices "+str(self.get_instance().found_devices))
         return self.get_instance().found_devices

@@ -34,7 +34,6 @@ class quarchPPM(quarchDevice):
             skipDefaultSyntheticChannels (bool): If True, skips the creation
                 of default synthetic channels on QIS-based devices.
         """
-        super().__init__(originObj.ConString)
         self.connectionObj = originObj.connectionObj
         self.ConString = originObj.ConString
         self.ConType = originObj.ConType

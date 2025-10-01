@@ -62,6 +62,7 @@ setup(name='quarchpy',
       install_requires=[
             'zeroconf>=0.23.0',
             'numpy',
-            'pandas'],
+            'pandas',
+            'requests'],
       include_package_data=True,
       zip_safe=False)

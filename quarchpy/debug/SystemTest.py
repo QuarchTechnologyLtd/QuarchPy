@@ -2,6 +2,7 @@ import os
 import platform
 import sys
 import subprocess
+from typing import List
 
 from quarchpy import *
 from quarchpy.device import *
@@ -228,31 +229,43 @@ def fix_usb():
 
     print("USB rule added to file : /etc/udev/rules.d/20-quarchmodules.rules")
 
+def _check_fw():
+    print("")
+    print("FIRMWARE CHECK")
+    print("--------------")
+    print("")
+    discovered_devices: List[DiscoveredDevice] = []
+    scanDevices(discovered_devices=discovered_devices)
+    for module in discovered_devices:
+        module.is_update_available()
 
-def main (args=None):
+def main(args=None):
     """
     Main function to allow the system test to be called direct from the command line
     """
     bool_test_system_info = True
     bool_test_communication = True
-    bool_fixusb=False
+    bool_fix_usb = False
+    bool_check_fw = False
     if args is not None and len(args)>0:
         for arg in args:
             if "--fixusb" in str(arg).lower():
-                bool_fixusb=True
-                # todo: Should we still be running the debug info stuff after this?
+                bool_fix_usb = True
             if "--skipsysteminfo" in str(arg).lower():
-                bool_test_system_info=False
+                bool_test_system_info = False
             if "--skipcommstest" in str(arg).lower():
-                bool_test_communication=False
+                bool_test_communication = False
+            if "--checkfw" in str(arg).lower():
+                bool_check_fw = True
 
-    if bool_fixusb:
+    if bool_fix_usb:
         fix_usb()
     if bool_test_system_info:
         _test_system_info()
     if bool_test_communication:
         _test_communication()
-
+    if bool_check_fw:
+        _check_fw()
 
 
 if __name__ == "__main__":

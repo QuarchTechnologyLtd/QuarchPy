@@ -889,12 +889,13 @@ class QisInterface:
                    if group.tag == "channels":
                        for chan in group:
                         # Avoid children that are not named channels
-                        if chan.find('.//name') is not None:
-                            name_str = chan.find('.//name').text
-                            unit_str = chan.find('.//units').text
-                            format_header = format_header +  name_str + " " + unit_str + ","
+                            if (chan.find('.//name') is not None):
+                                name_str = chan.find('.//name').text
+                                group_str = chan.find('.//group').text
+                                unit_str = chan.find('.//units').text
+                                format_header = format_header +  name_str + " " + group_str + " " + unit_str + ","
+               format_header = format_header.rstrip(",")
                return format_header
-            # Handle legacy HD text headers here.  This is only to support remaining users on very old versions
             else:
                 stream_status = stream_status.split('\r\n')
                 if 'Header Not Available' in stream_status[0]:

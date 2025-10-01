@@ -1,0 +1,8 @@
+# requirements-dev.txt
+# Include production dependencies
+-r requirements.txt
+
+# Add development/testing tools
+pytest
+coverage
+flake8

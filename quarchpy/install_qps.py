@@ -32,7 +32,7 @@ def find_qps():
     offline installation of the required components.
     """
     qps_jar = "qps.jar"
-    qps_path = os.path.join(EXTRACTION_FOLDER_QPS, "win-amd64", qps_jar)
+    qps_path = os.path.join(EXTRACTION_FOLDER_QPS, qps_jar)
 
     # --- Cross-platform JDK/JRE check ---
     if sys.platform == "win32":
@@ -68,7 +68,9 @@ def find_qps():
 
     # --- Installation Logic ---
     installation_successful = False
+    response = ""
     if is_network_connection_available():
+        network_available = True
         print("\nAttempting online installation...")
         response = input("Would you like to download and install the missing components? (y/n): ").lower()
 
@@ -100,6 +102,9 @@ def find_qps():
                 installation_successful = install_online(qps_url_to_use, JDK_JRE_DOWNLOAD_URL, qps_needed, jdk_jre_needed)
     else:
         print("\nNo internet connection detected.")
+        network_available = False
+
+    if response == 'n' or not network_available:
         print("To install manually, download the required files:")
         if qps_needed:
             print(f"  - QPS: {QPS_DOWNLOAD_URL} (or latest: {QPS_DOWNLOAD_URL_LATEST})")
@@ -200,9 +205,8 @@ def download_file(url, destination_path):
         print(f"\nError: Failed to download file. {e}")
         return False
 
-
 def extract_and_move_qps(zip_filepath):
-    """Extracts QPS from its ZIP and moves the 'win-amd64' folder."""
+    """Extracts QPS from its ZIP and moves it to ...quarchpy\\connection_specific\\QPS."""
     temp_extract_path = os.path.join(TARGET_DIR, "temp_extract_qps")
     print(f"Processing QPS ZIP file: {os.path.basename(zip_filepath)}")
     try:
@@ -212,18 +216,20 @@ def extract_and_move_qps(zip_filepath):
         with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
             zip_ref.extractall(temp_extract_path)
 
-        src_qps_folder = os.path.join(temp_extract_path, 'win-amd64')
+        src_qps_folder = temp_extract_path
         if not os.path.exists(src_qps_folder):
-            print(f"  - Error: 'win-amd64' folder not found in the ZIP. Extraction failed.")
+            print(f"  - Error: 'qps' folder not found in the ZIP. Extraction failed.")
             return False
 
         os.makedirs(EXTRACTION_FOLDER_QPS, exist_ok=True)
-        dest_qps_path = os.path.join(EXTRACTION_FOLDER_QPS, 'win-amd64')
+        dest_qps_path = EXTRACTION_FOLDER_QPS
         if os.path.exists(dest_qps_path):
-            print(f"  - Removing old 'win-amd64' folder...")
+            print(f"  - Removing old 'qps' folder...")
             shutil.rmtree(dest_qps_path)
-        print(f"  - Moving 'win-amd64' to '{EXTRACTION_FOLDER_QPS}'...")
-        shutil.move(src_qps_folder, EXTRACTION_FOLDER_QPS)
+        print(f"  - Moving 'qps' to '{EXTRACTION_FOLDER_QPS}'...")
+        shutil.move(os.path.join(src_qps_folder,"qps"), EXTRACTION_FOLDER_QPS)
+        if os.path.exists(src_qps_folder):
+            shutil.rmtree(src_qps_folder)
         print("QPS components moved successfully.")
         return True
     except (zipfile.BadZipFile, FileNotFoundError, OSError) as e:

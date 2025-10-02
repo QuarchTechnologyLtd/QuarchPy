@@ -132,26 +132,7 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
             else:
                 logging.warning("Attempt to fix permissions was successful. Now continuing.")
 
-    # if current_os != "Windows":
-    #     subprocess.call(['chmod', '-R', '+rwx', java_path])
-
-    # single or multiple QPS builds for each OS
-    is_single_qps_build = True
-    if is_single_qps_build:
-        qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
-    else:
-        if current_os in "Windows":
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
-        elif current_os in "Linux" and current_arch == "x86_64":
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "lin-amd64", "qis", "qis.jar")
-        elif current_os in "Linux" and current_arch == "aarch64":
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "lin-arm64", "qis", "qis.jar")
-        elif current_os in "Darwin" and current_arch == "x86_64":
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "mac-amd64", "qis", "qis.jar")
-        elif current_os in "Darwin" and current_arch == "arm64":
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "mac-arm64", "qis", "qis.jar")
-        else:  # default to windows
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
+        qis_path = os.path.join(qis_path, "connection_specific", "QPS", "qis", "qis.jar")
 
     # record current working directory
     current_dir = os.getcwd()

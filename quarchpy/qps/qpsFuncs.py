@@ -126,20 +126,20 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     # Single or multiple QPS builds for each OS
     is_single_qps_build = True
     if is_single_qps_build: # One QPS to rule them all.
-        qps_path = os.path.join(qps_path, "connection_specific", "QPS", "win-amd64", "qps.jar")
+        qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
     else: # Different QPS.jar for each OS
         if current_os in "Windows":
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "win-amd64", "qps.jar")
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
         elif current_os in "Linux" and current_arch == "x86_64":
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "lin-amd64", "qps.jar")
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
         elif current_os in "Linux" and current_arch == "aarch64":
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "lin-arm64", "qps.jar")
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
         elif current_os in "Darwin" and current_arch == "x86_64":
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "mac-amd64", "qps.jar")
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
         elif current_os in "Darwin" and current_arch == "arm64":
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "mac-arm64", "qps.jar")
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
         else:  # default to windows
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "win-amd64", "qps.jar")
+            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
 
     # Change the working directory to the directory containing qps.jar
     os.chdir(os.path.dirname(qps_path))

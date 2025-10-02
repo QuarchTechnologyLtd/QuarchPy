@@ -103,7 +103,7 @@ def _get_run_options():
     return run_options
 
 
-def _run_simple_terminal_function(args=None):
+def _run_simple_terminal_function(args=[]):
     """
     Runs the Simple Terminal script
 
@@ -115,7 +115,7 @@ def _run_simple_terminal_function(args=None):
     simple_terminal_main()
 
 
-def _run_debug_function(args=None):
+def _run_debug_function(args=[]):
     """
     Executes the python debug/system test option, returning details of the installation to the user
     for debug purposes
@@ -130,7 +130,7 @@ def _run_debug_function(args=None):
     systemTestMain(args)
 
 
-def _run_module_debug_function(args=None):
+def _run_module_debug_function(args=[]):
     """
     Executes the python debug/system test option, returning details of the installation to the user
     for debug purposes
@@ -145,7 +145,7 @@ def _run_module_debug_function(args=None):
     moduleDebugMain(args)
 
 
-def _run_show_drives_function(args=None):
+def _run_show_drives_function(args=[]):
     """
     Shows a list of current found drives to the user.
 
@@ -168,7 +168,7 @@ def _run_show_drives_function(args=None):
         logging.error("Then retry this command")
 
 
-def _run_qcs_function(args=None):
+def _run_qcs_function(args=[]):
     """
     Executes the QCS server back end process
 
@@ -191,7 +191,7 @@ def _run_qcs_function(args=None):
         logging.error("Then retry this command")
 
 
-def _run_qis_function(args=None):
+def _run_qis_function(args=[]):
     """
     Executes Quarch Instrumentation Server
 
@@ -217,7 +217,7 @@ def _run_qis_function(args=None):
         startLocalQis(args=args)
 
 
-def _run_qps_function(args=None):
+def _run_qps_function(args=[]):
     """
     Executes Quarch Power Studio
 
@@ -243,7 +243,7 @@ def _run_qps_function(args=None):
         startLocalQps(args=args)
 
 
-def _run_calibration_function(args=None):
+def _run_calibration_function(args=[]):
     """
     Executes the calibration utility for power modules
 
@@ -266,7 +266,7 @@ def _run_calibration_function(args=None):
         traceback.print_exc()
 
 
-def _run_upgrade_function(args=None):
+def _run_upgrade_function(args=[]):
     """
     Checks for updates to quarchpy and runs the update process if required
 
@@ -293,7 +293,7 @@ def _run_fix_permissions(args):
     fix_permissions_main()
 
 
-def _run_help_function(args=None):
+def _run_help_function(args=[]):
     """
     Shows the quarchpy.run help screen
 

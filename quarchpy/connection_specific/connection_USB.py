@@ -548,7 +548,6 @@ class TQuarchUSB_IF:
     def GetLastError(self):
         return self.lastError
 
-
     #
     # Helper to return serial number
     #
@@ -585,9 +584,8 @@ class TQuarchUSB_IF:
                 
         return retString
 
-
     def DebugDump( self ):
-        if self.connection == None:
+        if self.connection is None:
             self.lastError = 'DebugDump: device Not Assigned'
             return 0
 

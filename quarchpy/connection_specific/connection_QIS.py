@@ -1,14 +1,14 @@
-import socket
-import re
 import gzip
-import datetime
-import select
+import re
+import socket
 import threading
-import struct
-from io import StringIO
-from quarchpy.user_interface import *
 import xml.etree.ElementTree as ET
+from io import StringIO
+
+import select
 from connection_specific.StreamChannels import StreamGroups
+
+from quarchpy.user_interface import *
 
 
 # QisInterface provides a way of connecting to a Quarch backend running at the specified ip address and port, defaults to localhost and 9722
@@ -25,7 +25,7 @@ class QisInterface:
         self.deviceList = []
         self.deviceDict = {}
         self.dictSemaphore = threading.Semaphore()
-        self.connect(connectionMessage = connectionMessage)
+        self.connect(connection_message = connectionMessage)
         self.stripesEvent = threading.Event()
 
         self.qps_stream_header = None
@@ -44,47 +44,70 @@ class QisInterface:
         self.pythonVersion = sys.version[0]
         self.cursor = '>'
         #clear packets
-        welcomeString = self.streamSock.recv(self.maxRxBytes).rstrip()
+        welcome_string = self.streamSock.recv(self.maxRxBytes).rstrip()
 
 
-    def connect(self, connectionMessage = True):
-        '''
-        Connect() tries to open a socket  on the host and port specified in the objects variables
-        If successful it returns the backends welcome string. If it fails it returns a string saying unable to connect
-        The backend should be running and host and port set before running this function. Normally it should be called at the beggining
-        of talking to the backend and left open until finished talking when the disconnect() function should be ran
+    def connect(self, connection_message: bool = True) -> str:
+        """
+        Opens the connection to the QIS backend
 
-        Param:
-        connectionMessage: boolean, optional
-            Set to False if you don't want a warning message to appear when an instance is already running on that port. Useful when using isQisRunning() from qisFuncs
-        '''
+        Args:
+            connection_message:
+                Defaults to True. If set to False, suppresses the warning message about an
+                instance already running on the specified port. This can be useful when
+                using `isQisRunning()` from `qisFuncs`.
+
+        Raises:
+        Exception:
+            If the connection fails or the welcome string is not received an exception is raised
+
+        Returns:
+            The welcome string received from the backend server upon a successful
+            connection.  This will confirm the QIS version but is generally not used other than
+            for debugging
+        """
+
         try:
-            self.deviceDictSetup('QIS')
+            self.device_dict_setup('QIS')
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.settimeout(5)
             self.sock.connect((self.host, self.port))
 
             #clear packets
             try:
-                welcomeString = self.sock.recv(self.maxRxBytes).rstrip()
-                welcomeString = 'Connected@' + str(self.host) + ':' + str(self.port) + ' ' + '\n    ' + str(welcomeString)
-                self.deviceDict['QIS'][0:3] = [False, 'Connected', welcomeString]
-                return welcomeString
+                welcome_string = self.sock.recv(self.maxRxBytes).rstrip()
+                welcome_string = 'Connected@' + str(self.host) + ':' + str(self.port) + ' ' + '\n    ' + str(welcome_string)
+                self.deviceDict['QIS'][0:3] = [False, 'Connected', welcome_string]
+                return welcome_string
             except Exception as e:
                 logging.error('No welcome received. Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(self.port) + ')')
                 logging.error('Is backend running and host accessible?')
                 self.deviceDict['QIS'][0:3] = [True, 'Disconnected', 'Unable to connect to QIS']
                 raise e
         except Exception as e:
-            self.deviceDictSetup('QIS')
-            if connectionMessage:
+            self.device_dict_setup('QIS')
+            if connection_message:
                 logging.error('Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(self.port) + ').')
                 logging.error('Is backend running and host accessible?')
             self.deviceDict['QIS'][0:3] = [True, 'Disconnected', 'Unable to connect to QIS']
             raise e
 
-    # Tries to close the socket to specified host and port.
-    def disconnect(self):
+
+    def disconnect(self) -> str:
+        """
+        Disconnects the current connection to the QIS backend.
+
+        This method attempts to gracefully disconnect from the backend server and updates
+        the connection state in the device dictionary. If an error occurs during the
+        disconnection process, the state is updated to indicate the failure, and the
+        exception is re-raised
+
+        Returns:
+            str: A message indicating that the disconnection process has started.
+
+        Raises:
+            Exception: Propagates any exception that occurs during the disconnection process.
+        """
         res = 'Disconnecting from backend'
         try:
             self.sock.shutdown(socket.SHUT_RDWR)
@@ -98,368 +121,383 @@ class QisInterface:
             raise e
         return res
 
-    def closeConnection(self, sock=None, conString=None):
+    def close_connection(self, sock=None, con_string: str=None) -> str:
+        """
+        Orders QIS to release a given device (or all devices if no connection string is specified)
+        This is more important for TCP connected devices as the socket is held open until
+        specifically released.
+
+        Args:
+            sock:
+                The socket object to close the connection to. Defaults to the existing socket.
+            con_string:
+                Specify the device ID to close, otherwise all devices will be closed
+
+        Raises:
+            ConnectionResetError: Raised if the socket connection has already been reset.
+
+        Returns:
+            The response received after sending the close command. On success, this will be: 'OK'
+
+        """
         if sock is None:
             sock = self.sock
-        if conString is None:
+        if con_string is None:
             cmd = "close"
         else:
-            cmd = conString + " close"
+            cmd = con_string + " close"
         try:
             response = self.sendAndReceiveText(sock, cmd)
             return response
         except ConnectionResetError:
-            logging.warning('Unable to close connection to QIS, QIS may be already closed')
-            return None
+            logging.error('Unable to close connection to device(s), QIS may be already closed')
+            return "FAIL: Unable to close connection to device(s), QIS may be already closed"
 
-    def startStream(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration=None, inMemoryData=None, outputFileHandle=None, useGzip=None):
+    def start_stream(self, module: str, file_name: str, max_file_size: int, release_on_data: bool, separator: str, stream_duration: float=None, in_memory_data: StringIO=None, output_file_handle=None, use_gzip: bool=None):
+        """
+        Begins a stream process which will record data from the module to a CSV file or in memory CSV equivalent
+
+        Args:
+            module:
+                The ID of the module for which the stream is being initiated.
+            file_name:
+                The target file path+name for storing the  streamed data in CSV form.
+            max_file_size:
+                The maximum size in megabytes allowed for the output file.
+            release_on_data:
+                If set, blocks further streams until this one has started
+            separator:
+                The value separator used to format the streamed CSV data.
+            stream_duration:
+                The duration (in seconds) for which the streaming process should run. Unlimited if None.
+            in_memory_data:
+                An in memory CSV StringIO as an alternate to file output
+            output_file_handle:
+                A file handle to an output file where the stream data is written as an alternate to a file name
+            use_gzip:
+                A flag indicating whether the output file should be compressed using gzip to reduce disk use
+
+        Returns:
+            None
+        """
         self.StreamRunSentSemaphore.acquire()
-        self.deviceDictSetup('QIS')
-        i = self.deviceMulti(module)
+        self.device_dict_setup('QIS')
+        i = self.device_control_index(module)
         self.stopFlagList[i] = True
         self.stripesEvent.set()
         self.module_xml_header = None
 
-        # Create the thread
-        t1 = threading.Thread(target=self.startStreamThread, name=module,
-                              args=(module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip))
+        # Create the worker thread to handle stream processing
+        t1 = threading.Thread(target=self.start_stream_thread, name=module,
+                              args=(module, file_name, max_file_size, release_on_data, separator, stream_duration, in_memory_data, output_file_handle, use_gzip))
         # Start the thread
         t1.start()
 
-        # count = 0
-        while (self.stripesEvent.is_set()):
-            # count += 1                         --debugging to show delay
+        while self.stripesEvent.is_set():
             pass
-            # just wait until event is cleared
 
-    def startStreamQPS(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator):
-        self.StreamRunSentSemaphore.acquire()
-        self.deviceDictSetup('QIS')
-        i = self.deviceMulti(module)
-        self.stopFlagList[i] = True
-        self.stripesEvent.set()
-        self.module_xml_header = None
+    def stop_stream(self, module, blocking:bool = True):
+        """
 
-        # Create the thread
-        t1 = threading.Thread(target=self.startStreamThreadQPS, name=module,
-                              args=(module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator))
-        # Start the thread
-        t1.start()
+        Args:
+            module:
+                The quarchPPM module instance for which the streaming process is to be stopped.
+            blocking:
+                If set to True, the function will block and wait until the module has
+                completely stopped streaming. Defaults to True.
 
-        # count = 0
-        while (self.stripesEvent.is_set()):
-            # count += 1                         --debugging to show delay
-            pass
-            # just wait until event is cleared
+        Returns:
+            None
 
-    def stopStream(self, module, blocking = True):
-        moduleName=module.ConString
-        i = self.deviceMulti(moduleName)
+        """
+
+        module_name=module.ConString
+        i = self.device_control_index(module_name)
         self.stopFlagList[i] = False
-        # Wait until the stream thread is finished before returning to user.
+
+        # Wait until the stream thread is finished before returning to the user.
         # This means this function will block until the QIS buffer is emptied by the second while
-        # loop in startStreanThread. This may take some time, especially at low averaging but
-        # should gurantee the data won't be lost and QIS buffer is emptied.
+        # loop in startStreamThread. This may take some time, especially at low averaging,
+        # but should guarantee the data won't be lost and QIS buffer is emptied.
         if blocking:
             running = True
             while running:
-                threadNameList = []
+                thread_name_list = []
                 for t1 in threading.enumerate():
-                    threadNameList.append(t1.name)
-                moduleStreaming= module.sendCommand("rec stream?").lower() #checking if module thinks its streaming.
-                moduleStreaming2= module.sendCommand("stream?").lower() #checking if the module has told qis it has stopped streaming.
+                    thread_name_list.append(t1.name)
+                module_streaming= module.sendCommand("rec stream?").lower() #checking if module thinks its streaming.
+                module_streaming2= module.sendCommand("stream?").lower() #checking if the module has told qis it has stopped streaming.
 
-                if (moduleName in threadNameList or "running" in moduleStreaming or "running" in moduleStreaming2):
+                if module_name in thread_name_list or "running" in module_streaming or "running" in module_streaming2:
                     time.sleep(0.1)
-
                 else:
                     running = False
-        time.sleep(0.1)
 
-    def startStreamThread(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator,
-                          streamDuration=None, inMemoryData=None, output_file_handle=None, use_gzip=False):
-        # This is the function that is run when t1 is created. It is run in a seperate thread from
-        # the main application so streaming can happen without blocking the main application from
-        # doing other things. Within this function/thread you have to be very careful not to try
-        # and 'communicate'  with anything from other threads. If you do, you MUST use a thread safe
-        # way of communicating. The thread creates it's own socket and should use that, NOT the objects socket
-        # (which some of the comms with module functions will use by default).
+    def start_stream_thread(self, module: str, file_name: str, max_file_size: float, release_on_data: bool, separator: str,
+                          stream_duration: int=None, in_memory_data=None, output_file_handle=None, use_gzip: bool=False):
+        """
+
+        Args:
+            module:
+                The name of the module from which data is to be streamed.
+            file_name:
+                The path to the file where streamed data will be written. Mandatory if neither an in-memory
+                buffer (in_memory_data) nor an external file handle (output_file_handle) is provided.
+            max_file_size:
+                The maximum permissible file size in MB. After reaching this limit, streaming to the current
+                file will stop
+            release_on_data:
+                True to prevent the stream lock from releasing until data has been received
+            separator:
+                Custom separator used to CSV data
+            stream_duration:
+                Duration of streaming in seconds, relative to the sampling period. Defaults to streaming
+                indefinitely.
+            in_memory_data:
+                An in-memory buffer of type StringIO to hold streamed data. If set, data is written here
+                instead of a file.
+            output_file_handle:
+                A pre-opened file handle where data will be written. If set, file_name is ignored.
+            use_gzip:
+                If True, writes streamed data to a gzip-compressed file.
+
+        Raises:
+        TypeError
+            If in_memory_data is passed but is not of type StringIO.
+        ValueError
+            If file_name is not provided and neither in_memory_data nor output_file_handle is given.
+            Also raised for invalid or undecodable sampling periods.
+
+        Returns:
+            None
+        """
 
         f = None
+        max_mb_val = 0
         file_opened_by_function = False  # True if this function opens the file
         is_in_memory_stream = False  # True if using inMemoryData (StringIO)
 
-        # Priority: 1. output_file_handle, 2. inMemoryData, 3. open new file
+        # Output priority: 1. output_file_handle, 2. inMemoryData, 3. A new a file
         if output_file_handle is not None:
             f = output_file_handle
             # Caller is responsible for the handle's mode (e.g., text/binary) and type.
-        elif inMemoryData is not None:
-            if not isinstance(inMemoryData, StringIO):
+        elif in_memory_data is not None:
+            if not isinstance(in_memory_data, StringIO):
                 raise TypeError("Error! The parameter 'inMemoryData' must be of type StringIO.")
-            f = inMemoryData
+            f = in_memory_data
             is_in_memory_stream = True
         else:
             # No external handle or in-memory buffer, so open a file.
-            if not fileName:  # fileName is mandatory if we are to open a file.
-                raise ValueError("fileName must be provided if output_file_handle and inMemoryData are None.")
+            if not file_name:  # fileName is mandatory if we are to open a file.
+                raise ValueError("fie_name must be provided if output_file_handle and in_memory_data are None.")
             file_opened_by_function = True
             if use_gzip:
                 # Open in text mode ('wt'). Encoding 'utf-8' is a good default.
                 # gzip.open in text mode handles newline conversions.
-                f = gzip.open(fileName, 'wt', encoding='utf-8')
+                f = gzip.open(file_name, 'wt', encoding='utf-8')
             else:
                 # Open in text mode ('w').
                 # newline='' ensures that '\n' is written as '\n' on all platforms.
-                f = open(fileName, 'w', encoding='utf-8', newline='')
+                f = open(file_name, 'w', encoding='utf-8', newline='')
 
-        # This variable was declared but seemed unused before its first assignment.
-        stripes = ['Empty Header']
+        # Check for a valid max file size limit
+        if max_file_size is not None:
+            try:
+                max_mb_val = int(max_file_size)
+            except (ValueError, TypeError):
+                logging.warning(f"Invalid max_file_size parameter: {max_file_size}. No limit will be applied")
+                max_file_size = None
 
-        # Send stream command so module starts streaming data into the backends buffer
-        streamRes = self.sendAndReceiveCmd(self.streamSock, 'rec stream', device=module, betweenCommandDelay=0)
-        # printText(streamRes) # Assuming printText is a custom logging/debug function
-        if 'rec stream : OK' in streamRes:
-            if releaseOnData is False:
+        # Send stream command so the module starts streaming data into the backends buffer
+        stream_res = self.send_command('rec stream', device=module, qis_socket=self.streamSock)
+        # Check the stream started
+        if 'OK' in stream_res:
+            if not release_on_data:
                 self.StreamRunSentSemaphore.release()
                 self.stripesEvent.clear()
             self.deviceDict[module][0:3] = [False, 'Running', 'Stream Running']
         else:
             self.StreamRunSentSemaphore.release()
             self.stripesEvent.clear()
-            self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start because " + streamRes]
+            self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start because " + stream_res]
             if file_opened_by_function and f:
                 try:
                     f.close()
                 except Exception as e_close:
-                    logging.error(f"Error closing file {fileName} on stream start failure: {e_close}")
+                    logging.error(f"Error closing file {file_name} on stream start failure: {e_close}")
             return
 
-        baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
+        # Poll for the stream header to become available. This is needed to configure the output file
+        base_sample_period = self.stream_header_average(device=module, sock=self.streamSock)
         count = 0
-        maxTries = 10
-        while 'Header Not Available' in baseSamplePeriod:
-            baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
+        max_tries = 10
+        while 'Header Not Available' in base_sample_period:
+            base_sample_period = self.stream_header_average(device=module, sock=self.streamSock)
             time.sleep(0.1)
             count += 1
-            if count > maxTries:
+            if count > max_tries:
                 self.deviceDict[module][0:3] = [True, 'Stopped', 'Header not available']
                 if file_opened_by_function and f:
                     try:
                         f.close()
                     except Exception as e_close:
-                        logging.error(f"Error closing file {fileName} on header failure: {e_close}")
+                        logging.error(f"Error closing file {file_name} on header failure: {e_close}")
                 return  # Changed from exit() for cleaner thread termination
 
-        version = self.streamHeaderVersion(device=module, sock=self.streamSock)  # version seems unused
-        timeStampHeader = datetime.datetime.now().strftime("%H:%M:%S:%f %d/%m/%y")  # timeStampHeader seems unused
-        formatHeader = self.streamHeaderFormat(device=module, sock=self.streamSock)
-        formatHeader = formatHeader.replace(", ", separator)
-        f.write(formatHeader + '\n')
+        # Format the header and write it to the output file
+        format_header = self.stream_header_format(device=module, sock=self.streamSock)
+        format_header = format_header.replace(", ", separator)
+        f.write(format_header + '\n')
 
-        numStripesPerRead = 4096
-        maxFileExceeded = False
-        openAttempts = 0  # Used in except IOError block
+        # Initialize stream variables
+        max_file_exceeded = False
+        open_attempts = 0
         leftover = 0
-        remainingStripes = []
-        streamOverrun = False
-        streamComplete = False
+        remaining_stripes = []
+        stream_overrun = False
+        stream_complete = False
+        stream_status_str = ""
 
-        if 'ns' in baseSamplePeriod.lower():
-            baseSampleUnitText = 'ns'
-            baseSampleUnitExponent = -9
-        elif 'us' in baseSamplePeriod.lower():
-            baseSampleUnitText = 'us'
-            baseSampleUnitExponent = -6
-        elif 'ms' in baseSamplePeriod.lower():
-            baseSampleUnitText = 'ms'
-            baseSampleUnitExponent = -3
-        elif 'S' in baseSamplePeriod.lower():  # Original was 'S', assuming it means 's'
-            baseSampleUnitText = 's'
-            baseSampleUnitExponent = 0
+        # Calculate and verify stripe rate information
+        if 'ns' in base_sample_period.lower():
+            base_sample_unit_exponent = -9
+        elif 'us' in base_sample_period.lower():
+            base_sample_unit_exponent = -6
+        elif 'ms' in base_sample_period.lower():
+            base_sample_unit_exponent = -3
+        elif 'S' in base_sample_period.lower():  # Original was 'S', assuming it means 's'
+            base_sample_unit_exponent = 0
         else:
             # Clean up and raise error if baseSamplePeriod is undecodable
             if file_opened_by_function and f:
                 try:
                     f.close()
                 except Exception as e_close:
-                    logging.error(f"Error closing file {fileName} due to ValueError: {e_close}")
-            raise ValueError(f"couldn't decode samplePeriod: {baseSamplePeriod}")
+                    logging.error(f"Error closing file {file_name} due to ValueError: {e_close}")
+            raise ValueError(f"couldn't decode samplePeriod: {base_sample_period}")
 
-        baseSamplePeriodS = int(re.search(r'^\d*\.?\d*', baseSamplePeriod).group()) * (10 ** baseSampleUnitExponent)
+        base_sample_period_period_s = int(re.search(r'^\d*\.?\d*', base_sample_period).group()) * (10 ** base_sample_unit_exponent)
 
-        # The following re-opening of the file is removed as f is already open in 'w' or 'wt' mode
-        # and subsequent writes will append.
-        # if inMemoryData is None:
-        #     f = open(fileName, 'a', newline='')
-
-        isRun = True
-        while isRun:
+        # Now we loop to process the stripes of data as they are available
+        is_run = True
+        while is_run:
             try:
-                i = self.deviceMulti(module)
-                while self.stopFlagList[i] and (not streamOverrun) and (not streamComplete):
-                    streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module, numStripesPerRead)
-                    newStripes = newStripes.replace(' ', separator)  # Replace spaces globally first
-                    if streamOverrun:
+                # Check for exit flags.  These can be from user request (stopFlagList) or from the stream
+                # process ending
+                i = self.device_control_index(module)
+                while self.stopFlagList[i] and (not stream_overrun) and (not stream_complete):
+
+                    # Read a block of stripes from QIS
+                    stream_status_str, new_stripes = self.stream_get_stripes_text(self.streamSock, module)
+
+                    # Overrun is a termination event where the stream stopped earlier than desired and must
+                    # be flagged to the user
+                    if "overrun" in stream_status_str:
+                        stream_overrun = True
                         self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun']
+                    if "eof" in stream_status_str:
+                        stream_complete = True
 
-                    isEmpty = (removeChar == -6 and len(newStripes) == 6)
+                    # Continue here if there are stripes to process
+                    if len(new_stripes) > 0:
+                        # switch in the correct value seperator
+                        new_stripes = new_stripes.replace(' ', separator)
 
-                    if not isEmpty:
-                        current_file_mb = 0.0
-                        if is_in_memory_stream:
-                            current_file_mb = f.tell() / 1048576.0
-                        elif fileName:  # For file-based output (opened here or external handle with known fileName)
-                            try:
-                                # os.stat reflects the size on disk. For buffered writes (incl. gzip),
-                                # this might not be the exact current unwritten buffer size + disk size
-                                # without a flush, but it's what the original code relied on.
-                                statInfo = os.stat(fileName)
-                                current_file_mb = statInfo.st_size / 1048576.0
-                            except FileNotFoundError:
-                                current_file_mb = 0.0  # File might not exist yet or fileName is not locatable
-                            except Exception as e_stat:
-                                logging.warning(f"Could not get file size for {fileName}: {e_stat}")
-                                current_file_mb = 0.0  # Default to small size on error
-                        else:
-                            # output_file_handle was given, but fileName was None. Cannot check disk size.
-                            # Assume it's okay or managed by caller. fileMaxMB check effectively bypassed.
+                        # Track the total size of the file here if needed
+                        if max_file_size is not None:
                             current_file_mb = 0.0
-
-                        try:
-                            # Ensure fileMaxMB can be converted to int. If not, skip file size check for this iteration.
-                            max_mb_val = int(fileMaxMB)
-                        except (ValueError, TypeError):
-                            logging.warning(f"Invalid fileMaxMB value: {fileMaxMB}. Skipping size check for this iteration.")
-                            max_mb_val = float('inf')  # Effectively disable check if invalid
-
-                        if current_file_mb < max_mb_val:
-                            if releaseOnData:  # Note: Original was `releaseOnData == True`
-                                self.StreamRunSentSemaphore.release()
-                                self.stripesEvent.clear()
-                                releaseOnData = False  # Prevent re-releasing
-                            if streamAverage is not None:
-                                # Assuming self.averageStripes handles writing to f
-                                leftover, remainingStripes = self.averageStripes(leftover, stripesPerAverage,
-                                                                                 newStripes[:removeChar], f,
-                                                                                 remainingStripes)
+                            if is_in_memory_stream:
+                                current_file_mb = f.tell() / 1048576.0
+                            elif file_name:
+                                try:
+                                    # os.stat reflects the size on disk. For buffered writes (incl. gzip),
+                                    # this might not be the exact current unwritten buffer size + disk size
+                                    # without a flush, but it's an decent estimate.
+                                    stat_info = os.stat(file_name)
+                                    current_file_mb = stat_info.st_size / 1048576.0
+                                except FileNotFoundError:
+                                    current_file_mb = 0.0  # File might not exist yet or fileName is not locatable
+                                except Exception as e_stat:
+                                    logging.warning(f"Could not get file size for {file_name}: {e_stat}")
+                                    current_file_mb = 0.0  # Default to small size on error
                             else:
-                                if streamDuration is not None:
-                                    lastLine = newStripes.splitlines()[-3]  # the last data line is followed by 'eof' and '>'
-                                    lastTime = lastLine.split(separator)[0]
+                                # output_file_handle was given, but fileName was None. Cannot check disk size.
+                                # Assume it's okay or managed by the caller. fileMaxMB check effectively bypassed.
+                                current_file_mb = 0.0
 
-                                    if int(lastTime) < int(streamDuration / (10 ** baseSampleUnitExponent)):
-                                        # newStripes was already globally space-replaced.
-                                        f.write(newStripes[:removeChar])
+                            # Flag the limit has been exceeded
+                            if current_file_mb > max_mb_val:
+                                max_file_exceeded = True
+                                max_file_status = self.stream_buffer_status(device=module, sock=self.streamSock)
+                                f.write('Warning: Max file size exceeded before end of stream.\n')
+                                f.write('Unrecorded stripes in buffer when file full: ' + max_file_status + '.\n')
+                                self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
+                                break  # Exit stream processing loop
+
+                        # Release the stream semaphore now we have data
+                        if release_on_data:
+                            self.StreamRunSentSemaphore.release()
+                            self.stripesEvent.clear()
+                            release_on_data = False
+
+                        # If a duration has been set, track it based on the time of the last stripe
+                        if stream_duration is not None:
+                            last_line = new_stripes.splitlines()[-1]
+                            last_time = last_line.split(separator)[0]
+
+                            # Write all the stripes if we can
+                            if int(last_time) < int(stream_duration / (10 ** base_sample_unit_exponent)):
+                                f.write(new_stripes)
+                            # Otherwise only write stripes within the duration limit
+                            else:
+                                for this_line in new_stripes.splitlines():
+                                    this_time_str = this_line.split(separator)[0]
+                                    if int(this_time_str) < int(stream_duration / (10 ** base_sample_unit_exponent)):
+                                        f.write(this_line + '\r\n')  # Put the CR back on the end
                                     else:
-                                        for thisLine in newStripes.splitlines()[:-2]:  # Process lines before 'eof' and '>'
-                                            thisTimeStr = thisLine.split(separator)[0]
-                                            if int(thisTimeStr) < int(streamDuration / (10 ** baseSampleUnitExponent)):
-                                                f.write(thisLine + '\r\n')  # Put the CR back on the end
-                                            else:
-                                                streamComplete = True
-                                                break
-                                else:
-                                    # newStripes was already globally space-replaced.
-                                    f.write(newStripes[:removeChar])
+                                        stream_complete = True
+                                        break
+                        # Default to writing all stripes
                         else:
-                            maxFileExceeded = True
-                            maxFileStatus = self.streamBufferStatus(device=module, sock=self.streamSock)
-                            f.write('Warning: Max file size exceeded before end of stream.\n')
-                            f.write(
-                                'Unrecorded stripes in buffer when file full: ' + maxFileStatus + '.\n')  # Added newline for clarity
-                            self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
-                            break  # Exit inner while loop
-                    else:  # isEmpty == True
-                        time.sleep(0.1)
-                        streamStatus = self.streamRunningStatus(device=module, sock=self.streamSock)
-                        if streamOverrun:
-                            break  # Exit inner while loop
-                        elif "Stopped" in streamStatus:
+                            f.write(new_stripes)
+                    # If we have no data
+                    else:
+                        if stream_overrun:
+                            break  # Exit stream processing loop
+                        elif "stopped" in stream_status_str:
                             self.deviceDict[module][0:3] = [True, 'Stopped', 'User halted stream']
-                            break  # Exit inner while loop
-                # End of inner while self.stopFlagList... loop
+                            break  # Exit stream processing loop
+                # End of stream data processing loop
 
-                self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay=0)
-                streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)
-                while "stopped" not in streamState.lower():
+                # Ensure the stream is fully stopped, though standard exit cases should have ended it already
+                self.send_command('rec stop', device=module, qis_socket=self.streamSock)
+                stream_state = self.send_command('stream?', device=module, qis_socket=self.streamSock)
+                while "stopped" not in stream_state.lower():
                     logging.debug("waiting for stream? to return stopped")
                     time.sleep(0.1)
-                    streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0)
+                    stream_state = self.send_command('stream?', device=module, qis_socket=self.streamSock)
 
-                if (not streamOverrun) and (not maxFileExceeded):
-                    self.deviceDict[module][0:3] = [False, 'Stopped', 'Stream stopped - emptying buffer']
-
-                if not maxFileExceeded:
-                    streamOverrun_final, removeChar_final, newStripes_final = self.streamGetStripesText(self.streamSock, module, numStripesPerRead)
-                    isEmpty_final = (removeChar_final == -6 and len(newStripes_final) == 6)
-
-                    while not isEmpty_final:
-                        current_file_mb_final = 0.0
-                        if is_in_memory_stream:
-                            current_file_mb_final = f.tell() / 1048576.0
-                        elif fileName:
-                            try:
-                                statInfo = os.stat(fileName)
-                                current_file_mb_final = statInfo.st_size / 1048576.0
-                            except Exception:
-                                current_file_mb_final = 0.0
-                        else:
-                            current_file_mb_final = 0.0
-
-                        try:
-                            max_mb_val_final = int(fileMaxMB)
-                        except (ValueError, TypeError):
-                            max_mb_val_final = float('inf')  # Effectively disable
-
-                        if current_file_mb_final < max_mb_val_final:
-                            if not streamComplete:  # Check if stream was already completed due to duration
-                                if (streamAverage != None):
-                                    leftover, remainingStripes = self.averageStripes(leftover, stripesPerAverage,
-                                                                                     newStripes_final[
-                                                                                     :removeChar_final], f,
-                                                                                     remainingStripes)
-                                else:
-                                    newStripes_final = newStripes_final.replace(' ', separator)  # Ensure replacement
-                                    f.write(newStripes_final[:removeChar_final])
-                        else:
-                            if not maxFileExceeded:  # Only write warning if not already written
-                                maxFileStatus_final = self.streamBufferStatus(device=module, sock=self.streamSock)
-                                f.write('Warning: Max file size exceeded before end of stream.\n')  # Changed from b''
-                                f.write('Unrecorded stripes in buffer when file full: ' + maxFileStatus_final + '.\n')  # Changed from b'', added newline
-                                logging.warning('Max file size exceeded. Some data has not been saved to file: ' + maxFileStatus_final + '.')
-                                maxFileExceeded = True  # Set flag
-                                self.deviceDict[module][0:3] = [True, 'Stopped', 'User defined max filesize reached']
-                            break  # Exit emptying loop
-
-                        streamOverrun_final, removeChar_final, newStripes_final = self.streamGetStripesText(
-                            self.streamSock, module, numStripesPerRead, skipStatusCheck=True)
-                        isEmpty_final = (removeChar_final == -6 and len(newStripes_final) == (
-                            6 if newStripes_final else 0))  # handle newStripes_final potentially being None
-
-                if streamOverrun:  # This check is after emptying buffer; might need re-evaluation if overrun can happen during emptying
+                if stream_overrun:
                     self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun - QIS buffer empty']
-                elif not maxFileExceeded:  # If not overrun and not exceeded file size
+                elif not max_file_exceeded:
                     self.deviceDict[module][0:3] = [False, 'Stopped', 'Stream stopped']
-                # If maxFileExceeded is true, the status is already set.
 
-                time.sleep(0.2)
-                isRun = False  # Exit main while isRun loop
+                is_run = False  # Exit main while loop
             except IOError as err:
                 logging.error(f"IOError in startStreamThread for module {module}: {err}")
-                # f might have been closed by the system if it's a pipe and the other end closed,
-                # or other severe IO errors.
-                # Attempt to close only if this function opened it and it seems like it might be openable/closable.
+                # f might have been closed by the system if it's a pipe and the other end closed or other severe errors.
+                # Attempt to close only if this function opened it, and it seems like it might be openable/closable.
                 if file_opened_by_function and f is not None:
                     try:
                         if not f.closed:
                             f.close()
                     except Exception as e_close:
-                        logging.error(f"Error closing file {fileName} during IOError handling: {e_close}")
+                        logging.error(f"Error closing file {file_name} during IOError handling: {e_close}")
                     f = None  # Avoid trying to close again in finally if error persists
 
                 time.sleep(0.5)
-                openAttempts += 1
-                if openAttempts > 4:
+                open_attempts += 1
+                if open_attempts > 4:
                     logging.error(f"Too many IOErrors in QisInterface for module {module}. Raising error.")
                     # Set device status before raising, if possible
                     self.deviceDict[module][0:3] = [True, 'Stopped', f'IOError limit exceeded: {err}']
@@ -470,621 +508,499 @@ class QisInterface:
                         if not f.closed:  # Check if not already closed (e.g. in IOError block)
                             f.close()
                     except Exception as e_close:
-                        logging.error(f"Error closing file {fileName} in finally block: {e_close}")
-                # If output_file_handle was passed, caller is responsible for closing.
-                # If inMemoryData was passed, it's managed by caller.
-                # The original `else: inMemoryData = f` is removed as inMemoryData (StringIO) is mutated in-place.
+                        logging.error(f"Error closing file {file_name} in finally block: {e_close}")
+                # If output_file_handle was passed, the caller is responsible for closing.
+                # If inMemoryData was passed, it's managed by the caller.
 
-        # This is the function that is ran when t1 is created. It is ran in a seperate thread from
-        # the main application so streaming can happen without blocking the main application from
-        # doing other things. Within this function/thread you have to be very careful not to try
-        # and 'communicate'  with anything from other threads. If you do, you MUST use a thread safe
-        # way of communicating. The thread creates it's own socket and should use that NOT the objects socket
-        # (which some of the comms with module functions will use by default).
-
-    def startStreamThreadQPS(self, module, fileName, fileMaxMB, streamName, streamAverage, releaseOnData, separator):
-
-        # Start module streaming and then read stream data
-        # self.sendAndReceiveCmd(self.streamSock, 'stream mode resample 10mS', device=module, betweenCommandDelay=0)
-        self.sendAndReceiveCmd(self.streamSock, 'stream mode header v3', device=module, betweenCommandDelay=0)
-        self.sendAndReceiveCmd(self.streamSock, 'stream mode power enable', device=module, betweenCommandDelay=0)
-        self.sendAndReceiveCmd(self.streamSock, 'stream mode power total enable', device=module, betweenCommandDelay=0)
-
-        self.qps_record_start_time = time.time() * 1000
-
-        stripes = ['Empty Header']
-        # Send stream command so module starts streaming data into the backends buffer
-        streamRes = self.sendAndReceiveCmd(self.streamSock, 'rec stream', device=module, betweenCommandDelay=0)
-        # printText(streamRes)
-        if ('rec stream : OK' in streamRes):
-            if (releaseOnData == False):
-                self.StreamRunSentSemaphore.release()
-                self.stripesEvent.clear()
-            self.deviceDict[module][0:3] = [False, 'Running', 'Stream Running']
-        else:
-            self.StreamRunSentSemaphore.release()
-            self.stripesEvent.clear()
-            self.deviceDict[module][0:3] = [True, 'Stopped', module + " couldn't start because " + streamRes]
-            return
-
-        # If recording to file then get header for file
-        if (fileName is not None):
-
-            baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
-            count = 0
-            maxTries = 10
-            while 'Header Not Available' in baseSamplePeriod:
-                baseSamplePeriod = self.streamHeaderAverage(device=module, sock=self.streamSock)
-                time.sleep(0.1)
-                count += 1
-                if count > maxTries:
-                    self.deviceDict[module][0:3] = [True, 'Stopped', 'Header not available']
-                    exit()
-            version = self.streamHeaderVersion(device=module, sock=self.streamSock)
-
-        numStripesPerRead = 4096
-        maxFileExceeded = False
-        openAttempts = 0
-        leftover = 0
-        remainingStripes = []
-        streamOverrun = False
-        # if streamAverage != None:
-        #     # Matt converting streamAveraging into number
-        #     streamAverage = self.convertStreamAverage(streamAverage)
-        #     stripesPerAverage = float(streamAverage) / (float(baseSamplePeriodS) * 4e-6)
-
-        isRun = True
-
-        self.create_dir_structure(module, fileName)
-
-        while isRun:
-            try:
-                # with open(fileName, 'ab') as f:
-                # Until the event threadRunEvent is set externally to this thread,
-                # loop and read from the stream
-                i = self.deviceMulti(module)
-                while self.stopFlagList[i] and (not streamOverrun):
-                    # now = time.time()
-                    streamOverrun, removeChar, newStripes = self.streamGetStripesText(self.streamSock, module,
-                                                                                      numStripesPerRead)
-                    newStripes = newStripes.replace(' ',separator)
-
-                    if streamOverrun:
-                        self.deviceDict[module][0:3] = [True, 'Stopped', 'Device buffer overrun']
-                    if (removeChar == -6 and len(newStripes) == 6):
-                        isEmpty = True
-                    else:
-                        isEmpty = False
-                    if isEmpty == False:
-                        # Writes in file if not too big else stops streaming
-                        # Writing multiple stripes
-                        if "\r\n" in y:
-                            y = y.split("\r\n")
-
-                            if self.has_digitals:
-                                # Write qps files for PAM
-                                for stripes in y:
-                                    if stripes:
-                                        stripe = stripes.split(",")
-                                        self.write_stripe_to_files_PAM(stripe)
-                            else:
-                                # Write qps files for PPM
-                                for stripes in y:
-                                    if stripes:
-                                        stripe = stripes.split(",")
-                                        self.write_stripe_to_files_HD(stripe)
-
-                        else:
-                            if self.has_digitals:
-                                # Write qps files for PAM
-                                for stripes in y:
-                                    if stripes:
-                                        stripe = stripes.split(",")
-                                        self.write_stripe_to_files_PAM(stripe)
-                            else:
-                                # Write qps files for PPM
-                                for stripes in y:
-                                    if stripes:
-                                        stripe = stripes.split(",")
-                                        self.write_stripe_to_files_HD(stripe)
-
-
-                    else:
-                        # there's no stripes in the buffer - it's not filling up fast -
-                        # sleeps so we don't spam qis with requests (seems to make QIS crash)
-                        # it might be clever to change the sleep time accoring to the situation
-                        # e.g. wait longer with higher averaging or lots of no stripes in a row
-                        time.sleep(0.1)
-                        streamStatus = self.streamRunningStatus(device=module, sock=self.streamSock)
-                        if streamOverrun:
-                            # printText('QisInterface overrun - breaking')
-                            break
-                        elif "Stopped" in streamStatus:
-                            self.deviceDict[module][0:3] = [True, 'Stopped', 'User halted stream']
-                            break
-
-                # printText('Left while 1')
-                self.sendAndReceiveCmd(self.streamSock, 'rec stop', device=module, betweenCommandDelay=0)
-                # streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module, betweenCommandDelay=0) # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
-                # while "stopped" not in streamState.lower():
-                #     logging.debug("waiting for stream? to contained stopped")
-                #     time.sleep(0.1)
-                #     streamState = self.sendAndReceiveCmd(self.streamSock, 'stream?', device=module,betweenCommandDelay=0)  # use "stream?" rather than "rec stream?" as it checks both QIS AND the device.
-
-                isRun = False
-            except IOError as err:
-                # printText('\n\n!!!!!!!!!!!!!!!!!!!! IO Error in QisInterface !!!!!!!!!!!!!!!!!!!!\n\n')
-                time.sleep(0.5)
-                openAttempts += 1
-                if openAttempts > 4:
-                    logging.error(
-                        '\n\n!!!!!!!!!!!!!!!!!!!! Too many IO Errors in QisInterface !!!!!!!!!!!!!!!!!!!!\n\n')
-                    raise err
-
-        self.create_index_file()
-        if self.has_digitals:
-            self.create_index_file_digitals()
-
-        self.create_qps_file(module)
-
-    def write_stripe_to_files_HD(self, stripe):
-        # Cycle through items in stripe
-        for index, item in enumerate(stripe):
-            if index == 0:
-                continue
-            with open(os.path.join(self.qps_record_dir_path, "data000",
-                                   "data000_00" + index - 1 + "_000000000"),
-                      "a") as file1:#changed from ab to a as all data should be in string format now regardless of py2 or py3
-
-                x = struct.pack(">d", int(item))
-                # logging.debug(item, x)
-                file1.write(x)
-
-    def write_stripe_to_files_PAM(self, stripe):
-        # Note to reader - List should be ordered 1>x on analogue and digitals
-        counter = 0
-        for group in self.streamGroups.groups:
-            for i, channel in enumerate(group.channels):
-                # incrementing here so we skip stripe[0] which is time
-                counter += 1
-
-                x = i
-                while len(str(x)) < 3:
-                    x = "0" + str(x)
-
-                # Write all in group 0 to analogue
-                if group.group_id == 0:
-
-                    with open(os.path.join(self.qps_record_dir_path, "data000",
-                                           "data000_"+x+"_000000000"),
-                              "a") as file1:#changed from ab to a as all data should be in string format now regardless of py2 or py3
-                        x = struct.pack(">d", int(stripe[counter]))
-                        # logging.debug(item, x)
-                        file1.write(x)
-                else:
-                    # Write all in group 1 to digital
-                    with open(os.path.join(self.qps_record_dir_path, "data101",
-                                           "data101_"+x+"_000000000"),
-                              "a") as file1:#changed from ab to a as all data should be in string format now regardless of py2 or py3
-                        x = struct.pack(">d", int(stripe[counter]))
-                        # logging.debug(item, x)
-                        file1.write(x)
-
-    # Query the backend for a list of connected modules. A $scan command is sent to refresh the list of devices,
-    # Then a wait occurs while the backend discovers devices (network ones can take a while) and then a list of device name strings is returned
-    # The objects connection needs to be opened (connect()) before this is used
-    def getDeviceList(self, sock=None):
-
-        if sock == None:
-            sock = self.sock
-        devString = self.sendAndReceiveText(sock, '$list')
-        devString = devString.replace('>', '')
-        devString = devString.replace(r'\d+\) ', '')
-        devString = devString.split('\r\n')
-        devString = filter(None, devString) #remove empty elements
-        return devString
-
-    def get_list_details(self, sock=None):
-        if sock == None:
-            sock = self.sock
-
-        devString = self.sendAndReceiveText(sock, '$list details')
-        devString = devString.replace('>', '')
-        devString = devString.replace(r'\d+\) ', '')
-        devString = devString.split('\r\n')
-        devString = [x for x in devString if x]  # remove empty elements
-        return devString
-
-    def scanIP(QisConnection, ipAddress):
+    def get_device_list(self, sock=None) -> filter:
         """
-        Triggers QIS to look at a specific IP address for a quarch module
+        returns a list of device IDs that are available for connection
 
-        Parameters
-        ----------
+        Args:
+            sock:
+                Optional connection socket
+
+        Returns:
+            A filtered iterable list of devices
+
+        """
+
+        if sock is None:
+            sock = self.sock
+
+        dev_string = self.sendAndReceiveText(sock, '$list')
+        dev_string = dev_string.replace('>', '')
+        dev_string = dev_string.replace(r'\d+\) ', '')
+        dev_string = dev_string.split('\r\n')
+        dev_string = filter(None, dev_string) #remove empty elements
+
+        return dev_string
+
+    def get_list_details(self, sock=None) -> list:
+        """
+        Extended version of get_device_list which also returns the additional details
+        fields for each module
+
+        Args:
+            sock:
+                Optional connection socket
+        Returns:
+                Iterable list of strings containing the details of each device available for connection.
+
+        """
+        if sock is None:
+            sock = self.sock
+
+        dev_string = self.sendAndReceiveText(sock, '$list details')
+        dev_string = dev_string.replace('>', '')
+        dev_string = dev_string.replace(r'\d+\) ', '')
+        dev_string = dev_string.split('\r\n')
+        dev_string = [x for x in dev_string if x]  # remove empty elements
+        return dev_string
+
+    def scan_ip(self, qis_connection, ip_address) -> bool:
+        """
+        Triggers QIS to look at a specific IP address for a module
+
+        Arguments
+
         QisConnection : QpsInterface
-            The interface to the instance of QPS you would like to use for the scan.
+            The interface to the instance of QIS you would like to use for the scan.
         ipAddress : str
             The IP address of the module you are looking for eg '192.168.123.123'
-        sleep : int, optional
-            This optional variable sleeps to allow the network to scan for the module before allowing new commands to be sent to QIS.
         """
 
-        logging.debug("Starting QIS IP Address Lookup at " + ipAddress)
-        if not ipAddress.lower().__contains__("tcp::"):
-            ipAddress = "TCP::" + ipAddress
+        logging.debug("Starting QIS IP Address Lookup at " + ip_address)
+        if not ip_address.lower().__contains__("tcp::"):
+            ip_address = "TCP::" + ip_address
         response = "No response from QIS Scan"
         try:
-            response = QisConnection.sendCmd(cmd="$scan " + ipAddress, expectedResponse=True)
-            # valid response is "Located device: 192.168.1.2"
+            response = qis_connection.send_command("$scan " + ip_address)
+            # The valid response is "Located device: 192.168.1.2"
             if "located" in response.lower():
                 logging.debug(response)
                 # return the valid response
-                return response
+                return True
             else:
-                if "startup" not in response.lower():
-                    logging.warning("No module found at " + ipAddress)
-                    logging.warning(response)
-                return response
+                logging.warning("No module found at " + ip_address)
+                logging.warning(response)
+                return False
 
         except Exception as e:
+            logging.warning("No module found at " + ip_address)
             logging.warning(e)
-            if "startup" not in response.lower():
-                logging.warning("No module found at " + ipAddress)
+            return False
 
-    def GetQisModuleSelection(self, favouriteOnly=True , additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
-        '''
-        Fuction used to list the available deviced to QIS and present them to the user for selection.
 
-        Returns myDeviceID - Str the connection string used to connect to the selected device.
-        '''
-        tableHeaders =["Modules"]
+    def get_qis_module_selection(self, preferred_connection_only=True, additional_options="DEF_ARGS", scan=True) -> str:
+        """
+        Scans for available modules and allows the user to select one through an interactive selection process.
+        Can also handle additional custom options and some built-in ones such as rescanning
+
+        Arguments:
+            preferred_connection_only : bool
+                by default (True), returns only one preferred connection eg: USB for simplicity
+            additional_options: list
+                Additional operational options provided during module selection, such as rescan,
+                all connection types, and IP scan. Defaults to ['rescan', 'all con types', 'ip scan']. These allow the
+                additional options to be given to the user and handled in the top level script
+            scan : bool
+                Indicates whether to initiate a rescanning process for devices before listing. Defaults to True and
+                will take longer to return
+
+        Returns:
+            str: The identifier of the selected module, or the action selected from the additional options.
+
+        Raises:
+            KeyError: Raised when unexpected keys are found in the scanned device data.
+            ValueError: Raised if no valid selection is made or the provided IP address is invalid.
+        """
+
+        # Avoid mutable warning by adding the argument list in the function rather than the header
+        if additional_options == "DEF_ARGS":
+            additional_options = ['rescan', 'all con types', 'ip scan']
+
+        table_headers = ["Modules"]
         ip_address = None
-        favourite = favouriteOnly
+        favourite = preferred_connection_only
         while True:
             printText("Scanning for modules...")
+            found_devices = None
             if scan and ip_address is None:
-                foundDevices = self.qis_scan_devices(scan=scan, favouriteOnly=favourite)
+                found_devices = self.qis_scan_devices(scan=scan, preferred_connection_only=favourite)
             elif scan and ip_address is not None:
-                foundDevices = self.qis_scan_devices(scan=scan, favouriteOnly=favourite, ipAddress=ip_address)
+                found_devices = self.qis_scan_devices(scan=scan, preferred_connection_only=favourite, ip_address=ip_address)
 
-            myDeviceID = listSelection(title="Select a module",message="Select a module",selectionList=foundDevices,
-                                       additionalOptions= additionalOptions, nice=True, tableHeaders=tableHeaders,
-                                       indexReq=True)
-            if myDeviceID.lower() == 'rescan':
+            my_device_id = listSelection(title="Select a module",message="Select a module",
+                                          selectionList=found_devices, additionalOptions= additional_options,
+                                          nice=True, tableHeaders=table_headers, indexReq=True)
+
+            if my_device_id.lower() == 'rescan':
                 favourite = True
                 ip_address = None
                 continue
-            elif myDeviceID.lower() == 'all con types':
+            elif my_device_id.lower() == 'all con types':
                 favourite = False
                 printText("Displaying all connection types...")
                 continue
-            elif myDeviceID.lower() == 'ip scan':
+            elif my_device_id.lower() == 'ip scan':
                 ip_address = requestDialog(title="Please input the IP Address you would like to scan")
                 favourite = False
                 continue
             break
 
-        return myDeviceID
+        return my_device_id
 
-    def qis_scan_devices(self, scan=True, favouriteOnly=True, ipAddress=None):
-        deviceList = []
-        foundDevices = "1"
-        foundDevices2 = "2"  # this is used to check if new modules are being discovered or if all have been found.
-        scanWait = 2  # The number of seconds waited between the two scans.
+    def qis_scan_devices(self, scan=True, preferred_connection_only=True, ip_address=None) -> list:
+        """
+        Begins a scan for devices and returns a simple list of devices
+
+        Args:
+            scan:
+                Should a scan be initiated?  If False, the function will return immediately with the list
+            preferred_connection_only:
+                The default (True), returns only one preferred connection eg: USB for simplicity
+            ip_address:
+                IP address of the module you are looking for eg '192.168.123.123'
+
+        Returns:
+            list: List of module strings found during scan
+        """
+
+        device_list = []
+        found_devices = "1"
+        found_devices2 = "2"  # this is used to check if new modules are being discovered or if all have been found.
+        scan_wait = 2  # The number of seconds waited between the scan and the initial list
+        list_wait = 1  # The time between checks for new devices in the list
 
         if scan:
-            if ipAddress == None:
-                devString = self.sendAndReceiveText(self.sock, '$scan')
+            # Perform the initial scan attempt
+            if ip_address is None:
+                dev_string = self.sendAndReceiveText(self.sock, '$scan')
             else:
-                devString = self.sendAndReceiveText(self.sock, '$scan TCP::' + ipAddress)
-            time.sleep(scanWait)
-            while foundDevices not in foundDevices2:
-                foundDevices = self.sendAndReceiveText(self.sock, '$list')
-                time.sleep(scanWait)
-                foundDevices2 = self.sendAndReceiveText(self.sock, '$list')
+                dev_string = self.sendAndReceiveText(self.sock, '$scan TCP::' + ip_address)
+            # Wait for devices to enumerate
+            time.sleep(scan_wait)
+            # While new devices are being found, extend the wait time
+            while found_devices not in found_devices2:
+                found_devices = self.sendAndReceiveText(self.sock, '$list')
+                time.sleep(list_wait)
+                found_devices2 = self.sendAndReceiveText(self.sock, '$list')
         else:
-            foundDevices = self.sendAndReceiveText(self.sock, '$list')
+            found_devices = self.sendAndReceiveText(self.sock, '$list')
 
-        if not "no devices found" in foundDevices.lower():
-            foundDevices = foundDevices.replace('>', '')
-            #foundDevices = foundDevices.replace(r'\d\) ', '')
-            # printText('"' + devString + '"')
-            foundDevices = foundDevices.split('\r\n')
-            #Can't stream over REST! Removing all REST connections.
-            tempList= list()
-            for item in foundDevices:
+        # If we found devices, process them into a list to return
+        if not "no devices found" in found_devices.lower():
+            found_devices = found_devices.replace('>', '')
+            found_devices = found_devices.split('\r\n')
+            # Can't stream over REST. Removing all REST connections.
+            temp_list= list()
+            for item in found_devices:
                 if item is None or "rest" in item.lower() or item == "":
                     pass
                 else:
-                    tempList.append(item.split(")")[1].strip())
-            foundDevices = tempList
+                    temp_list.append(item.split(")")[1].strip())
+            found_devices = temp_list
 
-            #If favourite only is True then only show one connection type for each module connected.
-            #First order the devices in preference type and then pick the first con type found for each module.
-            if (favouriteOnly):
-                foundDevices = self.sortFavourite(foundDevices)
+            # If the preferred connection only flag is True, then only show one connection type for each module connected.
+            # First, order the devices by their preference type and then pick the first con type found for each module.
+            if preferred_connection_only:
+                found_devices = self.sort_favourite(found_devices)
         else:
-            foundDevices = ["***No Devices Found***"]
+            found_devices = ["***No Devices Found***"]
 
-        return foundDevices
+        return found_devices
 
-    def sortFavourite(self, foundDevices):
+    def sort_favourite(self, found_devices) -> list:
+        """
+        Reduces the list of located devices by referencing to the preferred type of connection.  Only
+        one connection type will be returned for each module for easier user selection. ie: A module connected
+        on both USB and TCP will now only return with USB
+
+        Args:
+            found_devices:
+                List of located devices from a scan operation
+
+        Returns:
+            List of devices filtered/sorted devices
+        """
+
         index = 0
-        sortedFoundDevices = []
-        conPref = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
-        while len(sortedFoundDevices) != len(foundDevices):
-            for device in foundDevices:
-                if conPref[index] in device.upper():
-                    sortedFoundDevices.append(device)
+        sorted_found_devices = []
+        con_pref = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
+        while len(sorted_found_devices) != len(found_devices):
+            for device in found_devices:
+                if con_pref[index] in device.upper():
+                    sorted_found_devices.append(device)
             index += 1
-        foundDevices = sortedFoundDevices
+        found_devices = sorted_found_devices
+
         # new dictionary only containing one favourite connection to each device.
-        favConFoundDevices = []
+        fav_con_found_devices = []
         index = 0
-        for device in sortedFoundDevices:
-            if (favConFoundDevices == [] or not device.split("::")[1] in str(favConFoundDevices)):
-                favConFoundDevices.append(device)
-        foundDevices = favConFoundDevices
-        return foundDevices
+        for device in sorted_found_devices:
+            if fav_con_found_devices == [] or not device.split("::")[1] in str(fav_con_found_devices):
+                fav_con_found_devices.append(device)
+        found_devices = fav_con_found_devices
+        return found_devices
 
-    # Query stream status for a device attached to backend
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamRunningStatus(self, device, sock=None):
-        if sock == None:
-            sock = self.sock
-        index = 0 # index of relevant line in split string
-        streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
-        streamStatus = streamStatus.split('\r\n')
-        streamStatus[index] = re.sub(r':', '', streamStatus[index]) #remove :
-        return streamStatus[index]
+    def stream_running_status(self, device, sock=None) -> str:
+        """
+        returns a single word status string for a given device.  Generally this will be running, overrun, or stopped
 
-    # Query stream buffer status for a device attached to backend
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamBufferStatus(self, device, sock=None):
-        if sock == None:
+        Arguments
+
+        device : str
+            The device ID to target
+        sock:
+            The socket to communicate over, or None to use the default.
+
+        Returns:
+            str: Single word status string to show the operation of streaming
+        """
+        if sock is None:
             sock = self.sock
-        index = 1 # index of relevant line in split string
-        streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
-        streamStatus = streamStatus.split('\r\n')
-        streamStatus[index] = re.sub(r'^Stripes Buffered: ', '', streamStatus[index])
-        return streamStatus[index]
+
+        index = 0
+        stream_status = self.sendAndReceiveText(sock, 'stream?', device)
+
+        # Split the response, select the first time and trim the colon
+        status_parts = stream_status.split('\r\n')
+        stream_status = re.sub(r':', '', status_parts[index])
+        return stream_status
+
+    def stream_buffer_status(self, device, sock=None) -> str:
+        """
+        returns the info on the stripes buffered during the stream
+
+        Arguments
+
+        device : str
+            The device ID to target
+        sock:
+            The socket to communicate over, or None to use the default.
+
+        Returns:
+            str: String with the numbers of stripes buffered
+        """
+        if sock is None:
+            sock = self.sock
+
+        index = 1
+        stream_status = self.sendAndReceiveText(sock, 'stream?', device)
+
+        # Split the response, select the second the info on the stripes buffered
+        status_lines = stream_status.split('\r\n')
+        stream_status = re.sub(r'^Stripes Buffered: ', '', status_lines[index])
+        return stream_status
 
     # TODO: MD - This function should be replaced with a more generic method of accessing the header
     # The return of a string with concatenated value and units should be replaced with something easier to parse
-    #
-    # Get the averaging used on the last/current stream
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamHeaderAverage(self, device, sock=None):
-        try:
-            if sock == None:
-                sock = self.sock
-            index = 2 # index of relevant line in split string
-            streamStatus = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
+    def stream_header_average(self, device, sock=None) -> str:
+        """
+        Gets the averaging used on the current stream, required for processing the stripe data returned from QIS
 
-            self.qps_stream_header = streamStatus
+        Arguments
+
+        device : str
+            The device ID to target
+        sock:
+            The socket to communicate over, or None to use the default.
+
+        Returns:
+            str: String with the rate and unit
+        """
+        try:
+            if sock is None:
+                sock = self.sock
+
+            index = 2 # index of relevant line in split string
+            stream_status = self.send_and_receive_text(sock, send_text='stream text header', device=device)
+
+            self.qps_stream_header = stream_status
 
             # Check for the header format.  If XML, process here
-            if (self.isXmlHeader(streamStatus)):
+            if self.is_xml_header(stream_status):
                 # Get the basic averaging rate (V3 header)
-                xml_root = self.getStreamXmlHeader(device=device, sock=sock)
-
-                # For QPS streaming, stream header v3 command has already been issued before this
+                xml_root = self.get_stream_xml_header(device=device, sock=sock)
                 self.module_xml_header = xml_root
 
-                # Return the time based averaging string
+                # Return the time-based averaging string
                 device_period = xml_root.find('.//devicePeriod')
-                if device_period == None:
+                if device_period is None:
                     device_period = xml_root.find('.//devicePerioduS')
-                    if device_period == None:
+                    if device_period is None:
                         device_period = xml_root.find('.//mainPeriod')
-                averageStr = device_period.text
-                return averageStr
+                average_str = device_period.text
+                return average_str
             # For legacy text headers, process here
             else:
-                streamStatus = streamStatus.split('\r\n')
-                if('Header Not Available' in streamStatus[0]):
-                    dummy = streamStatus[0] + '. Check stream has been run on device.'
+                status_lines = stream_status.split('\r\n')
+                if 'Header Not Available' in status_lines[0]:
+                    dummy = status_lines[0] + '. Check stream has been run on device.'
                     return dummy
-                streamStatus[index] = re.sub(r'^Average: ', '', streamStatus[index])
-                avg = streamStatus[index]
+                average_str = re.sub(r'^Average: ', '', status_lines[index])
+                avg = average_str
                 avg = 2 ** int(avg)
                 return '{}'.format(avg)
         except Exception as e:
             logging.error(device + ' Unable to get stream average.' + self.host + ':' + str(self.port))
             raise e
 
-    # Get the version of the stream and convert to string for the specified device
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamHeaderVersion(self, device, sock=None):
-        try:
-            if sock == None:
-                sock = self.sock
-            index = 0 # index of relevant line in split string
-            streamStatus = self.sendAndReceiveText(sock,'stream text header', device)
-            streamStatus = streamStatus.split('\r\n')
-            if 'Header Not Available' in streamStatus[0]:
-                str = streamStatus[0] + '. Check stream has been ran on device.'
-                logging.error(str)
-                return str
-            version = re.sub(r'^Version: ', '', streamStatus[index])
-            if version == '3':
-                version = 'Original PPM'
-            elif version == '4':
-                version = 'XLC PPM'
-            elif version == '5':
-                version = 'HD PPM'
-            else:
-                version = 'Unknown stream version'
-            return version
-        except Exception as e:
-            logging.error(device + ' Unable to get stream version.' + self.host + ':' + str(self.port))
-            raise e
+    def stream_header_format(self, device, sock=None) -> str:
+        """
+        Formats the stream header for use at the top of a CSV file.  This adds the appropriate time column and
+        each of the channel data columns
 
-    # Get a header string giving which measurements are returned in the string for the specified device
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamHeaderFormat(self, device, sock=None):
+        Arguments
+
+        device:
+            The device ID to target
+        sock:
+            The socket to communicate over, or None to use the default.
+
+        Returns:
+            str: Get the CSV formatted header string for the current stream
+        """
         try:
-            if sock == None:
+            if sock is None:
                 sock = self.sock
-            index = 1 # index of relevant line in split string STREAM MODE HEADER [?|V1,V2,V3]
-            streamStatus = self.sendAndReceiveText(sock,'stream text header', device)
-            # Check if this is a new XML form header
-            if (self.isXmlHeader (streamStatus)):
+
+            index = 1
+            stream_status = self.sendAndReceiveText(sock,'stream text header', device)
+            # Check if this is an XML form header
+            if self.is_xml_header (stream_status):
                # Get the basic averaging rate (V3 header)
-               xml_root = self.getStreamXmlHeader (device=device, sock=sock)
-               # Return the time based averaging string
+               xml_root = self.get_stream_xml_header (device=device, sock=sock)
+               # Return the time-based averaging string
                device_period = xml_root.find('.//devicePeriod')
                time_unit = 'uS'
-               if device_period == None:
+               if device_period is None:
                    device_period = xml_root.find('.//devicePerioduS')
-                   if device_period == None:
+                   if device_period is None:
                        device_period = xml_root.find('.//mainPeriod')
-                       if ('ns' in  device_period.text):
+                       if 'ns' in  device_period.text:
                         time_unit = 'nS'
-               averageStr = device_period.text
 
-               # Time column always first
-               formatHeader = 'Time ' + time_unit + ','
+               # The time column always first
+               format_header = 'Time ' + time_unit + ','
                # Find the channels section of each group and iterate through it to add the channel columns
                for group in xml_root.iter():
-                   if (group.tag == "channels"):
+                   if group.tag == "channels":
                        for chan in group:
                         # Avoid children that are not named channels
-                        if (chan.find('.//name') is not None):
-                            nameStr = chan.find('.//name').text
-                            unitStr = chan.find('.//units').text
-                            formatHeader = formatHeader +  nameStr + " " + unitStr + ","
-               return formatHeader
-            # Handle legacy text headers here
+                            if (chan.find('.//name') is not None):
+                                name_str = chan.find('.//name').text
+                                group_str = chan.find('.//group').text
+                                unit_str = chan.find('.//units').text
+                                format_header = format_header +  name_str + " " + group_str + " " + unit_str + ","
+               format_header = format_header.rstrip(",")
+               return format_header
             else:
-                streamStatus = streamStatus.split('\r\n')
-                if 'Header Not Available' in streamStatus[0]:
-                    str = streamStatus[0] + '. Check stream has been ran on device.'
-                    logging.error(str)
-                    return str
-                outputMode = self.sendAndReceiveText(sock,'Config Output Mode?', device)
-                powerMode = self.sendAndReceiveText(sock,'stream mode power?', device)
-                format = int(re.sub(r'^Format: ', '', streamStatus[index]))
+                stream_status = stream_status.split('\r\n')
+                if 'Header Not Available' in stream_status[0]:
+                    err_str = stream_status[0] + '. Check stream has been ran on device.'
+                    logging.error(err_str)
+                    return err_str
+                output_mode = self.sendAndReceiveText(sock,'Config Output Mode?', device)
+                power_mode = self.sendAndReceiveText(sock,'stream mode power?', device)
+                data_format = int(re.sub(r'^Format: ', '', stream_status[index]))
                 b0 = 1              #12V_I
                 b1 = 1 << 1         #12V_V
                 b2 = 1 << 2         #5V_I
                 b3 = 1 << 3         #5V_V
-                formatHeader = 'StripeNum, Trig, '
-                if format & b3:
-                    if ('3V3' in outputMode):
-                        formatHeader = formatHeader +  '3V3_V,'
+                format_header = 'StripeNum, Trig, '
+                if data_format & b3:
+                    if '3V3' in output_mode:
+                        format_header = format_header +  '3V3_V,'
                     else:
-                        formatHeader = formatHeader +  '5V_V,'
-                if format & b2:
-                    if ('3V3' in outputMode):
-                        formatHeader = formatHeader +  ' 3V3_I,'
+                        format_header = format_header +  '5V_V,'
+                if data_format & b2:
+                    if '3V3' in output_mode:
+                        format_header = format_header +  ' 3V3_I,'
                     else:
-                        formatHeader = formatHeader +  ' 5V_I,'
+                        format_header = format_header +  ' 5V_I,'
 
-                if format & b1:
-                    formatHeader = formatHeader + ' 12V_V,'
-                if format & b0:
-                    formatHeader = formatHeader + ' 12V_I'
-                if 'Enabled' in powerMode:
-                    if ('3V3' in outputMode):
-                        formatHeader = formatHeader + ' 3V3_P'
+                if data_format & b1:
+                    format_header = format_header + ' 12V_V,'
+                if data_format & b0:
+                    format_header = format_header + ' 12V_I'
+                if 'Enabled' in power_mode:
+                    if '3V3' in output_mode:
+                        format_header = format_header + ' 3V3_P'
                     else:
-                        formatHeader = formatHeader + ' 5V_P'
-                    if ((format & b1) or (format & b0)):
-                        formatHeader = formatHeader + ' 12V_P'
-                return formatHeader
+                        format_header = format_header + ' 5V_P'
+                    if (data_format & b1) or (data_format & b0):
+                        format_header = format_header + ' 12V_P'
+                return format_header
         except Exception as e:
             logging.error(device + ' Unable to get stream  format.' + self.host + ':' + '{}'.format(self.port))
             raise e
 
-    # Get stripes out of the backends stream buffer for the specified device using text commands
-    # The objects connection needs to be opened (connect()) before this is used
-    def streamGetStripesText(self, sock, device, numStripes=4096, skipStatusCheck=False):
+    def stream_get_stripes_text(self, sock, device: str) -> tuple[str, str]:
+        """
+        Retrieve and process text data from a QIS stream.
+        We try to ready a block of data and also check for end of data and error cases
 
-        bufferStatus = False
-        # Allows the status check to be skipped when emptying the buffer after streaming has stopped (saving time)
-        if (skipStatusCheck == False):
-            streamStatus = self.sendAndReceiveText(sock, 'stream?', device)
-            if ('Overrun' in streamStatus) or ('8388608 of 8388608' in streamStatus):
-                bufferStatus = True
-        stripes = self.sendAndReceiveText(sock, 'stream text all', device, readUntilCursor=True)
-#            time.sleep(0.001)
-        if stripes[-1:] != self.cursor:
-            return "Error no cursor returned."
-        else:
-            genEndOfFile = 'eof\r\n>'
-            if stripes[-6:] == genEndOfFile:
-                removeChar = -6
-            else:
-                removeChar = -1
+        Args:
+            sock:
+                The socket instance used for communication with the device.
+            device:
+                The device ID string
 
-        # stripes = stripes.split('\r\n')
-        # stripes = filter(None, stripes) #remove empty sting elements
-        #printText(stripes)
-        return bufferStatus, removeChar, stripes
+        Returns:
+            A tuple containing:
+            - The status of the data stream as a comma seperated list of status items
+            - The retrieved text data from the stream.
+        """
 
-    def avgStringFromPwr(self, avgPwrTwo):
-        if(avgPwrTwo==0):
-            return '0'
-        elif(avgPwrTwo==1):
-            return '2'
-        elif(avgPwrTwo > 1 and avgPwrTwo < 10 ):
-            avg = 2 ** int(avgPwrTwo)
-            return '{}'.format(avg)
-        elif(avgPwrTwo==10):
-            return '1k'
-        elif(avgPwrTwo==11):
-            return '2k'
-        elif(avgPwrTwo==12):
-            return '4k'
-        elif(avgPwrTwo==13):
-            return '8k'
-        elif(avgPwrTwo==14):
-            return '16k'
-        elif(avgPwrTwo==15):
-            return '32k'
-        else:
-            return 'Invalid Average Value'
+        stream_status = "running"
+        is_end_of_block = False
 
-    # TODO: MD Thinks this implements software averaging, is unused and now performed in QIS
-    # Works out average values of timescales longer than max device averaging
-    def averageStripes(self, leftover, streamAverage, newStripes, f, remainingStripes = []):
-        newString = str(newStripes)
-        newList = []
-        if remainingStripes == []:
-            newList = newString.split('\r\n')
-        else:
-            newList = remainingStripes
-            newList.extend(newString.split('\r\n'))
-        numElements = newList[0].count(' ') + 1
-        streamTotalAverage = leftover + streamAverage
-        splitList = [] * numElements
-        if len(newList) < streamTotalAverage:
-            remainingStripes = newList[:-1]
-            return leftover, remainingStripes
-        runningAverage = [0] * (len(newList[0].split(' ')) - 2)
-        j = 0
-        z = 1
-        for i in newList[:-1]:
-            splitList = i.split(' ')
-            splitNumbers = [int(x) for x in splitList[2:]]
-            runningAverage = [sum(x) for x in zip(runningAverage, splitNumbers)]
-            if z == math.floor(streamTotalAverage):
-                finalAverage = splitList[0:2] + [str(round(x / streamAverage)) for x in runningAverage]
-                for counter in xrange(len(finalAverage)-1):
-                    finalAverage[counter] = finalAverage[counter] + ' '
-                for x in finalAverage:
-                    f.write(x)
-                f.write('\r\n')
-                streamTotalAverage += streamAverage
-                j += 1
-            z += 1
-        remainingStripes = newList[int(math.floor(j * streamAverage + leftover)):-1]
-        leftover = (streamTotalAverage - streamAverage) % 1
-        return leftover, remainingStripes
+        # Try and read the next blocks of stripes from QIS
+        stripes = self.sendAndReceiveText(sock, 'stream text all', device)
 
-    def deviceMulti(self, device):
-        if (device in self.deviceList):
+        # The 'eof' marker ONLY indicates that the full number of requested stripes was not available.
+        # More may be found later.
+        if stripes.endswith("eof\r\n>"):
+            is_end_of_block = True
+            stripes = stripes.rstrip("eof\r\n>")
+        # The current reader seems to lose the final line feeds, so check for this
+        if len(stripes) > 0:
+            if not stripes.endswith("\r\n"):
+                stripes += "\r\n"
+
+        # If there is an unusually small data set, check the stream status to make sure data is coming
+        # 7 is a little arbitrary, but smaller than any possible stripe size.  Over calling will not matter anyway
+        if len(stripes) < 7 or is_end_of_block:
+            current_status = self.sendAndReceiveText(sock, 'stream?', device).lower()
+            if "running" in current_status:
+                stream_status = "running"
+            elif "overrun" in current_status or "out of buffer" in current_status:
+                stream_status = "overrun"
+            elif "stopped" in current_status:
+                stream_status = "stopped"
+                # If the stream is stopped and at end of block, we have read all the data
+                if is_end_of_block:
+                    stream_status = stream_status + "eof"
+
+        return stream_status, stripes
+
+    def device_control_index(self, device) -> int:
+        """
+        Returns the index of the device in the control lists.  If the device is not
+        registered, then it is added first.  This is a key part of allowing us to
+        track the status of multiple streaming devices and manage them from outside
+        their streaming thread
+
+        Args:
+            device:
+                Device ID string
+        Returns:
+            Index of the device in the various control lists
+
+        """
+        if device in self.deviceList:
             return self.deviceList.index(device)
         else:
             self.listSemaphore.acquire()
@@ -1093,7 +1009,17 @@ class QisInterface:
             self.listSemaphore.release()
             return self.deviceList.index(device)
 
-    def deviceDictSetup(self, module):
+    def device_dict_setup(self, module) -> None:
+        """
+        Adds a dictionary entry for a new module we are connecting to (including the base QIS connection)
+        This is used for tracking the status of modules throughout the streaming process
+
+        Args:
+            module:
+
+        Returns:
+            None
+        """
         if module in self.deviceDict.keys():
             return
         elif module == 'QIS':
@@ -1105,83 +1031,70 @@ class QisInterface:
             self.deviceDict[module] = [False, 'Stopped', "User hasn't started stream"]
             self.dictSemaphore.release()
 
-    def streamInterrupt(self):
-        for key in self.deviceDict.keys():
-            if self.deviceDict[key][0]:
-                return True
-        return False
-
-    def interruptList(self):
-        streamIssueList = []
-        for key in self.deviceDict.keys():
-            if self.deviceDict[key][0]:
-                streamIssue = [key]
-                streamIssue.append(self.deviceDict[key][1])
-                streamIssue.append(self.deviceDict[key][2])
-                streamIssueList.append(streamIssue)
-        return streamIssueList
-
-    def waitStop(self):
-        running = 1
-        while running != 0:
-            threadNameList = []
-            for t1 in threading.enumerate():
-                threadNameList.append(t1.name)
-            running = 0
-            for module in self.deviceList:
-                if (module in threadNameList):
-                    running += 1
-                    time.sleep(0.5)
-            time.sleep(1)
-
-    def convertStreamAverage (self, streamAveraging):
-        returnValue = 32000;
-        if ("k" in streamAveraging):
-            returnValue = streamAveraging.replace("k", "000")
-        else:
-            returnValue = streamAveraging
-
-        return returnValue
-
     # Pass in a stream header and we check if it is XML or legacy format
-    def isXmlHeader (self, headerText):
-        if('?xml version=' not in headerText):
-            return False;
+    def is_xml_header (self, header_text) -> bool:
+        """
+        Checks if the given header string is in XML format (as apposed to legacy text format) or an invalid string
+
+        Args:
+            header_text:
+                The header string to evaluate
+        Returns:
+            True if the header is in XML form
+
+        """
+        if '?xml version=' not in header_text:
+            return False
         else:
             return True
 
     # Internal function.  Gets the stream header and parses it into useful information
-    def getStreamXmlHeader (self, device, sock=None):
+    def get_stream_xml_header (self, device, sock=None) -> ET.Element:
+        """
+        Gets the XML format header from an attached device (which must have run or be running a stream)
+        Parses the string into XML and returns the root element
+
+        Args:
+            device:
+                Device ID to return from
+            sock:
+                Optional QIS socket to use for communication.
+
+        Returns:
+
+        """
+        header_data = None
+
         try:
-            if sock == None:
+            if sock is None:
                 sock = self.sock
             count = 0
-            while(True):
+            while True:
                 if count > 5:
                     break
                 count += 1
                 # Get the raw data
-                headerData = self.sendAndReceiveText(sock, sentText='stream text header', device=device)
+                header_data = self.send_and_receive_text(sock, send_text='stream text header', device=device)
 
                 # Check for no header (no stream started)
-                if('Header Not Available' in headerData):
+                if 'Header Not Available' in header_data:
                     logging.error(device + ' Stream header not available.' + self.host + ':' + str(self.port))
                     continue
 
                 # Check for XML format
-                if('?xml version=' not in headerData):
+                if '?xml version=' not in header_data:
                     logging.error(device + ' Header not in XML form.' + self.host + ':' + str(self.port))
                     continue
 
                 break
-            # Parse XML into structured format
-            xml_root = ET.fromstring(headerData)
+            # Parse XML into a structured format
+            xml_root = ET.fromstring(header_data)
 
             # Check header format is supported by quarchpy
-            versionStr = xml_root.find('.//version').text
-            if ('V3' not in versionStr):
-                logging.error(device + ' Stream header version not compatible: ' + xml_root['version'].text + '.' + self.host + ':' + str(self.port))
-                raise Exception ("Stream header version not supported");
+            version_str = xml_root.find('.//version').text
+            if 'V3' not in version_str:
+                logging.error(device + ' Stream header version not compatible: ' + xml_root.find('version').text + '.' + self.host + ':' + str(self.port))
+                raise Exception ("Stream header version not supported")
 
             # Return the XML structure for the code to use
             return xml_root
@@ -1190,516 +1103,106 @@ class QisInterface:
             logging.error(device + ' Exception while parsing stream header XML.' + self.host + ':' + str(self.port))
             raise e
 
-    def create_dir_structure(self, module, directory=None):
+    def send_command (self, command: str, device: str = '', qis_socket: socket.socket=None, no_cursor_expected: bool=False, no_response_expected: bool=False, command_delay: float=0.0) -> str:
         """
-        Creates the QPS directory structure and (empty) files to be written to
+        Sends a command and returns the response as a string.  Multiple lines are escaped with CRLF.
+        The command is sent to the QIS socket, and depending on the command will be replied by either QIS
+        or the hardware module.
 
-        I've put a bunch of try-except just to be sure the directory is correctly created.
-        ( There's probably a better way of doing this than this )
-
-        :param:    module: String  - Module string
-        :param: directory: String  - Name of directory for QPS stream (defaults to default recording location if invalid)
-        :return:  success: Boolean - Was the file structure created successfully?
+        Args:
+            command:
+                Command string
+            device:
+                Optional Device ID string to send the command to. Use default/blank for QIS direct commands
+            qis_socket:
+                Optional Socket to use for the command, if the default is not wanted
+            no_cursor_expected:
+                Optional Flag true if the command does not return a cursor, so we should not wait for it
+            no_response_expected:
+                Optional Flag true if the command does not return a response, so we should not wait for it.
+            command_delay:
+                Optional delay to prevent commands running in close succession.  Timed in seconds.
+        Returns:
+            Command response string or None if no response expected
         """
-
-        directory = self.create_qps_directory(directory)
-
-        digital_count = 0
-        non_dig_counter = 0
-        self.streamGroups = StreamGroups()
-        for index, i in enumerate(self.module_xml_header.findall('.//channels')):
-            self.streamGroups.add_group(index)
-            for item in i.findall('.//channel'):
-                self.streamGroups.groups[index].add_channel(item.find(".//name"), item.find(".//group"), item.find(".//dataPosition"))
-                if item.find(".//group").text == "Digital":
-                    digital_count += 1
-                    self.has_digitals = True
-                else:
-                    non_dig_counter += 1
-
-        # Inner folders for analogue and digital signals streaming
-        in_folder_analogue = "data000"
-        try:
-            inner_path_analogues = os.path.join(directory, in_folder_analogue)
-            os.mkdir(inner_path_analogues)
-        except:
-            logging.warning("Failed to make inner directory for analogue signals " + inner_path_analogues)
-            return False
-
-        in_folder_digitals = "data101"
-        if self.has_digitals:
-            try:
-                inner_path_digitals = os.path.join(directory, in_folder_digitals)
-                os.mkdir(inner_path_digitals)
-            except:
-                logging.warning("Failed to make inner directory for digital signals "+ inner_path_digitals)
-                return False
-
-        logging.debug("Steaming to : " + self.qps_record_dir_path)
-
-        logging.debug("Creating qps data files")
-        try:
-            for i in range(non_dig_counter):
-                file_name = "data000_00"+i+"_000000000"
-                f = open(os.path.join(inner_path_analogues, file_name), "w")
-                f.close()
-            for i in range(digital_count):
-                x = i
-                while len(str(x)) < 3:
-                    x = "0" + str(x)
-                file_name = "data101_"+x+"_000000000"
-                f = open(os.path.join(inner_path_digitals, file_name), "w")
-                f.close()
-        except:
-            logging.warning("failed to create qps data files for analogue signals")
-            return False
-
-        logging.debug("Finished creating qps data files")
-
-        logging.debug("Creating qps upper level files")
-        try:
-            file_names = ["annotations.xml", "notes.txt", "triggers.txt"]
-            for file_nome in file_names:
-                f = open(os.path.join(self.qps_record_dir_path, file_nome), "w")
-                f.close()
-        except Exception as err:
-            logging.warning("failed to create qps upper level files, "+err)
-            return False
-
-        try:
-            # Adding data000.idx separate as it's written in bytes not normal text
-            f = open(os.path.join(self.qps_record_dir_path, "data000.idx"), "wb")
-            f.close()
-            if digital_count > 0:
-                f = open(os.path.join(self.qps_record_dir_path, "data101.idx"), "wb")
-                f.close()
-        except Exception as err:
-            logging.warning("failed to create data000.idx file, "+err)
-            return False
-
-        logging.debug("Finished creating QPS dir structure")
-
-        return True
-
-    def create_qps_directory(self, directory):
-        folder_name = None
-        # Checking if there was a directory passed; and if it's a valid directory
-        if not directory:
-            directory = os.path.join(os.path.expanduser("~"), "AppData", "Local", "Quarch", "QPS", "Recordings")
-            logging.debug("No directory specified")
-        elif not os.path.isdir(directory):
-            new_dir = os.path.join(str(os.path.expanduser("~"), "AppData", "Local", "Quarch", "QPS", "Recordings"))
-            logging.warning(directory+" was not a valid directory, streaming to default location: \n"+new_dir)
-            directory = new_dir
+        if no_response_expected:
+            self.send_text(qis_socket, command, device)
+            return ""
         else:
-            # Split the directory into a path of folders
-            folder_name = str(directory).split(os.sep)
-            # last folder name is the name we want
-            folder_name = folder_name[-1]
-            # Make it known to the entire class that the path we're streaming to is the one sent across by the user
-            self.qps_record_dir_path = directory
-
-        # If no folder name for the stream was passed, then default to 'quarchpy_recording' and a timestamp
-        if not folder_name:
-            folder_name = "quarchpy_recording"
-            folder_name = folder_name + "-" + time.time()
-            path = os.path.join(directory, self.qps_stream_folder_name)
-            os.mkdir(path)
-            self.qps_record_dir_path = path
-
-        self.qps_stream_folder_name = folder_name
-
-        return directory
-
-    def create_index_file(self):
-        """
-        Create the necessary index file for QPS data000.idx
-
-        For future revisions, this should be updated if there are file limits on each data file
-        Current implementation assumes only 1 of each data file are made.
-
-        No Return./
-        """
-
-        stream_header_size = -1
-
-        my_byte_array = []
-
-        # tree = ET.ElementTree(ET.fromstring(self.module_xml_header[:-1]))
-        tree = self.module_xml_header
-
-        return_b_array = []
-        outBuffer = []
-        x = 20
-        stream_header_size = 20
-
-        temp_dict = {"channels": 0}
-
-        return_b_array, stream_header_size = self.add_header_to_byte_array(return_b_array, stream_header_size,
-                                                                           temp_dict, tree, is_digital=False)
-
-        self.add_header_to_buffer(outBuffer, return_b_array, stream_header_size, temp_dict)
-
-        # Attempting to read the size of the first file in data files
-        file = os.path.join(self.qps_record_dir_path, "data000", "data000_000_000000000")
-        data = None
-        with open(file, "rb") as f:
-            data = f.read()  # if you only wanted to read 512 bytes, do .read(512)
-
-        if not data:
-            raise "No data written to file"
-
-        num_records = len(data) / 8
-        logging.debug("num_record = " + num_records)
-        return_b_array.append(int(num_records).to_bytes(4, byteorder='big'))
-
-        start_number = 0
-        logging.debug("start_record = " + start_number)
-        return_b_array.append(start_number.to_bytes(8, byteorder='big'))
-
-        num_records = num_records - 1
-        logging.debug("last_Record_number = "+num_records)
-        return_b_array.append(int(num_records).to_bytes(8, byteorder='big'))
-
-        # Add names of every file in data000 dir here.
-        files = os.listdir(os.path.join(self.qps_record_dir_path, "data000"))
-        for file3 in files:
-            # print(file)
-            item = strToBb(file3, False)
-            # print(item)
-            while len(item) < 32:
-                item.append("\x00")
-            # print(item)
-            return_b_array.append(item)
-
-        with open(os.path.join(self.qps_record_dir_path, "data000.idx"), "ab") as f:
-            for item in outBuffer:
-                # print(item)
-                # print(type(item))
-                f.write(bytes(item))
-            # f.write(outBuffer)
-
-        with open(os.path.join(self.qps_record_dir_path, "data000.idx"), "ab") as f:
-            self.write_b_array_to_idx_file(f, return_b_array)
-
-    def create_index_file_digitals(self):
-        """
-        Create the necessary index file for QPS data101.idx
-
-        For future revisions, this should be updated if there are file limits on each data file
-        Current implementation assumes only 1 of each data file are made.
-
-        No Return.
-        """
-
-        stream_header_size = -1
-        my_byte_array = []
-        tree = self.module_xml_header
-        return_b_array = []
-        outBuffer = []
-        temp_dict = {}
-
-        return_b_array, stream_header_size = self.add_header_to_byte_array(return_b_array, stream_header_size,
-                                                                           temp_dict, tree, is_digital=True)
-
-        self.add_header_to_buffer(outBuffer, return_b_array, stream_header_size, temp_dict)
-
-        # Attempting to read the size of the first file in data files
-        file = os.path.join(self.qps_record_dir_path, "data101", "data101_000_000000000")
-        data = None
-        with open(file, "rb") as f:
-            data = f.read()  # if you only wanted to read 512 bytes, do .read(512)
-
-        if not data:
-            raise "No data written to file"
-
-        num_records = len(data) / 8
-        logging.debug("num_record = "+ num_records)
-        return_b_array.append(int(num_records).to_bytes(4, byteorder='big'))
-
-        start_number = 0
-        logging.debug("start_record = "+start_number)
-        return_b_array.append(start_number.to_bytes(8, byteorder='big'))
-
-        num_records = num_records - 1
-        logging.debug("last_Record_number = "+ num_records)
-        return_b_array.append(int(num_records).to_bytes(8, byteorder='big'))
-
-        # Add names of every file in data000 dir here.
-        files = os.listdir(os.path.join(self.qps_record_dir_path, "data101"))
-        for file3 in files:
-            # print(file)
-            item = strToBb(file3, False)
-            # print(item)
-            while len(item) < 32:
-                item.append("\x00")
-            # print(item)
-            return_b_array.append(item)
-
-        with open(os.path.join(self.qps_record_dir_path, "data101.idx"), "ab") as f:
-            for item in outBuffer:
-                f.write(bytes(item))
-
-        with open(os.path.join(self.qps_record_dir_path, "data101.idx"), "ab") as f:
-            self.write_b_array_to_idx_file(f, return_b_array)
-
-    def add_header_to_byte_array(self, return_b_array, stream_header_size, temp_dict, tree, is_digital=False):
-        for element in tree:
-            if "legacyVersion" in element.tag:
-                intItem = element.text
-                temp_dict[element.tag] = intItem
-                # my_byte_array.append(int.to_bytes(intItem, 'big'))
-            if "legacyAverage" in element.tag:
-                intItem = element.text
-                temp_dict[element.tag] = intItem
-                # my_byte_array.append(int.to_bytes(intItem, 'big'))
-            if "legacyFormat" in element.tag:
-                intItem = element.text
-                temp_dict[element.tag] = intItem
-                # my_byte_array.append(int.to_bytes(intItem, 'big'))
-            if "mainPeriod" in element.tag:
-                intItem = element.text
-                intItem = intItem[:-2]
-                temp_dict[element.tag] = intItem
-            if "channels" in element.tag:
-                counter = 0
-                for child in element:
-                    for child2 in child:
-                        if "group" in child2.tag:
-                            if is_digital:
-                                if str(child2.text).lower() == "digital":
-                                    counter += 1
-                            else:
-                                if str(child2.text).lower() != "digital":
-                                    counter += 1
-
-                temp_dict[element.tag] = counter
-
-                return_b_array = []
-
-                stream_header_size = 20
-
-                # Cycle through all the channels.
-                for child in element:
-
-                    if child.tag == "groupId":
-                        continue
-
-                    if is_digital:
-                        # skip channel if we're only looking for digitals
-                        if not str(child.find(".//group").text).lower() == "digital":
-                            continue
-                    else:
-                        # skip if we're looking for analogues
-                        if str(child.find(".//group").text).lower() == "digital":
-                            continue
-
-                    # my_byte_array.append(int.to_bytes(5, 'big'))
-                    return_b_array.append(int(5).to_bytes(4, byteorder='big'))
-                    stream_header_size += 4
-                    name = None
-
-                    for child2 in child:
-
-                        if "group" in child2.tag:
-                            my_byte_array = strToBb(str(child2.text))
-                            return_b_array.append(my_byte_array)
-                            # QPS index file requires name tag come after group tag.
-                            return_b_array.append(name)
-                            stream_header_size += len(my_byte_array)
-
-                        if "name" in child2.tag:
-                            my_byte_array = strToBb(str(child2.text))
-                            name = my_byte_array
-                            stream_header_size += len(my_byte_array)
-
-                        if "units" in child2.tag:
-                            my_byte_array = strToBb(str(child2.text))
-                            return_b_array.append(my_byte_array)
-                            stream_header_size += len(my_byte_array)
-
-                            """
-                            # Unclear if the only thing here is TRUE
-                            bb = strToBB( Boolean.toString( cdr.isUsePrefixStr() ));
-                            bbList.add(bb);
-                            retVal += bb.capacity();
-                            """
-                            my_byte_array = strToBb(str("true"))
-                            return_b_array.append(my_byte_array)
-                            stream_header_size += len(my_byte_array)
-
-                        if "maxTValue" in child2.tag:
-                            my_byte_array = strToBb(str(child2.text))
-                            return_b_array.append(my_byte_array)
-                            stream_header_size += len(my_byte_array)
-
-        return return_b_array, stream_header_size
-
-    def add_header_to_buffer(self, outBuffer, return_b_array, stream_header_size, temp_dict):
-        number = 2
-        outBuffer.append(number.to_bytes(4, byteorder='big'))
-        logging.debug("indexVersion : "+ number)
-
-        number = 1 if self.has_digitals else 0
-        outBuffer.append(number.to_bytes(4, byteorder='big'))
-        logging.debug("value0 : "+ number)
-        number = stream_header_size
-        outBuffer.append(number.to_bytes(4, byteorder='big'))
-        logging.debug("header_size : "+number)
-        logging.debug("legacyVersion : "+ temp_dict['legacyVersion'])
-        outBuffer.append(int(temp_dict["legacyVersion"]).to_bytes(4, byteorder='big'))
-        logging.debug("legacyAverage : " + temp_dict['legacyAverage'])
-        outBuffer.append(int(temp_dict["legacyAverage"]).to_bytes(4, byteorder='big'))
-        logging.debug("legacyFormat : "+temp_dict['legacyFormat'])
-        outBuffer.append(int(temp_dict["legacyFormat"]).to_bytes(4, byteorder='big'))
-        logging.debug("mainPeriod : "+temp_dict['mainPeriod'])
-        outBuffer.append(int(temp_dict["mainPeriod"]).to_bytes(4, byteorder='big'))
-        logging.debug("channels : "+temp_dict['channels'])
-        outBuffer.append(int(temp_dict["channels"]).to_bytes(4, byteorder='big'))
-        return_b_array.append(int(self.qps_record_start_time).to_bytes(8, byteorder='big'))
-        index_record_state = True
-        logging.debug(int(1))
-        return_b_array.append(int(1).to_bytes(1, byteorder='big'))
-        record_type = 1
-        logging.debug("record type : "+int(index_record_state))
-        return_b_array.append(int(record_type).to_bytes(1, byteorder='big'))
-
-    def write_b_array_to_idx_file(self, f, return_b_array):
-        # print(return_b_array)
-        for item in return_b_array:
-            # print(item)
-            if isinstance(item, int):
-                # 'f.write(str(item).encode())
-                # print(item)
-                f.write(bytes([item]))
-                continue
-            if isinstance(item, bytes):
-                # print(item)
-                f.write(bytes(item))
-                continue
-            if isinstance(item, list):
-                for character in item:
-                    if isinstance(character, int):
-                        f.write(bytes([character]))
-                        continue
-                    elif isinstance(item, bytes):
-                        f.write(item)
-                        continue
-                    else:
-                        f.write(str(character).encode())
-                        continue
-
-    def create_qps_file(self, module):
-        """
-        Creates the end QPS file that is used to open QPS
-
-        :param module: Module QTL number that was used for the stream
-        :return:
-        """
-
-        with open(os.path.join(self.qps_record_dir_path, self.qps_stream_folder_name + ".qps"), "w") as f:
-            x = datetime.datetime.fromtimestamp(self.qps_record_start_time / 1000.0)
-            x = str(x).split(".")
-            x = x[0]
-            x = x.replace("-", " ")
-            f.write("Started: "+x+"\n")
-            f.write("Device: " + module + "\n")
-            f.write("Fixture: \n")
-
-            x = datetime.datetime.now()
-            x = str(x).split(".")
-            x = x[0]
-            x = x.replace("-", " ")
-            f.write("Saved: "+x+ "\n")
-
-
-    def sendCommand(self, cmd, device="", timeout=20,sock=None,readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse=True):
-        '''Send command is used to send a command to QIS and as far as I can see it has no difference than sendAndReceiveCmd'''
-        if expectedResponse is True:
-            if sock == None:
-                sock = self.sock
+            if qis_socket is None:
+                qis_socket = self.sock
             if not (device == ''):
-                self.deviceDictSetup(device)
-            res = self.sendAndReceiveText(sock, cmd, device, readUntilCursor)
-            if (betweenCommandDelay > 0):
-                time.sleep(betweenCommandDelay)
+                self.device_dict_setup(device)
+            res = self.send_and_receive_text(qis_socket, command, device, not no_cursor_expected)
 
-            # If ends with cursor get rid of it
+            # This is a poor sleep mechanism!  Better would be to track time since the last command
+            if command_delay > 0:
+                time.sleep(command_delay)
+
+            # Trim the expected cursor at the end of the response
             if res[-3:] == '\r\n>':
                 res = res[:-3]  # remove last three chars - '\r\n>'
             elif res[-2:] == '\n>':
                     res = res[:-2]  # remove last 2 chars - '\n>'
             return res
 
-        else :
-            self.sendText(sock, cmd, device)
-            return
+    def send_and_receive_text(self, sock, send_text='$help', device='', read_until_cursor=True) -> str:
+        """
+        Internal function for command handling.  This handles complex cases such as timeouts and XML
+        response formatting, which conflicts with the default cursor
 
-    # when sending commands to module (as opposed to back end)
-    # If read until cursor is set to True (which is default) then keep reading response until a cursor is returned as the last character of result string
-    # After command is sent wait for betweenCommandDelay which defaults to 0 but can be specified to add a delay between commands
-    # The objects connection needs to be opened (connect()) before this is used
-    def sendCmd(self, device='', cmd='$help', sock=None, readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse = True):
-        '''Send command is used to send a command to QIS and as far as I can see it has no difference than sendAndReceiveCmd'''
-        if expectedResponse is True:
-            res = self.sendAndReceiveCmd(device=device, cmd=cmd, sock=sock, readUntilCursor=readUntilCursor, betweenCommandDelay=betweenCommandDelay)
-            #If ends with cursor get rid of it
-            if res[-1:] == self.cursor:
-                res = res[:-3] #remove last three chars - hopefully '\r\n>'
-            return res
-        else :
-            self.sendText(sock, cmd, device)
-            return
+        Args:
+            sock:
+                The socket to communicate over
+            send_text:
+                The command text to send
+            device:
+                Optional device ID to send the command to
+            read_until_cursor:
+                Flag to indicate if we should read until the cursor is returned
 
-    def sendAndReceiveCmd(self, sock=None, cmd='$help', device='', readUntilCursor=True, betweenCommandDelay=0.0):
-        if sock==None:
-            sock = self.sock
-        if not (device == ''):
-            self.deviceDictSetup(device)
-        res =  self.sendAndReceiveText(sock, cmd, device, readUntilCursor)
-        if (betweenCommandDelay > 0):
-            time.sleep(betweenCommandDelay)
-        #If ends with cursor get rid of it
-        if res[-1:] == '>':
-            res = res[:-3] #remove last three chars - hopefully '\r\n>'
-        return cmd + ' : ' + res
+        Returns:
+            Response string from the module
+        """
 
-    def sendAndReceiveText(self, sock, sentText='$help', device='', readUntilCursor=True):
-        # Send text to QIS
-        # The objects connection needs to be opened (connect()) before this is used
-        # If read until cursor is set to True (which is default) then keep reading response until a cursor is returned as the last character of result string
-
-        # do sendText
+        # Avoid multiple threads trying to send at once. QIS only has a single socket for all devices
         self.sockSemaphore.acquire()
         try:
-            #Send Text
-            self.sendText(sock, sentText, device)
-            #Receive Response
-            res = self.receiveText(sock)
-            # Error Check / validate response
+            # Send the command
+            self.send_text(sock, send_text, device)
+            # Receive Response
+            res = self.receive_text(sock)
+            # If we get no response, log an error and try to flush using a simple stream query command
+            # If that works, we retry our command.  In fail cases we raise an exception and abort as
+            # the connection is bad
             if len(res) == 0:
-                #logging.error("Empty response from QIS.")
-                self.sendText(sock, "stream?", device)
-                res = self.receiveText(sock)
+                logging.error("Empty response from QIS for cmd: " + send_text + ". To device: " + device)
+                self.send_text(sock, "stream?", device)
+                res = self.receive_text(sock)
                 if len(res) != 0:
-                    self.sendText(sock, sentText, device)
-                    res = self.receiveText(sock)
+                    self.send_text(sock, send_text, device)
+                    res = self.receive_text(sock)
                     if len(res) == 0:
-                        raise (Exception("Empty response from QIS. Sent: " + sentText))
+                        raise (Exception("Empty response from QIS. Sent: " + send_text))
                 else:
-                    raise (Exception("Empty response from QIS. Sent: " + sentText))
+                    raise (Exception("Empty response from QIS. Sent: " + send_text))
 
             if res[0] == self.cursor:
-                logging.warning('Only returned a cursor from QIS. Sent: ' + sentText)
+                logging.error('Only returned a cursor from QIS. Sent: ' + send_text)
+                raise (Exception("Only returned a cursor from QIS. Sent: " + send_text))
             if 'Create Socket Fail' == res[0]: # If create socked fail (between QIS and tcp/ip module)
-                logging.warning(res[0])
+                logging.error(res[0])
+                raise (Exception("Failed to open QIS to module socked. Sent: " + send_text))
             if 'Connection Timeout' == res[0]:
-                logging.warning(res[0])
-            # If reading until a cursor comes back then keep reading until a cursor appears or max tries exceeded
-            if readUntilCursor:
-                import xml.etree.ElementTree as ET
+                logging.error(res[0])
+                raise (Exception("Connection timeout from QIS. Sent: " + send_text))
 
-                maxReads = 1000
+            # If reading until a cursor comes back, then keep reading until a cursor appears or max tries exceeded
+            # Because large XML responses are possible, we need to validate them as complete before looking
+            # for a final cursor
+            if read_until_cursor:
+
+                max_reads = 1000
                 count = 1
                 is_xml = False
 
@@ -1726,111 +1229,255 @@ class QisInterface:
                             break
 
                     # Receive more data
-                    res += self.receiveText(sock)
+                    res += self.receive_text(sock)
 
                     # Increment count and check for max reads
                     count += 1
-                    if count >= maxReads:
+                    if count >= max_reads:
                         raise Exception('Count = Error: max reads exceeded before response was complete')
 
             return res
 
         except Exception as e:
-            #something went wrong during send qis cmd
-            logging.error("Error! Unable to retrieve response from QIS. Command: " + sentText)
+            # Something went wrong during send qis cmd
+            logging.error("Error! Unable to retrieve response from QIS. Command: " + send_text)
             logging.error(e)
             raise e
         finally:
             self.sockSemaphore.release()
 
+    def receive_text(self, sock) -> str:
+        """
+        Received bytes from the socket and converts to a test string
+        Args:
+            sock:
+                Socket to communicate over
 
-    def receiveText(self, sock):
-        if self.pythonVersion == '3':
-            res = bytearray()
-            res.extend(self.rxBytes(sock))
-            res = res.decode()
-        else:
-            res = self.rxBytes(sock)
+        Returns:
+
+        """
+        res = bytearray()
+        res.extend(self.rx_bytes(sock))
+        res = res.decode()
+
         return res
 
-    def sendText(self, sock, message='$help', device=''):
-    # Send text to QIS, don't read it's response
-    # The objects connection needs to be opened (connect()) before this is used
+    def send_text(self, sock, message='$help', device='') -> bool:
+        """
+
+        Args:
+            sock:
+                Socket to communicate over
+            message:
+                text command to send
+            device:
+                Optional device ID to target with the command
+
+        Returns:
+
+        """
+        # Send text to QIS, don't read its response
         if device != '':
-            #specialTimeout =  '%500000'
-            #message = device +  ' ' + specialTimeout +  ' ' + message
             message = device + ' ' + message
-            #printText('Sending: "' + message + '" ' + self.host + ':' + str(self.port))
 
-        if self.pythonVersion == 2:
-            sock.sendall(message + '\r\n')
-        else:
-            convM = message + '\r\n'
-            sock.sendall(convM.encode('utf-8'))
-        return 'Sent:' + message
+        conv_mess = message + '\r\n'
+        sock.sendall(conv_mess.encode('utf-8'))
+        return True
 
-    def rxBytes(self,sock):
-        #sock.setblocking(0) #make socket non-blocking
-        #printText('rxBytes')
-        maxExceptions=10
+    def rx_bytes(self,sock) -> bytes:
+        """
+        Reads an array of bytes from the socket as part of handling a command response
+
+        Args:
+            sock:
+                Socket to communicate over
+        Returns:
+            Bytes read
+
+        """
+
+        max_exceptions=10
         exceptions=0
-        maxReadRepeats=50
-        readRepeats=0
+        max_read_repeats=50
+        read_repeats=0
         timeout_in_seconds = 10
-        #Keep trying to read bytes until we get some, unless number of read repeads or exceptions is exceeded
+
+        #Keep trying to read bytes until we get some, unless the number of read repeats or exceptions is exceeded
         while True:
             try:
-                #select.select returns a list of waitable objects which are ready. On windows it has to be sockets.
-                #The first arguement is a list of objects to wait for reading, second writing, third 'exceptional condition'
-                #We only use the read list and our socket to check if it is readable. if no timeout is specified then it blocks until it becomes readable.
+                # Select.select returns a list of waitable objects which are ready. On Windows, it has to be sockets.
+                # The first argument is a list of objects to wait for reading, second writing, third 'exceptional condition'
+                # We only use the read list and our socket to check if it is readable. if no timeout is specified,
+                # then it blocks until it becomes readable.
+                # TODO: AN: It is very unclear why we try to open a new socket if data is not ready.
+                #   This would seem like a hard failure case!
                 ready = select.select([sock], [], [], timeout_in_seconds)
-                #time.sleep(0.1)
-                #ready = [1,2]
                 if ready[0]:
                     ret = sock.recv(self.maxRxBytes)
-                    #time.sleep(0.1)
                     return ret
+                # If the socket is not ready for read, open a new one
                 else:
-                    #printText('rxBytes - readRepeats + 1')
-
+                    logging.error("Timeout: No bytes were available to read from QIS")
+                    logging.debug("Opening new QIS socket")
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     sock.connect((self.host, self.port))
                     sock.settimeout(5)
 
                     try:
-                        welcomeString = self.sock.recv(self.maxRxBytes).rstrip()
-                        welcomeString = 'Connected@' + self.host + ':' + str(self.port) + ' ' + '\n    ' + welcomeString
-                        printText('New Welcome:' + welcomeString)
+                        welcome_string = self.sock.recv(self.maxRxBytes).rstrip()
+                        welcome_string = 'Connected@' + self.host + ':' + str(self.port) + ' ' + '\n    ' + welcome_string
+                        logging.debug("Socket opened: " + welcome_string)
                     except Exception as e:
-                        logging.error('tried and failed to get new welcome')
+                        logging.error('Timeout: Failed to open new QIS socket and get the welcome message')
                         raise e
 
-                    readRepeats=readRepeats+1
+                    read_repeats=read_repeats+1
                     time.sleep(0.5)
 
             except Exception as e:
-                #printText('rxBytes - exceptions + 1')
-                exceptions=exceptions+1
-                time.sleep(0.5)
                 raise e
 
-            #If read repeats has been exceeded we failed to get any data on this read.
-            #   !!! This is likely to break whatever called us !!!
-            if readRepeats >= maxReadRepeats:
-                logging.error('Max read repeats exceeded - returning.')
-                return 'No data received from QIS'
-            #If number of exceptions exceeded then give up by exiting
-            if exceptions >= maxExceptions:
-                logging.error('Max exceptions exceeded - exiting') #exceptions are probably 10035 non-blocking socket could not complete immediatley
-                exit()
+            # If we read no data, its probably an error, but there may be cases where an empty response is valid
+            if read_repeats >= max_read_repeats:
+                logging.error('Max read repeats exceeded')
+                return b''
 
+    def closeConnection(self, sock=None, conString: str=None) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `close_connection` instead.
+        """
+        return self.close_connection (sock=sock, con_string=conString)
 
-def strToBb(string_in, add_length=True):
-    length = len(str(string_in))
-    b_array = []
-    if add_length:
-        b_array.append(length)
-    for character in str(string_in):
-        b_array.append(character)
+    def startStream(self, module: str, fileName: str, fileMaxMB: int, releaseOnData: bool, separator: str,
+                    streamDuration: int = None, inMemoryData=None, outputFileHandle=None, useGzip: bool = None):
+        """
+        deprecated:: 2.2.13
+        Use `start_stream` instead.
+        """
+        return self.start_stream(module, fileName, fileMaxMB, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip)
 
-    return b_array
+    def stopStream(self, module, blocking=True):
+        """
+        deprecated:: 2.2.13
+        Use `stop_stream` instead.
+        """
+        return self.stop_stream(module, blocking)
+
+    def getDeviceList(self, sock=None):
+        """
+        deprecated:: 2.2.13
+        Use `start_stream_thread_qps` instead.
+        """
+        return self.get_device_list(sock)
+
+    def scanIP(self, QisConnection, ipAddress):
+        """
+        deprecated:: 2.2.13
+        Use `scan_ip` instead.
+        """
+        return self.scan_ip(QisConnection, ipAddress)
+
+    def GetQisModuleSelection(self, favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'],
+                          scan=True):
+        """
+        deprecated:: 2.2.13
+        Use `get_qis_module_selection` instead.
+        """
+        return self.get_qis_module_selection(favouriteOnly, additionalOptions, scan)
+
+    def sendCommand(self, cmd, device="", timeout=20,sock=None,readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse=True) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `send_command` instead.
+        """
+        return self.send_command(cmd, device, sock, False, not expectedResponse, betweenCommandDelay)
+
+    def sendCmd(self, device='', cmd='$help', sock=None, readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse = True) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `send_command` instead.
+        """
+        return self.send_command(cmd, device, sock, not readUntilCursor, not expectedResponse, betweenCommandDelay)
+
+    def sendAndReceiveCmd(self, sock=None, cmd='$help', device='', readUntilCursor=True, betweenCommandDelay=0.0) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `send_command` instead.
+        """
+        return self.send_command(cmd, device, sock, not readUntilCursor, no_response_expected=False, command_delay=betweenCommandDelay)
+
+    def streamRunningStatus(self, device: str) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `stream_running_status` instead.
+        """
+        return self.stream_running_status(device)
+
+    def streamHeaderFormat(self, device, sock=None) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `stream_header_format` instead.
+        """
+        return self.stream_header_format(device, sock)
+
+    def streamInterrupt(self) -> bool:
+        """
+        deprecated:: 2.2.13
+        No indication this is used anywhere
+        """
+        for key in self.deviceDict.keys():
+            if self.deviceDict[key][0]:
+                return True
+        return False
+
+    def interruptList(self):
+        """
+        deprecated:: 2.2.13
+        No indication this is used anywhere
+        """
+        streamIssueList = []
+        for key in self.deviceDict.keys():
+            if self.deviceDict[key][0]:
+                streamIssue = [key]
+                streamIssue.append(self.deviceDict[key][1])
+                streamIssue.append(self.deviceDict[key][2])
+                streamIssueList.append(streamIssue)
+        return streamIssueList
+
+    def waitStop(self):
+        """
+        deprecated:: 2.2.13
+        No indication this is used anywhere
+        """
+        running = 1
+        while running != 0:
+            threadNameList = []
+            for t1 in threading.enumerate():
+                threadNameList.append(t1.name)
+            running = 0
+            for module in self.deviceList:
+                if (module in threadNameList):
+                    running += 1
+                    time.sleep(0.5)
+            time.sleep(1)
+
+    def convertStreamAverage (self, streamAveraging):
+        """
+        deprecated:: 2.2.13
+        No indication this is used anywhere
+        """
+        returnValue = 32000
+        if ("k" in streamAveraging):
+            returnValue = streamAveraging.replace("k", "000")
+        else:
+            returnValue = streamAveraging
+
+        return returnValue
+
+    def sendAndReceiveText(self, sock, sendText='$help', device='', readUntilCursor=True) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `send_and_receive_text` instead.
+        """
+        return self.send_and_receive_text(sock, send_text=sendText, device=device, read_until_cursor=readUntilCursor)

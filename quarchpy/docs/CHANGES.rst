@@ -14,6 +14,20 @@ Change Log
 ----------
 
 
+2.2.13
+------
+- New QPS 1.48 and QIS 1.50
+- Lightweight Quarchpy, QPS and QIS now downloaded on first use after install.
+- Minor bug fixes
+
+2.2.12
+------
+- Minor bug fix
+
+2.2.11
+------
+- Minor bug fix
+
 2.2.10
 ------
 - Fix for new HDPPM FW discovery over eithernet

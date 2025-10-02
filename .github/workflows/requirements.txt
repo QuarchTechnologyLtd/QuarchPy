@@ -1,6 +1,6 @@
-pytest
-coverage
-flake8
+# requirements.txt
 zeroconf
 pandas
 numpy
+requests
+packaging

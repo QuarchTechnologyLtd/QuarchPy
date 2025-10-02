@@ -10,6 +10,7 @@ from threading import Thread, Lock, Event, active_count
 from queue import Queue, Empty
 from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
+from quarchpy.install_qps import find_qps
 from quarchpy.user_interface.user_interface import printText, logDebug
 import subprocess
 import logging
@@ -58,7 +59,7 @@ def isQisRunningAndResponding(timeout=2):
     maxCounter = 20
     while counter <= maxCounter:
         versionResponse = myQis.sendAndReceiveCmd(cmd="$version")
-        if ": v" in versionResponse.lower():
+        if "v" in versionResponse.lower():
             qisResponding = True
             break
         else:
@@ -88,6 +89,11 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
         List of additional parameters to be supplied to QIS on the command line
 
     """
+
+    # Check if QPS is installed
+    if not find_qps():
+        logging.error("Unable to find or install QPS... Aborting...")
+        return
 
     # java path
     java_path = os.path.dirname(os.path.abspath(__file__))
@@ -126,26 +132,7 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
             else:
                 logging.warning("Attempt to fix permissions was successful. Now continuing.")
 
-    # if current_os != "Windows":
-    #     subprocess.call(['chmod', '-R', '+rwx', java_path])
-
-    # single or multiple QPS builds for each OS
-    is_single_qps_build = True
-    if is_single_qps_build:
-        qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
-    else:
-        if current_os in "Windows":
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
-        elif current_os in "Linux" and current_arch == "x86_64":
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "lin-amd64", "qis", "qis.jar")
-        elif current_os in "Linux" and current_arch == "aarch64":
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "lin-arm64", "qis", "qis.jar")
-        elif current_os in "Darwin" and current_arch == "x86_64":
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "mac-amd64", "qis", "qis.jar")
-        elif current_os in "Darwin" and current_arch == "arm64":
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "mac-arm64", "qis", "qis.jar")
-        else:  # default to windows
-            qis_path = os.path.join(qis_path, "connection_specific", "QPS", "win-amd64", "qis", "qis.jar")
+        qis_path = os.path.join(qis_path, "connection_specific", "QPS", "qis", "qis.jar")
 
     # record current working directory
     current_dir = os.getcwd()

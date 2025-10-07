@@ -6,7 +6,7 @@ import shutil
 import xml.etree.ElementTree as ET
 
 # --- Configuration ---
-QPS_VERSION_FOR_DOWNLOAD = "1.48"
+QPS_VERSION_FOR_DOWNLOAD = "1.48.1-SNAPSHOT"
 # URLs for the separate ZIP files.
 QPS_DOWNLOAD_URL = f"https://quarch.com/software_update/qps/QPS_{QPS_VERSION_FOR_DOWNLOAD}.zip"
 JDK_JRE_DOWNLOAD_URL = "https://quarch.com/software_update/qps/jdk_jres.zip"
@@ -297,7 +297,7 @@ def is_network_connection_available(timeout=5):
     """Checks for a reliable internet connection."""
     try:
         requests.head("https://www.quarch.com", timeout=timeout)
-        return True
+        return False
     except requests.RequestException:
         return False
 

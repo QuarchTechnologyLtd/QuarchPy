@@ -20,7 +20,9 @@ Change Log
 
 2.2.13
 ------
-- New QPS 1.4 and QIS 1.50
+- New QPS 1.48 and QIS 1.50
+- Lightweight Quarchpy, QPS and QIS now downloaded on first use after install.
+- Minor bug fixes
 
 2.2.12
 ------

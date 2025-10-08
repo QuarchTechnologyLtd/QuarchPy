@@ -132,6 +132,7 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
             else:
                 logging.warning("Attempt to fix permissions was successful. Now continuing.")
 
+    qis_path = os.path.join(qis_path, "connection_specific", "QPS", "qis", "qis.jar")
     # if current_os != "Windows":
     #     subprocess.call(['chmod', '-R', '+rwx', java_path])
 

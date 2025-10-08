@@ -297,7 +297,7 @@ def is_network_connection_available(timeout=5):
     """Checks for a reliable internet connection."""
     try:
         requests.head("https://www.quarch.com", timeout=timeout)
-        return False
+        return True
     except requests.RequestException:
         return False
 

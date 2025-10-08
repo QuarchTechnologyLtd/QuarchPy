@@ -14,9 +14,13 @@ Change Log
 ----------
 
 
+2.2.14
+------
+- New QPS 1.49 and QIS 1.51
+
 2.2.13
 ------
-- New QPS 1.49 and QIS 1.49
+- New QPS 1.4 and QIS 1.50
 
 2.2.12
 ------

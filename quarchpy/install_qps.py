@@ -26,10 +26,31 @@ EXTRACTION_FOLDER_QPS = os.path.join(TARGET_DIR, "QPS")
 EXTRACTION_FOLDER_JDK_JRE = os.path.join(TARGET_DIR, "jdk_jres")
 
 
+# --- NEW FUNCTION ---
+def get_installed_qps_version(qps_folder):
+    """Reads the appVersion from the app.properties file."""
+    properties_file = os.path.join(qps_folder, "app.properties")
+    if not os.path.exists(properties_file):
+        return None  # File doesn't exist, can't determine version
+
+    try:
+        with open(properties_file, 'r') as f:
+            for line in f:
+                if line.strip().startswith("appVersion="):
+                    # Split the line at '=' and return the version part
+                    return line.split('=', 1)[1].strip()
+    except Exception as e:
+        print(f"  - Warning: Could not read version from {properties_file}. Error: {e}")
+        return None # Error reading file
+
+    return None # Version not found in the file
+
+
+# --- MODIFIED FUNCTION ---
 def find_qps():
     """
-    Checks for QPS and JDK/JRE. If any are missing, it attempts an online or
-    offline installation of the required components.
+    Checks for QPS and JDK/JRE. If any are missing or outdated, it attempts an
+    online or offline installation of the required components.
     """
     qps_jar = "qps.jar"
     qps_path = os.path.join(EXTRACTION_FOLDER_QPS, qps_jar)
@@ -52,17 +73,32 @@ def find_qps():
     if jdk_folder_name:
         jdk_jre_check_file = os.path.join(EXTRACTION_FOLDER_JDK_JRE, jdk_folder_name, "bin", java_executable_name)
 
-    qps_found = os.path.exists(qps_path)
+    # --- Component Verification ---
+    qps_jar_exists = os.path.exists(qps_path)
+    installed_qps_version = get_installed_qps_version(EXTRACTION_FOLDER_QPS)
+
+    # Check if the required version string starts with the installed version number.
+    # This handles cases like required "1.48.1-SNAPSHOT" vs. installed "1.48".
+    qps_version_ok = False
+    if installed_qps_version:
+        qps_version_ok = QPS_VERSION_FOR_DOWNLOAD.startswith(installed_qps_version)
+
+    qps_ok = qps_jar_exists and qps_version_ok
     jdk_found = jdk_jre_check_file and os.path.exists(jdk_jre_check_file)
 
-    if qps_found and jdk_found:
+    if qps_ok and jdk_found:
+        print(f"✅ QPS version {installed_qps_version} and JDK/JRE are correctly installed.")
         return True
 
-    print("--- Missing Components Detected ---")
-    qps_needed = not qps_found
+    print("--- Missing or Outdated Components Detected ---")
+    qps_needed = not qps_ok
     jdk_jre_needed = not jdk_found
-    if qps_needed:
+
+    if not qps_jar_exists:
         print("Quarch Power Studio (QPS) is not installed.")
+    elif not qps_version_ok:
+        print(f"QPS requires an update. (Installed: {installed_qps_version or 'Unknown'}, Required: {QPS_VERSION_FOR_DOWNLOAD})")
+
     if jdk_jre_needed:
         print("Required Java JDK/JRE Binaries are not installed.")
 
@@ -72,7 +108,7 @@ def find_qps():
     if is_network_connection_available():
         network_available = True
         print("\nAttempting online installation...")
-        response = input("Would you like to download and install the missing components? (y/n): ").lower()
+        response = input("Would you like to download and install the missing/outdated components? (y/n): ").lower()
 
         if response == 'y':
             qps_url_to_use = QPS_DOWNLOAD_URL

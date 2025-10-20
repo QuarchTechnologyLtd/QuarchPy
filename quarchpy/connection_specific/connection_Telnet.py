@@ -1,15 +1,21 @@
-import telnetlib
+from telnetlib import Telnet
 import time
+#from telnetlib3 import Telnet
+
 
 class TelnetConn:
     def __init__(self, ConnTarget):
         self.ConnTarget = ConnTarget
-        self.Connection = telnetlib.Telnet(self.ConnTarget)
+        self.Connection = Telnet(self.ConnTarget)
         time.sleep(1)
         self.Connection.read_very_eager()
 
     def close(self):
         self.Connection.close()
+        # The closed device reports as in use if a connection is opened to it within 0.05s.
+        # This happens during scanning as rest detects the device and shows it as "in use" Putting a sleep here
+        #  allows time for the connection to be close,
+        time.sleep(0.15)
         return True
 
     def sendCommand(self, Command, expectedResponse = True):

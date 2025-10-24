@@ -234,7 +234,7 @@ class QisInterface:
                     running = False
 
     def start_stream_thread(self, module: str, file_name: str, max_file_size: float, release_on_data: bool, separator: str,
-                          stream_duration: int=None, in_memory_data=None, output_file_handle=None, use_gzip: bool=False):
+                          stream_duration: int=None, in_memory_data: StringIO=None, output_file_handle=None, use_gzip: bool=False):
         """
 
         Args:

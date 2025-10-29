@@ -651,6 +651,22 @@ returned None.</p>
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchArray.</span></span><span class="sig-name descname"><span class="pre">quarchArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">baseDevice</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.quarchArray" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchDevice</span></code></a></p>
 <dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.quarchArray.close_connection">
+<span class="sig-name descname"><span class="pre">close_connection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#quarchpy.device.quarchArray.quarchArray.close_connection" title="Link to this definition">¶</a></dt>
+<dd><p>Closes the connection to the module.</p>
+<p>Handles closing logic based on connection type (PY, QIS, QPS).
+Clears the internal connection object reference upon successful close.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>“OK” on success, “FAIL” on failure or if no connection exists.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="quarchpy.device.quarchArray.quarchArray.getSubDevice">
 <span class="sig-name descname"><span class="pre">getSubDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.quarchArray.getSubDevice" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -667,18 +683,33 @@ returned None.</p>
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.quarchArray.</span></span><span class="sig-name descname"><span class="pre">subDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">baseDevice</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.subDevice" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchDevice</span></code></a></p>
 <dl class="py method">
-<dt class="sig sig-object py" id="quarchpy.device.quarchArray.subDevice.sendCommand">
-<span class="sig-name descname"><span class="pre">sendCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CommandString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expectedResponse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.subDevice.sendCommand" title="Link to this definition">¶</a></dt>
-<dd><p>DEPRECATED - Use send_command instead.</p>
-<p>Executes a text command on the connected device.</p>
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.subDevice.close_connection">
+<span class="sig-name descname"><span class="pre">close_connection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#quarchpy.device.quarchArray.subDevice.close_connection" title="Link to this definition">¶</a></dt>
+<dd><p>Closes the connection to the module.</p>
+<p>Handles closing logic based on connection type (PY, QIS, QPS).
+Clears the internal connection object reference upon successful close.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>“OK” on success, “FAIL” on failure or if no connection exists.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.subDevice.send_command">
+<span class="sig-name descname"><span class="pre">send_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CommandString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expectedResponse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.subDevice.send_command" title="Link to this definition">¶</a></dt>
+<dd><p>Executes a text command on the connected device.</p>
 <p>Sends the command string via the appropriate underlying connection object
 (PY, QIS, or QPS) and returns the response. Handles QIS/QPS specific
 formatting or command routing as needed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>CommandString</strong> (<em>str</em>) – The text command to send (e.g., “<a href="#id9"><span class="problematic" id="id10">*</span></a>IDN?”).</p></li>
-<li><p><strong>expectedResponse</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False, the method may return
+<li><p><strong>command_string</strong> (<em>str</em>) – The text command to send (e.g., “<a href="#id9"><span class="problematic" id="id10">*</span></a>IDN?”).</p></li>
+<li><p><strong>is_response_expected</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False, the method may return
 faster as it doesn’t wait for/read a response. Defaults to True.</p></li>
 </ul>
 </dd>
@@ -2324,6 +2355,22 @@ Defaults to “5”.</p></li>
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">quarchArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">baseDevice</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchDevice</span></code></a></p>
 <dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.quarchArray.close_connection">
+<span class="sig-name descname"><span class="pre">close_connection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#quarchpy.device.quarchArray.close_connection" title="Link to this definition">¶</a></dt>
+<dd><p>Closes the connection to the module.</p>
+<p>Handles closing logic based on connection type (PY, QIS, QPS).
+Clears the internal connection object reference upon successful close.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>“OK” on success, “FAIL” on failure or if no connection exists.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="quarchpy.device.quarchArray.getSubDevice">
 <span class="sig-name descname"><span class="pre">getSubDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.quarchArray.getSubDevice" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -3907,18 +3954,33 @@ when polling. Defaults to 0.1.</p></li>
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.device.</span></span><span class="sig-name descname"><span class="pre">subDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">baseDevice</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.subDevice" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#quarchpy.device.device.quarchDevice" title="quarchpy.device.device.quarchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">quarchDevice</span></code></a></p>
 <dl class="py method">
-<dt class="sig sig-object py" id="quarchpy.device.subDevice.sendCommand">
-<span class="sig-name descname"><span class="pre">sendCommand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CommandString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expectedResponse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.subDevice.sendCommand" title="Link to this definition">¶</a></dt>
-<dd><p>DEPRECATED - Use send_command instead.</p>
-<p>Executes a text command on the connected device.</p>
+<dt class="sig sig-object py" id="quarchpy.device.subDevice.close_connection">
+<span class="sig-name descname"><span class="pre">close_connection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#quarchpy.device.subDevice.close_connection" title="Link to this definition">¶</a></dt>
+<dd><p>Closes the connection to the module.</p>
+<p>Handles closing logic based on connection type (PY, QIS, QPS).
+Clears the internal connection object reference upon successful close.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>“OK” on success, “FAIL” on failure or if no connection exists.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="quarchpy.device.subDevice.send_command">
+<span class="sig-name descname"><span class="pre">send_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CommandString</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expectedResponse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.device.subDevice.send_command" title="Link to this definition">¶</a></dt>
+<dd><p>Executes a text command on the connected device.</p>
 <p>Sends the command string via the appropriate underlying connection object
 (PY, QIS, or QPS) and returns the response. Handles QIS/QPS specific
 formatting or command routing as needed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>CommandString</strong> (<em>str</em>) – The text command to send (e.g., “<a href="#id21"><span class="problematic" id="id22">*</span></a>IDN?”).</p></li>
-<li><p><strong>expectedResponse</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False, the method may return
+<li><p><strong>command_string</strong> (<em>str</em>) – The text command to send (e.g., “<a href="#id21"><span class="problematic" id="id22">*</span></a>IDN?”).</p></li>
+<li><p><strong>is_response_expected</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False, the method may return
 faster as it doesn’t wait for/read a response. Defaults to True.</p></li>
 </ul>
 </dd>

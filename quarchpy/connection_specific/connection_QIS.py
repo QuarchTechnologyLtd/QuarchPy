@@ -965,6 +965,8 @@ class QisInterface:
         if stripes.endswith("eof\r\n>"):
             is_end_of_block = True
             stripes = stripes.rstrip("eof\r\n>")
+        if stripes.endswith("\r\n>"):
+            stripes= stripes[:-1] # remove the trailing ">"
         # The current reader seems to lose the final line feeds, so check for this
         if len(stripes) > 0:
             if not stripes.endswith("\r\n"):
@@ -1125,12 +1127,13 @@ class QisInterface:
         Returns:
             Command response string or None if no response expected
         """
+        if qis_socket is None:
+            qis_socket = self.sock
+
         if no_response_expected:
             self.send_text(qis_socket, command, device)
             return ""
         else:
-            if qis_socket is None:
-                qis_socket = self.sock
             if not (device == ''):
                 self.device_dict_setup(device)
             res = self.send_and_receive_text(qis_socket, command, device, not no_cursor_expected)

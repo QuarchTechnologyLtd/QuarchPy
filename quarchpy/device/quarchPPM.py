@@ -262,8 +262,8 @@ class quarchPPM(quarchDevice):
     # --------------------------------------------------------------------------
 
     def startStream(self, fileName: str = 'streamData.txt', fileMaxMB: int = 200000,
-                    streamDuration: Optional[float] = None,
-                    releaseOnData: bool = False, separator: str = ",",
+                    streamName: str = 'Stream With No Name', streamDuration: Optional[float] = None,
+                    streamAverage: Optional[int] = None, releaseOnData: bool = False, separator: str = ",",
                     inMemoryData: Optional[StringIO] = None, outputFileHandle: Optional[IO] = None,
                     useGzip: Optional[bool] = None, gzipCompressLevel: Optional[int] = 9) -> str:
         """

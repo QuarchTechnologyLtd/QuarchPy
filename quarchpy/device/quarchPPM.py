@@ -61,7 +61,8 @@ class quarchPPM(quarchDevice):
         separator: str = ",",
         in_memory_data: Optional[StringIO] = None,
         output_file_handle: Optional[IO] = None,
-        use_gzip: Optional[bool] = None
+        use_gzip: Optional[bool] = None,
+        gzip_compress_level: Optional[int] = 9
     ) -> str:
         """
         Starts a data stream from the device.
@@ -69,11 +70,8 @@ class quarchPPM(quarchDevice):
         Args:
             file_name (str): The name of the file to stream data to.
             file_max_mb (int): The maximum size of the output file in megabytes.
-            stream_name (str): A descriptive name for the stream.
             stream_duration (Optional[float]): The duration for the stream to run
                 in seconds. Defaults to None (continuous).
-            stream_average (Optional[int]): The number of samples to average.
-                Defaults to None.
             release_on_data (bool): If True, releases the connection on data
                 reception.
             separator (str): The separator character to use in the output file.
@@ -83,13 +81,14 @@ class quarchPPM(quarchDevice):
                 stream data to. Defaults to None.
             use_gzip (Optional[bool]): If True, compresses the output file using
                 gzip. Defaults to None.
+            gzip_compress_level (Optional[int]): The gzip compression level
 
         Returns:
             str: The response from the device after starting the stream.
         """
         return self.connectionObj.qis.startStream(
             self.ConString, file_name, file_max_mb, release_on_data, separator, stream_duration,
-            in_memory_data, output_file_handle, use_gzip
+            in_memory_data, output_file_handle, use_gzip, gzip_compress_level
         )
 
     def stream_running_status(self) -> str:
@@ -266,7 +265,7 @@ class quarchPPM(quarchDevice):
                     streamName: str = 'Stream With No Name', streamDuration: Optional[float] = None,
                     streamAverage: Optional[int] = None, releaseOnData: bool = False, separator: str = ",",
                     inMemoryData: Optional[StringIO] = None, outputFileHandle: Optional[IO] = None,
-                    useGzip: Optional[bool] = None) -> str:
+                    useGzip: Optional[bool] = None, gzipCompressLevel: Optional[int] = 9) -> str:
         """
         DEPRECATED: Use start_stream instead.
 
@@ -275,11 +274,8 @@ class quarchPPM(quarchDevice):
         Args:
             fileName (str): The name of the file to stream data to.
             fileMaxMB (int): The maximum size of the output file in megabytes.
-            streamName (str): A descriptive name for the stream.
             streamDuration (Optional[float]): The duration for the stream to run
                 in seconds. Defaults to None (continuous).
-            streamAverage (Optional[int]): The number of samples to average.
-                Defaults to None.
             releaseOnData (bool): If True, releases the connection on data
                 reception.
             separator (str): The separator character to use in the output file.
@@ -289,6 +285,7 @@ class quarchPPM(quarchDevice):
                 stream data to. Defaults to None.
             useGzip (Optional[bool]): If True, compresses the output file using
                 gzip. Defaults to None.
+            gzipCompressLevel (Optional[int]): The gzip compression level
 
         Returns:
             str: The response from the device after starting the stream.
@@ -298,7 +295,7 @@ class quarchPPM(quarchDevice):
             stream_duration=streamDuration,
             release_on_data=releaseOnData, separator=separator,
             in_memory_data=inMemoryData, output_file_handle=outputFileHandle,
-            use_gzip=useGzip
+            use_gzip=useGzip, gzip_compress_level=gzipCompressLevel
         )
 
     def streamRunningStatus(self) -> str:

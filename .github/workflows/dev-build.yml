@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - 'Development'
+      - '879-improve-quarchpy-snapshot'
   workflow_dispatch:
 
 jobs:

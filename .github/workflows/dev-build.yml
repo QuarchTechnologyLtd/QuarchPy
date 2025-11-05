@@ -1,84 +1,59 @@
 # .github/workflows/dev-build.yml
-# This is the full name of the workflow. It's displayed on the GitHub Actions page.
 name: QuarchPy Development Build and Release
 
-# The 'on' keyword defines the events that trigger this workflow to run.
 on:
-  # 'push' triggers the workflow on every push event.
   push:
-    # We only care about pushes to the 'Development' branch.
     branches:
       - 'Development'
       - '879-improve-quarchpy-snapshot'
-  # 'workflow_dispatch' allows you to trigger this workflow manually from the GitHub UI.
   workflow_dispatch:
 
-# A workflow run is made up of one or more 'jobs' that can run sequentially or in parallel.
 jobs:
-  # This is the unique ID of the job.
   build-and-release-dev:
-    # The name of the job displayed on GitHub.
     name: Build and Create Development Release
-    # Specifies the type of virtual machine to run the job on. 'ubuntu-latest' is a standard, fast choice.
     runs-on: ubuntu-latest
-
-    # 'permissions' grants specific permissions to the GITHUB_TOKEN for this job.
     permissions:
-      # 'contents: write' is required for actions that create or update releases and git tags.
       contents: write
 
-    # 'steps' are the sequence of tasks that will be executed as part of the job.
     steps:
-      # Each '-' is a new step. 'name' is the title shown in the logs.
       - name: Checkout repository
-        # 'uses' specifies that this step will run a pre-built action.
-        # 'actions/checkout@v5' is a standard action that downloads your repository's code
-        # into the runner, so the subsequent steps can work with it.
         uses: actions/checkout@v5
 
-      # --- THIS STEP IS UPDATED ---
       - name: Download and Unzip QPS Dependency
-        # Use bash shell to support 'shopt' for a more robust mv command
         shell: bash
         env:
-          # This secret is a Personal Access Token (PAT) with 'repo' scope
-          # to access the private QuarchTechnologyLtd/QPS repository.
-          GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_FOR_QPS }}
         run: |
+          # This is the path inside your 'quarchpy' package
+          TARGET_DIR="quarchpy/connection_specific/QPS"
+          
           echo "Creating target and temp directories..."
-          mkdir -p connection_specific/QPS
+          mkdir -p $TARGET_DIR
           mkdir -p temp_qps_download
           mkdir -p temp_qps_unzip
 
           echo "Downloading QPS release asset (*.zip) from developmental tag..."
-          # Use 'gh release download' to find the .zip asset generically.
-          # The GH_TOKEN env var is automatically used by 'gh' for authentication.
-          # We specify the repo, the tag ('developmental'), and a pattern ('*.zip').
-          # This will download the first asset matching the pattern into the --dir.
           gh release download developmental \
             --repo QuarchTechnologyLtd/QPS \
             --pattern "*.zip" \
             --dir temp_qps_download
           
           echo "Unzipping files..."
-          # Unzip the downloaded file (which is in temp_qps_download)
-          # into a separate unzip directory.
           unzip -q temp_qps_download/*.zip -d temp_qps_unzip
           
           echo "Moving contents to target directory..."
-          # This logic assumes the .zip file contains a single top-level folder
-          # (e.g., 'QPS-v1.2.3'), just like the source code zip did.
-          # 'shopt -s dotglob' makes '*' match hidden files/folders.
-          # 'mv temp_qps_unzip/*/*' moves the *contents* of that unknown
-          # top-level folder into our target 'connection_specific/QPS' directory.
-          # This replicates the logic of your original 'mv .../QPS-developmental/*' command.
           shopt -s dotglob
-          mv temp_qps_unzip/*/* connection_specific/QPS/
+          mv temp_qps_unzip/*/* $TARGET_DIR/
           
           echo "Cleaning up..."
           rm -r temp_qps_download
           rm -r temp_qps_unzip
-          echo "QPS files are now in connection_specific/QPS"
+          echo "QPS files are now in $TARGET_DIR"
+
+      - name: Verify QPS Download
+        run: |
+          echo "Verifying contents of 'quarchpy/connection_specific/QPS':"
+          ls -lR quarchpy/connection_specific/QPS
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v6
@@ -136,28 +111,46 @@ jobs:
         run: |
           BASE_VERSION="${{ steps.get_version.outputs.version }}"
           COMMIT_SHA="${{ steps.get_info.outputs.sha_short }}"
-          
-          # Create the new PEP 440-compliant version string
           FULL_VERSION="${BASE_VERSION}+${COMMIT_SHA}"
-          
-          echo "Base version: $BASE_VERSION"
-          echo "Commit SHA: $COMMIT_SHA"
           echo "Setting full version to: $FULL_VERSION"
-          
-          # Use 'sed' to find and replace the version string in the file.
           sed -i -E "s/(__version__\s*=\s*[\"']).*([\"'])/\1${FULL_VERSION}\2/" quarchpy/_version.py
-          
           echo "Verified file content:"
           cat quarchpy/_version.py
-          
-          # Output the new full version so the 'Create Release' step can use it
           echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
+
+      # --- THIS STEP IS UPDATED ---
+      - name: Update MANIFEST.in for Dev Build
+        # Only run this step if it's a dev release
+        if: steps.version_check.outputs.is_dev_release == 'true'
+        run: |
+          echo "Original MANIFEST.in content:"
+          cat MANIFEST.in
+          
+          echo "Appending QPS rule to MANIFEST.in..."
+          # Use '>>' to APPEND to the file instead of overwriting
+          echo "recursive-include quarchpy/connection_specific/QPS *" >> MANIFEST.in
+          
+          echo "New MANIFEST.in content:"
+          cat MANIFEST.in
 
       - name: Build wheel package
         if: steps.version_check.outputs.is_dev_release == 'true'
         run: |
-          # This build command will now read the MODIFIED _version.py file
+          # setup.py will now run, see 'include_package_data=True',
+          # find the MODIFIED 'MANIFEST.in', and
+          # correctly bundle the QPS files.
           python setup.py bdist_wheel --universal
+
+      - name: Inspect Wheel Contents
+        if: steps.version_check.outputs.is_dev_release == 'true'
+        run: |
+          echo "Inspecting contents of generated wheel file..."
+          mkdir -p wheel_contents
+          unzip -q dist/*.whl -d wheel_contents
+          echo "Listing all files inside the wheel:"
+          ls -lR wheel_contents
+          # You should now see your QPS files under
+          # wheel_contents/quarchpy/connection_specific/QPS/
 
       - name: Delete Previous Development Release
         env:
@@ -175,7 +168,6 @@ jobs:
       - name: Create Development Release
         uses: softprops/action-gh-release@v2
         with:
-          # Use the new, full version from the 'set_full_version' step
           name: "Development Snapshot - ${{ steps.set_full_version.outputs.full_version }}"
           tag_name: "developmental"
           body: |

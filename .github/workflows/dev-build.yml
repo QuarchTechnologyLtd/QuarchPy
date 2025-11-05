@@ -22,7 +22,7 @@ jobs:
       - name: Download and Unzip QPS Dependency
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.PAT_FOR_QPS }}
+          GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
         run: |
           # This is the path inside your 'quarchpy' package
           TARGET_DIR="quarchpy/connection_specific/QPS"

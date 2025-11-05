@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - 'Development'
-      - '879-improve-quarchpy-snapshot'
   workflow_dispatch:
 
 jobs:
@@ -14,6 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
+    # --- NEW ENV VAR ADDED HERE ---
+    # Update this version string when you need to download a new JDK
+    env:
+      JDK_VERSION: '25.0.1+11'
 
     steps:
       - name: Checkout repository
@@ -24,10 +28,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
         run: |
-          # This is the path inside your 'quarchpy' package
           TARGET_DIR="quarchpy/connection_specific/QPS"
-          
-          echo "Creating target and temp directories..."
+          echo "Creating target and temp directories for QPS..."
           mkdir -p $TARGET_DIR
           mkdir -p temp_qps_download
           mkdir -p temp_qps_unzip
@@ -38,22 +40,80 @@ jobs:
             --pattern "*.zip" \
             --dir temp_qps_download
           
-          echo "Unzipping files..."
+          echo "Unzipping QPS files..."
           unzip -q temp_qps_download/*.zip -d temp_qps_unzip
           
-          echo "Moving contents to target directory..."
+          echo "Moving QPS contents to target directory..."
           shopt -s dotglob
           mv temp_qps_unzip/*/* $TARGET_DIR/
           
-          echo "Cleaning up..."
+          echo "Cleaning up QPS..."
           rm -r temp_qps_download
           rm -r temp_qps_unzip
           echo "QPS files are now in $TARGET_DIR"
 
-      - name: Verify QPS Download
+      # --- NEW STEP ADDED HERE ---
+      - name: Download and Unzip JDK Binaries
+        shell: bash
+        run: |
+          BASE_PATH="quarchpy/connection_specific/jdk_jres"
+          echo "Downloading and extracting JDKs version ${{ env.JDK_VERSION }}..."
+
+          # --- Clean old directories ---
+          rm -rf ${BASE_PATH}/lin_amd64_jdk_jre
+          rm -rf ${BASE_PATH}/win_amd64_jdk_jre
+          rm -rf ${BASE_PATH}/mac_amd64_jdk_jre
+          rm -rf ${BASE_PATH}/mac_arm64_jdk_jre
+          mkdir -p $BASE_PATH
+          
+          # --- 1. Linux (amd64) ---
+          TARGET_DIR="${BASE_PATH}/lin_amd64_jdk_jre"
+          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-linux-amd64-full.tar.gz"
+          echo "Creating $TARGET_DIR"
+          mkdir -p $TARGET_DIR
+          echo "Downloading and extracting from $URL"
+          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
+
+          # --- 2. Windows (amd64) ---
+          TARGET_DIR="${BASE_PATH}/win_amd64_jdk_jre"
+          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-windows-amd64-full.zip"
+          echo "Creating $TARGET_DIR"
+          mkdir -p $TARGET_DIR
+          echo "Downloading $URL"
+          curl -L -o download.zip $URL
+          echo "Extracting to temp folder..."
+          unzip -q download.zip -d temp_unzip_dir
+          echo "Moving contents to $TARGET_DIR"
+          mv temp_unzip_dir/bellsoft-jdk*-full/* $TARGET_DIR/
+          rm download.zip
+          rm -r temp_unzip_dir
+
+          # --- 3. macOS (amd64) ---
+          TARGET_DIR="${BASE_PATH}/mac_amd64_jdk_jre"
+          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-macos-amd64-full.tar.gz"
+          echo "Creating $TARGET_DIR"
+          mkdir -p $TARGET_DIR
+          echo "Downloading and extracting from $URL"
+          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
+
+          # --- 4. macOS (arm64/aarch64) ---
+          TARGET_DIR="${BASE_PATH}/mac_arm64_jdk_jre"
+          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-macos-aarch64-full.tar.gz"
+          echo "Creating $TARGET_DIR"
+          mkdir -p $TARGET_DIR
+          echo "Downloading and extracting from $URL"
+          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
+          
+          echo "All JDKs extracted."
+
+      # --- THIS STEP IS UPDATED ---
+      - name: Verify Dependencies Download
         run: |
           echo "Verifying contents of 'quarchpy/connection_specific/QPS':"
           ls -lR quarchpy/connection_specific/QPS
+          
+          echo "Verifying contents of 'quarchpy/connection_specific/jdk_jres':"
+          ls -lR quarchpy/connection_specific/jdk_jres
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v6
@@ -120,15 +180,16 @@ jobs:
 
       # --- THIS STEP IS UPDATED ---
       - name: Update MANIFEST.in for Dev Build
-        # Only run this step if it's a dev release
         if: steps.version_check.outputs.is_dev_release == 'true'
         run: |
           echo "Original MANIFEST.in content:"
           cat MANIFEST.in
           
-          echo "Appending QPS rule to MANIFEST.in..."
-          # Use '>>' to APPEND to the file instead of overwriting
+          echo "Appending rules to MANIFEST.in for dev build..."
+          # Append QPS rule
           echo "recursive-include quarchpy/connection_specific/QPS *" >> MANIFEST.in
+          # Append JDK rule
+          echo "recursive-include quarchpy/connection_specific/jdk_jres *" >> MANIFEST.in
           
           echo "New MANIFEST.in content:"
           cat MANIFEST.in
@@ -136,9 +197,8 @@ jobs:
       - name: Build wheel package
         if: steps.version_check.outputs.is_dev_release == 'true'
         run: |
-          # setup.py will now run, see 'include_package_data=True',
-          # find the MODIFIED 'MANIFEST.in', and
-          # correctly bundle the QPS files.
+          # setup.py will now find the modified MANIFEST.in and bundle
+          # both the QPS and jdk_jres directories.
           python setup.py bdist_wheel --universal
 
       - name: Inspect Wheel Contents
@@ -149,8 +209,7 @@ jobs:
           unzip -q dist/*.whl -d wheel_contents
           echo "Listing all files inside the wheel:"
           ls -lR wheel_contents
-          # You should now see your QPS files under
-          # wheel_contents/quarchpy/connection_specific/QPS/
+          # You should now see both QPS and jdk_jres folders in this output
 
       - name: Delete Previous Development Release
         env:

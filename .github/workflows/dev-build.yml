@@ -15,10 +15,9 @@ jobs:
     permissions:
       contents: write
 
-    # --- NEW ENV VAR ADDED HERE ---
-    # Update this version string when you need to download a new JDK
     env:
-      JDK_VERSION: '25.0.1+11'
+      # Update this version string when you need to download a new JDK
+      JDK_VERSION: '25.0.1+11' # Set to your last used version
 
     steps:
       - name: Checkout repository
@@ -53,7 +52,6 @@ jobs:
           rm -r temp_qps_unzip
           echo "QPS files are now in $TARGET_DIR"
 
-      # --- NEW STEP ADDED HERE ---
       - name: Download and Unzip JDK Binaries
         shell: bash
         run: |
@@ -84,8 +82,25 @@ jobs:
           curl -L -o download.zip $URL
           echo "Extracting to temp folder..."
           unzip -q download.zip -d temp_unzip_dir
+          
+          # --- NEW ROBUST MV LOGIC ---
+          echo "Listing extracted contents for debug:"
+          ls -lR temp_unzip_dir
+
+          # Find the single directory inside temp_unzip_dir
+          EXTRACTED_DIR=$(find temp_unzip_dir -mindepth 1 -maxdepth 1 -type d)
+          
+          echo "Found extracted directory: $EXTRACTED_DIR"
           echo "Moving contents to $TARGET_DIR"
-          mv temp_unzip_dir/bellsoft-jdk*-full/* $TARGET_DIR/
+
+          # Enable dotglob to move hidden files
+          shopt -s dotglob
+          
+          # Move the *contents* of that directory to the target
+          mv $EXTRACTED_DIR/* $TARGET_DIR/
+          # --- END OF FIX ---
+          
+          echo "Cleaning up..."
           rm download.zip
           rm -r temp_unzip_dir
 
@@ -107,7 +122,6 @@ jobs:
           
           echo "All JDKs extracted."
 
-      # --- THIS STEP IS UPDATED ---
       - name: Verify Dependencies Download
         run: |
           echo "Verifying contents of 'quarchpy/connection_specific/QPS':"
@@ -179,7 +193,6 @@ jobs:
           cat quarchpy/_version.py
           echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
 
-      # --- THIS STEP IS UPDATED ---
       - name: Update MANIFEST.in for Dev Build
         if: steps.version_check.outputs.is_dev_release == 'true'
         run: |
@@ -198,8 +211,6 @@ jobs:
       - name: Build wheel package
         if: steps.version_check.outputs.is_dev_release == 'true'
         run: |
-          # setup.py will now find the modified MANIFEST.in and bundle
-          # both the QPS and jdk_jres directories.
           python setup.py bdist_wheel --universal
 
       - name: Inspect Wheel Contents
@@ -210,7 +221,6 @@ jobs:
           unzip -q dist/*.whl -d wheel_contents
           echo "Listing all files inside the wheel:"
           ls -lR wheel_contents
-          # You should now see both QPS and jdk_jres folders in this output
 
       - name: Delete Previous Development Release
         env:
@@ -221,7 +231,7 @@ jobs:
       - name: Force-update the 'developmental' Git Tag
         run: |
           git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.email "github-com"
           git tag -f developmental
           git push -f origin refs/tags/developmental
 

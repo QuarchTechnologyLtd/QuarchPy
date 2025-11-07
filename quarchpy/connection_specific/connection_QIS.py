@@ -2,12 +2,10 @@ import gzip
 import re
 import socket
 import threading
-import xml.etree.ElementTree as ET
-from io import StringIO
-
 import select
-from connection_specific.StreamChannels import StreamGroups
+import xml.etree.ElementTree as ET
 
+from io import StringIO
 from quarchpy.user_interface import *
 
 
@@ -43,7 +41,7 @@ class QisInterface:
         self.streamSock.connect((self.host, self.port))
         self.pythonVersion = sys.version[0]
         self.cursor = '>'
-        #clear packets
+
         welcome_string = self.streamSock.recv(self.maxRxBytes).rstrip()
 
 
@@ -178,6 +176,9 @@ class QisInterface:
                 A file handle to an output file where the stream data is written as an alternate to a file name
             use_gzip:
                 A flag indicating whether the output file should be compressed using gzip to reduce disk use
+            gzip_compress_level:
+                (Default: 9) The compression level (0-9) to use for gzip.
+                1 is fastest with low compression. 9 is slowest with high compression.
 
         Returns:
             None
@@ -266,7 +267,6 @@ class QisInterface:
                 If True, writes streamed data to a gzip-compressed file.
             gzip_compress_level:
                 (Default: 9) The compression level (0-9) to use for gzip.
-                1 is fastest with low compression. 9 is slowest with high compression.
 
         Raises:
         TypeError
@@ -478,6 +478,45 @@ class QisInterface:
 
                 # Ensure the stream is fully stopped, though standard exit cases should have ended it already
                 self.send_command('rec stop', device=module, qis_socket=self.streamSock)
+
+                # Check *why* the loop exited. We only drain if the stop was
+                # user-initiated (stopFlagList) and not if it was a "natural"
+                # stop (overrun, EOF, duration met, file size exceeded).
+                if (not stream_overrun) and (not stream_complete) and (not max_file_exceeded):
+                    logging.debug(f"Stream {module} stopped by user. Draining in-flight buffer...")
+                    draining = True
+                    while draining:
+                        # Keep reading from the socket
+                        stream_status_str, new_stripes = self.stream_get_stripes_text(self.streamSock, module)
+
+                        if "overrun" in stream_status_str:
+                            stream_overrun = True  # Flag for final status
+                            logging.warning(f"Buffer overrun detected while draining stream for {module}.")
+                            draining = False  # Stop
+
+                        if "eof" in stream_status_str:
+                            stream_complete = True  # Flag for final status
+                            draining = False  # Verifiably empty
+
+                        if "stopped" in stream_status_str:
+                            draining = False  # Also verifiably empty
+
+                        # Write any data we found
+                        if len(new_stripes) > 0:
+                            new_stripes = new_stripes.replace(' ', separator)
+                            f.write(new_stripes)  # Write the whole remaining chunk
+
+                        if not draining:
+                            # Exit condition (eof, stopped, overrun) was met
+                            pass  # Loop will terminate
+                        elif len(new_stripes) == 0:
+                            # This means status is not eof/stopped, but no data.
+                            # This is a "waiting" state. Sleep briefly to
+                            # prevent a spin-lock while waiting for final status.
+                            time.sleep(0.05)
+
+                    logging.debug(f"Stream {module} drain complete.")
+
                 stream_state = self.send_command('stream?', device=module, qis_socket=self.streamSock)
                 while "stopped" not in stream_state.lower():
                     logging.debug("waiting for stream? to return stopped")

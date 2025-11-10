@@ -78,8 +78,11 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     if keepQisRunning:
         if not isQisRunning():
             startLocalQis()
-    temp =" "
-    args = temp.join(args)
+
+    if args.__len__() !=0:
+        args = " ".join(args)
+    else:
+        args=" "
     if startQPSMinimised == True: #TODO add to release for QPS 1.38
         if "-ccs" not in args.lower():
             args +=" -ccs=MIN"
@@ -123,23 +126,9 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
             else:
                 logging.warning("Attempt to fix permissions was successful. Now continuing.")
 
-    # Single or multiple QPS builds for each OS
-    is_single_qps_build = True
-    if is_single_qps_build: # One QPS to rule them all.
-        qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
-    else: # Different QPS.jar for each OS
-        if current_os in "Windows":
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
-        elif current_os in "Linux" and current_arch == "x86_64":
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
-        elif current_os in "Linux" and current_arch == "aarch64":
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
-        elif current_os in "Darwin" and current_arch == "x86_64":
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
-        elif current_os in "Darwin" and current_arch == "arm64":
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
-        else:  # default to windows
-            qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
+
+    qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
+
 
     # Change the working directory to the directory containing qps.jar
     os.chdir(os.path.dirname(qps_path))
@@ -159,6 +148,10 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     else:  # default to windows
         command = java_path + "\\win_amd64_jdk_jre\\bin\\java\" -jar qps.jar " + str(args)
 
+    if isQpsRunning():
+        logging.debug("QPS is already running. Not starting another instance.")
+        os.chdir(current_dir)
+        return
     if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
         if current_os in "Windows":
             process = subprocess.Popen(command,shell=True)

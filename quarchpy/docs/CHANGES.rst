@@ -14,6 +14,14 @@ Change Log
 ----------
 
 
+2.2.15
+------
+- Bugfix for ">" appearing in qis output when streaming at max speed
+
+2.2.14
+------
+- New QPS 1.49 and QIS 1.51
+
 2.2.13
 ------
 - New QPS 1.48 and QIS 1.50

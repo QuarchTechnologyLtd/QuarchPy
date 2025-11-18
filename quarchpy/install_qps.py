@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import zipfile
@@ -28,7 +29,6 @@ EXTRACTION_FOLDER_QPS = os.path.join(TARGET_DIR, "QPS")
 EXTRACTION_FOLDER_JDK_JRE = os.path.join(TARGET_DIR, "jdk_jres")
 
 
-# --- NEW FUNCTION ---
 def get_installed_qps_version(qps_folder):
     """Reads the appVersion from the app.properties file."""
     properties_file = os.path.join(qps_folder, "app.properties")
@@ -48,7 +48,6 @@ def get_installed_qps_version(qps_folder):
     return None # Version not found in the file
 
 
-# --- MODIFIED FUNCTION ---
 def find_qps():
     """
     Checks for QPS and JDK/JRE. If any are missing or outdated, it attempts an
@@ -89,7 +88,7 @@ def find_qps():
     jdk_found = jdk_jre_check_file and os.path.exists(jdk_jre_check_file)
 
     if qps_ok and jdk_found:
-        printText(f"✅ QPS version {installed_qps_version} and JDK/JRE are correctly installed.")
+        logging.info(f"QPS version {installed_qps_version} and JDK/JRE are correctly installed.")
         return True
 
     printText("--- Missing or Outdated Components Detected ---")

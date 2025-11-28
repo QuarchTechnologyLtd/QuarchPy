@@ -1,52 +1,139 @@
 # .github/workflows/dev-build.yml
-# This is the full name of the workflow. It's displayed on the GitHub Actions page.
 name: QuarchPy Development Build and Release
 
-# The 'on' keyword defines the events that trigger this workflow to run.
 on:
-  # 'push' triggers the workflow on every push event.
   push:
-    # We only care about pushes to the 'Development' branch.
     branches:
       - 'Development'
-  # 'workflow_dispatch' allows you to trigger this workflow manually from the GitHub UI.
   workflow_dispatch:
 
-# A workflow run is made up of one or more 'jobs' that can run sequentially or in parallel.
 jobs:
-  # This is the unique ID of the job.
   build-and-release-dev:
-    # The name of the job displayed on GitHub.
     name: Build and Create Development Release
-    # Specifies the type of virtual machine to run the job on. 'ubuntu-latest' is a standard, fast choice.
     runs-on: ubuntu-latest
-
-    # 'permissions' grants specific permissions to the GITHUB_TOKEN for this job.
     permissions:
-      # 'contents: write' is required for actions that create or update releases and git tags.
       contents: write
 
-    # 'steps' are the sequence of tasks that will be executed as part of the job.
+    env:
+      # Update this version string when you need to download a new JDK
+      JDK_VERSION: '25.0.1+11' # Set to your last used version
+
     steps:
-      # Each '-' is a new step. 'name' is the title shown in the logs.
       - name: Checkout repository
-        # 'uses' specifies that this step will run a pre-built action.
-        # 'actions/checkout@v5' is a standard action that downloads your repository's code
-        # into the runner, so the subsequent steps can work with it.
         uses: actions/checkout@v5
 
+      - name: Download and Unzip QPS Dependency
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+        run: |
+          TARGET_DIR="quarchpy/connection_specific/QPS"
+          echo "Creating target and temp directories for QPS..."
+          mkdir -p $TARGET_DIR
+          mkdir -p temp_qps_download
+          mkdir -p temp_qps_unzip
+
+          echo "Downloading QPS release asset (*.zip) from developmental tag..."
+          gh release download developmental \
+            --repo QuarchTechnologyLtd/QPS \
+            --pattern "*.zip" \
+            --dir temp_qps_download
+          
+          echo "Unzipping QPS files..."
+          unzip -q temp_qps_download/*.zip -d temp_qps_unzip
+          
+          echo "Moving QPS contents to target directory..."
+          shopt -s dotglob
+          mv temp_qps_unzip/*/* $TARGET_DIR/
+          
+          echo "Cleaning up QPS..."
+          rm -r temp_qps_download
+          rm -r temp_qps_unzip
+          echo "QPS files are now in $TARGET_DIR"
+
+      - name: Download and Unzip JDK Binaries
+        shell: bash
+        run: |
+          BASE_PATH="quarchpy/connection_specific/jdk_jres"
+          echo "Downloading and extracting JDKs version ${{ env.JDK_VERSION }}..."
+
+          # --- Clean old directories ---
+          rm -rf ${BASE_PATH}/lin_amd64_jdk_jre
+          rm -rf ${BASE_PATH}/win_amd64_jdk_jre
+          rm -rf ${BASE_PATH}/mac_amd64_jdk_jre
+          rm -rf ${BASE_PATH}/mac_arm64_jdk_jre
+          mkdir -p $BASE_PATH
+          
+          # --- 1. Linux (amd64) ---
+          TARGET_DIR="${BASE_PATH}/lin_amd64_jdk_jre"
+          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-linux-amd64-full.tar.gz"
+          echo "Creating $TARGET_DIR"
+          mkdir -p $TARGET_DIR
+          echo "Downloading and extracting from $URL"
+          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
+
+          # --- 2. Windows (amd64) ---
+          TARGET_DIR="${BASE_PATH}/win_amd64_jdk_jre"
+          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-windows-amd64-full.zip"
+          echo "Creating $TARGET_DIR"
+          mkdir -p $TARGET_DIR
+          echo "Downloading $URL"
+          curl -L -o download.zip $URL
+          echo "Extracting to temp folder..."
+          unzip -q download.zip -d temp_unzip_dir
+          
+          # --- NEW ROBUST MV LOGIC ---
+          echo "Listing extracted contents for debug:"
+          ls -lR temp_unzip_dir
+
+          # Find the single directory inside temp_unzip_dir
+          EXTRACTED_DIR=$(find temp_unzip_dir -mindepth 1 -maxdepth 1 -type d)
+          
+          echo "Found extracted directory: $EXTRACTED_DIR"
+          echo "Moving contents to $TARGET_DIR"
+
+          # Enable dotglob to move hidden files
+          shopt -s dotglob
+          
+          # Move the *contents* of that directory to the target
+          mv $EXTRACTED_DIR/* $TARGET_DIR/
+          # --- END OF FIX ---
+          
+          echo "Cleaning up..."
+          rm download.zip
+          rm -r temp_unzip_dir
+
+          # --- 3. macOS (amd64) ---
+          TARGET_DIR="${BASE_PATH}/mac_amd64_jdk_jre"
+          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-macos-amd64-full.tar.gz"
+          echo "Creating $TARGET_DIR"
+          mkdir -p $TARGET_DIR
+          echo "Downloading and extracting from $URL"
+          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
+
+          # --- 4. macOS (arm64/aarch64) ---
+          TARGET_DIR="${BASE_PATH}/mac_arm64_jdk_jre"
+          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-macos-aarch64-full.tar.gz"
+          echo "Creating $TARGET_DIR"
+          mkdir -p $TARGET_DIR
+          echo "Downloading and extracting from $URL"
+          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
+          
+          echo "All JDKs extracted."
+
+      - name: Verify Dependencies Download
+        run: |
+          echo "Verifying contents of 'quarchpy/connection_specific/QPS':"
+          ls -lR quarchpy/connection_specific/QPS
+          
+          echo "Verifying contents of 'quarchpy/connection_specific/jdk_jres':"
+          ls -lR quarchpy/connection_specific/jdk_jres
+
       - name: Set up Python 3.13
-        # 'actions/setup-python@v6' is an action that installs a specific Python version
-        # and can configure caching for package managers like pip.
         uses: actions/setup-python@v6
         with:
-          # Specifies the exact version of Python to install on the runner.
           python-version: '3.13'
-          # Tells the caching mechanism which file to monitor. If this file's contents change,
-          # the cache will be invalidated and dependencies will be re-installed from scratch.
           cache-dependency-path: '.github/workflows/requirements-dev.txt'
-          # Enables caching for pip. This saves the downloaded packages, making future
-          # workflow runs much faster.
           cache: 'pip'
 
       - name: Clean pycache and .pyc files
@@ -55,113 +142,103 @@ jobs:
           find . -type f -name "*.pyc" -delete
 
       - name: Install Dependencies
-        # Specifies the shell to use for the 'run' command.
         shell: bash
-        # 'run' executes command-line commands.
         run: |
-          # It's good practice to ensure pip itself is up-to-date.
           python -m pip install --upgrade pip
-          # Installs all required packages listed in the requirements-dev.txt file.
           pip install -r .github/workflows/requirements-dev.txt
-          # Also install build dependencies from its own requirements file.
           pip install -r .github/workflows/requirements-build.txt
 
       - name: Test with pytest and coverage
         run: |
-          # 'coverage run' executes the tests with pytest while monitoring which lines of code are run.
           coverage run -m pytest
-          # 'coverage report' prints a simple text-based summary of the coverage results to the log.
           coverage report
 
       - name: Get project version from file
-        # 'id' gives this step a unique identifier ('get_version'). This is crucial because
-        # we need to reference the output of this step in a later step.
         id: get_version
-        # This 'run' step now uses a short Python script instead of shell commands.
-        # This is more robust and works consistently across different systems (like act on Windows).
         run: |
           VERSION_STRING=$(python -c "import re; f=open('quarchpy/_version.py').read(); print(re.search(r'__version__\s*=\s*[\'\"]([^\'\"]+)[\'\"]', f).group(1))")
           echo "version=$VERSION_STRING" >> $GITHUB_OUTPUT
 
       - name: Check if version is a dev release
-        # This step also has an 'id' so its output can be used later.
         id: version_check
         run: |
-          # Get the version string that the previous step ('get_version') extracted.
-          # We access it using the syntax: ${{ steps.STEP_ID.outputs.OUTPUT_NAME }}
           VERSION_STRING="${{ steps.get_version.outputs.version }}"
-
-          # Run a short Python script using the 'packaging' library to check if the version is a dev release.
-          # The result ('true' or 'false') is stored in the IS_DEV shell variable.
           IS_DEV=$(python -c "from packaging.version import Version; print(str(Version('$VERSION_STRING').is_devrelease).lower())")
-          
-          # This command creates a step output named 'is_dev_release' and sets its value.
-          # This makes the result available to subsequent steps in the job.
           echo "is_dev_release=$IS_DEV" >> $GITHUB_OUTPUT
-
-          # This line is for logging purposes, making it easy to see the result in the workflow logs.
           echo "Version found: $VERSION_STRING (Is dev: $IS_DEV)"
 
       - name: Verify it is a dev release
-        # The 'if' conditional makes this step run ONLY if the 'is_dev_release' output
-        # from the 'version_check' step is 'false'.
         if: steps.version_check.outputs.is_dev_release == 'false'
         run: |
-          # If the version is not a dev release, print an error message to the log.
           echo "Error: The version is not a dev release."
           echo "Builds on the 'Development' branch must have a dev version (e.g., 1.2.3.dev1)."
-          # 'exit 1' is a standard command to signal an error, which will cause the job to fail.
-          # This acts as a critical safety check.
           exit 1
 
-      # This step gets the short commit hash, which is needed for the release notes.
       - name: Get commit information
         id: get_info
         run: |
-          # This command gets the first 7 characters of the commit SHA and saves it as an output.
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Build wheel package
-        # This step runs ONLY if the 'is_dev_release' output is 'true'.
+      - name: Update version with commit hash
+        if: steps.version_check.outputs.is_dev_release == 'true'
+        id: set_full_version
+        run: |
+          BASE_VERSION="${{ steps.get_version.outputs.version }}"
+          COMMIT_SHA="${{ steps.get_info.outputs.sha_short }}"
+          FULL_VERSION="${BASE_VERSION}+${COMMIT_SHA}"
+          echo "Setting full version to: $FULL_VERSION"
+          sed -i -E "s/(__version__\s*=\s*[\"']).*([\"'])/\1${FULL_VERSION}\2/" quarchpy/_version.py
+          echo "Verified file content:"
+          cat quarchpy/_version.py
+          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update MANIFEST.in for Dev Build
         if: steps.version_check.outputs.is_dev_release == 'true'
         run: |
-          # This is the modern, recommended command to build your package. It will create a .whl file
-          # and a source distribution (.tar.gz) in a new 'dist/' directory.
+          echo "Original MANIFEST.in content:"
+          cat MANIFEST.in
+          
+          echo "Appending rules to MANIFEST.in for dev build..."
+          # Append QPS rule
+          echo "recursive-include quarchpy/connection_specific/QPS *" >> MANIFEST.in
+          # Append JDK rule
+          echo "recursive-include quarchpy/connection_specific/jdk_jres *" >> MANIFEST.in
+          
+          echo "New MANIFEST.in content:"
+          cat MANIFEST.in
+
+      - name: Build wheel package
+        if: steps.version_check.outputs.is_dev_release == 'true'
+        run: |
           python setup.py bdist_wheel --universal
 
+      - name: Inspect Wheel Contents
+        if: steps.version_check.outputs.is_dev_release == 'true'
+        run: |
+          echo "Inspecting contents of generated wheel file..."
+          mkdir -p wheel_contents
+          unzip -q dist/*.whl -d wheel_contents
+          echo "Listing all files inside the wheel:"
+          ls -lR wheel_contents
+
       - name: Delete Previous Development Release
-        # This step uses the GitHub CLI ('gh') to manage releases.
-        # The GITHUB_TOKEN is automatically created by Actions and is required for authentication.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # This command deletes the GitHub release with the tag 'developmental'.
-          # --yes: Skips the interactive confirmation prompt.
-          # --cleanup-tag: Also deletes the underlying git tag.
-          # The '||' part ensures that the workflow doesn't fail if the release doesn't exist yet.
           gh release delete developmental --yes --cleanup-tag 2>/dev/null || echo "No previous developmental release to delete."
 
       - name: Force-update the 'developmental' Git Tag
-        # After deleting the old tag, we create a new one pointing to the latest commit.
         run: |
-          # Configure git with a user name and email, which is required to create a tag.
           git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          # Create a new tag named 'developmental'. The '-f' (force) flag overwrites it if it exists locally.
+          git config user.email "github-com"
           git tag -f developmental
-          # Force-push the new tag to the repository on GitHub, replacing the old one.
           git push -f origin refs/tags/developmental
 
       - name: Create Development Release
-        # 'softprops/action-gh-release' is a popular action for creating and managing GitHub releases.
         uses: softprops/action-gh-release@v2
         with:
-          # The name of the release displayed on the releases page.
-          # It uses the version from the 'get_version' step.
-          name: "Development Snapshot - ${{ steps.get_version.outputs.version }}"
-          # The git tag this release will be attached to. Must match the tag we just created.
+          name: "Development Snapshot - ${{ steps.set_full_version.outputs.full_version }}"
           tag_name: "developmental"
-          # The description body of the release. It uses context variables to include commit info.
           body: |
             **Latest Development build from the `Development` branch.**
             This is an unstable pre-release and is updated automatically on every push.
@@ -169,8 +246,6 @@ jobs:
             **Commit:** [`${{ steps.get_info.outputs.sha_short }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
             **Commit Message:**
             > ${{ github.event.head_commit.message }}
-          # Marks this release as a 'pre-release' on the GitHub UI, which is appropriate for dev builds.
           prerelease: true
-          # Specifies the files to upload as release assets. 'dist/*.whl' will upload the wheel file we built.
           files: |
             dist/*.whl

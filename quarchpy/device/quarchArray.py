@@ -14,6 +14,7 @@ class quarchArray(quarchDevice):
 
         self.ConType=baseDevice.ConType
         self.connectionObj=baseDevice.connectionObj
+        self.baseDevice = baseDevice
         pass
 
     def getSubDevice(self, port):
@@ -51,23 +52,23 @@ class quarchArray(quarchDevice):
 
         return moduleList
 
-
+    def close_connection(self) -> str:
+        self.baseDevice.close_connection()
      
 
 class subDevice(quarchDevice):
 
     def __init__(self, baseDevice, port):
-        self.port = port
+        self.port = str(port)
         self.connectionObj = baseDevice.connectionObj
         self.ConType = baseDevice.ConType
         self.baseDevice = baseDevice
 
-    def sendCommand(self, CommandString, expectedResponse = True):
-        portNumb = str(self.port)
+    def send_command(self, CommandString, expectedResponse = True):
         returnStr = ''
         
         # Run the base device command
-        respStr = quarchDevice.send_command(self, CommandString + " <" + portNumb + ">")
+        respStr = quarchDevice.send_command(self, CommandString + " <" + str(self.port) + ">")
         # Split into lines, remove the line number sections then reform the string (removing the wanted 'x.y:' section at the start of each line
         respLines = respStr.split('\n')
         for x in respLines:            
@@ -76,4 +77,7 @@ class subDevice(quarchDevice):
             returnStr += (x[pos+1:].strip() + "\r\n")
         returnStr = returnStr.strip()
         return returnStr
+
+    def close_connection(self) -> str:
+        self.baseDevice.close_connection()
 

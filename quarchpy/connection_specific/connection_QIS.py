@@ -153,7 +153,9 @@ class QisInterface:
             logging.error('Unable to close connection to device(s), QIS may be already closed')
             return "FAIL: Unable to close connection to device(s), QIS may be already closed"
 
-    def start_stream(self, module: str, file_name: str, max_file_size: int, release_on_data: bool, separator: str, stream_duration: float=None, in_memory_data: StringIO=None, output_file_handle=None, use_gzip: bool=None):
+    def start_stream(self, module: str, file_name: str, max_file_size: int, release_on_data: bool, separator: str,
+                     stream_duration: float=None, in_memory_data: StringIO=None, output_file_handle=None, use_gzip: bool=None,
+                     gzip_compress_level: int=9):
         """
         Begins a stream process which will record data from the module to a CSV file or in memory CSV equivalent
 
@@ -189,7 +191,8 @@ class QisInterface:
 
         # Create the worker thread to handle stream processing
         t1 = threading.Thread(target=self.start_stream_thread, name=module,
-                              args=(module, file_name, max_file_size, release_on_data, separator, stream_duration, in_memory_data, output_file_handle, use_gzip))
+                              args=(module, file_name, max_file_size, release_on_data, separator, stream_duration,
+                                    in_memory_data, output_file_handle, use_gzip, gzip_compress_level))
         # Start the thread
         t1.start()
 
@@ -234,7 +237,8 @@ class QisInterface:
                     running = False
 
     def start_stream_thread(self, module: str, file_name: str, max_file_size: float, release_on_data: bool, separator: str,
-                          stream_duration: int=None, in_memory_data=None, output_file_handle=None, use_gzip: bool=False):
+                          stream_duration: int=None, in_memory_data=None, output_file_handle=None, use_gzip: bool=False,
+                          gzip_compress_level: int=9):
         """
 
         Args:
@@ -260,6 +264,9 @@ class QisInterface:
                 A pre-opened file handle where data will be written. If set, file_name is ignored.
             use_gzip:
                 If True, writes streamed data to a gzip-compressed file.
+            gzip_compress_level:
+                (Default: 9) The compression level (0-9) to use for gzip.
+                1 is fastest with low compression. 9 is slowest with high compression.
 
         Raises:
         TypeError
@@ -294,7 +301,7 @@ class QisInterface:
             if use_gzip:
                 # Open in text mode ('wt'). Encoding 'utf-8' is a good default.
                 # gzip.open in text mode handles newline conversions.
-                f = gzip.open(file_name, 'wt', encoding='utf-8')
+                f = gzip.open(f'{file_name}.gz', 'wt', encoding='utf-8', compresslevel=gzip_compress_level)
             else:
                 # Open in text mode ('w').
                 # newline='' ensures that '\n' is written as '\n' on all platforms.
@@ -485,7 +492,16 @@ class QisInterface:
                 is_run = False  # Exit main while loop
             except IOError as err:
                 logging.error(f"IOError in startStreamThread for module {module}: {err}")
-                # f might have been closed by the system if it's a pipe and the other end closed or other severe errors.
+
+                # Check if this error might be related to GZIP performance
+                if use_gzip:
+                    logging.warning(f"An IOError occurred while writing GZIP data for {module}.")
+                    logging.warning("This can happen at high data rates if compression is too slow for the I/O buffer.")
+                    logging.warning(f"Current compression level is {gzip_compress_level}. "
+                                    f"Consider re-running with a lower 'gzip_compress_level' (e.g., 6 or 1) "
+                                    "if this error persists.")
+
+                # File might have been closed by the system if it's a pipe and the other end closed or other severe errors.
                 # Attempt to close only if this function opened it, and it seems like it might be openable/closable.
                 if file_opened_by_function and f is not None:
                     try:
@@ -965,6 +981,8 @@ class QisInterface:
         if stripes.endswith("eof\r\n>"):
             is_end_of_block = True
             stripes = stripes.rstrip("eof\r\n>")
+        if stripes.endswith("\r\n>"):
+            stripes= stripes[:-1] # remove the trailing ">"
         # The current reader seems to lose the final line feeds, so check for this
         if len(stripes) > 0:
             if not stripes.endswith("\r\n"):
@@ -1125,12 +1143,13 @@ class QisInterface:
         Returns:
             Command response string or None if no response expected
         """
+        if qis_socket is None:
+            qis_socket = self.sock
+
         if no_response_expected:
             self.send_text(qis_socket, command, device)
             return ""
         else:
-            if qis_socket is None:
-                qis_socket = self.sock
             if not (device == ''):
                 self.device_dict_setup(device)
             res = self.send_and_receive_text(qis_socket, command, device, not no_cursor_expected)
@@ -1350,12 +1369,14 @@ class QisInterface:
         return self.close_connection (sock=sock, con_string=conString)
 
     def startStream(self, module: str, fileName: str, fileMaxMB: int, releaseOnData: bool, separator: str,
-                    streamDuration: int = None, inMemoryData=None, outputFileHandle=None, useGzip: bool = None):
+                    streamDuration: int = None, inMemoryData=None, outputFileHandle=None, useGzip: bool = None,
+                    gzipCompressLevel: int = 9):
         """
         deprecated:: 2.2.13
         Use `start_stream` instead.
         """
-        return self.start_stream(module, fileName, fileMaxMB, releaseOnData, separator, streamDuration, inMemoryData, outputFileHandle, useGzip)
+        return self.start_stream(module, fileName, fileMaxMB, releaseOnData, separator, streamDuration, inMemoryData,
+                                 outputFileHandle, useGzip, gzipCompressLevel)
 
     def stopStream(self, module, blocking=True):
         """
@@ -1413,6 +1434,13 @@ class QisInterface:
         Use `stream_running_status` instead.
         """
         return self.stream_running_status(device)
+
+    def streamBufferStatus(self, device: str) -> str:
+        """
+        deprecated:: 2.2.13
+        Use `stream_buffer_status` instead.
+        """
+        return self.stream_buffer_status(device)
 
     def streamHeaderFormat(self, device, sock=None) -> str:
         """

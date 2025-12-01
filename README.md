@@ -3,7 +3,7 @@
 QuarchPy is a Python API for the automation of Quarch hardware modules and software. It enables robust, scriptable control over Quarch power modules, interposers, and test instrumentation, making it straightforward to build reproducible test workflows, integrate with CI systems, and collect measurement data programmatically.
 
 - Project repo: [QuarchTechnologyLtd/QuarchPy](https://github.com/QuarchTechnologyLtd/QuarchPy)
-- License: See [LICENSE](./LICENSE)
+- License: See [LICENSE](./quarchpy/LICENSE.txt
 
 ## Table of Contents
 

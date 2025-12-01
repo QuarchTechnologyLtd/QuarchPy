@@ -64,5 +64,3 @@ Run:
 ```bash
 python quick_start.py
 ```
-
-That’s it. No extra abstraction—just discovery, selection, connection, and (optionally) a couple of identify queries.

@@ -62,3 +62,33 @@ git clone https://github.com/QuarchTechnologyLtd/QuarchPy.git
 cd QuarchPy
 pip install -e .
 ```
+
+### Quickstart
+
+- Quickstart: [QUICKSTART](./QUICK_START.md)
+
+## Usage
+
+Below are common workflows. API names may differ slightly depending on your installed version.
+
+### Device Discovery
+
+```python
+from quarchpy.device import scanDevices
+
+# Scan for quarch devices over all connection types (USB, Serial and LAN)
+print("Scanning for devices...\n")
+deviceList = scanDevices('all', favouriteOnly=False)
+```
+
+Supported connection types:
+- USB
+- LAN (TCP | REST)
+- Serial
+
+### Connecting to a Module
+
+```python
+
+```
+

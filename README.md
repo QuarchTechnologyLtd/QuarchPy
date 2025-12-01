@@ -16,14 +16,6 @@ QuarchPy is a Python API for the automation of Quarch hardware modules and softw
   - [Device Discovery](#device-discovery)
   - [Connecting to a Module](#connecting-to-a-module)
   - [Basic Control](#basic-control)
-  - [Measurements and Data Capture](#measurements-and-data-capture)
-  - [Error Handling](#error-handling)
-- [Configuration](#configuration)
-- [Examples](#examples)
-  - [Power Cycle a DUT and Measure Inrush](#power-cycle-a-dut-and-measure-inrush)
-  - [Automate a Test Sequence](#automate-a-test-sequence)
-- [CLI (if available)](#cli-if-available)
-- [Best Practices](#best-practices)
 - [Contributing](#contributing)
 - [Support](#support)
 
@@ -87,6 +79,53 @@ Supported connection types:
 ### Connecting to a Module
 
 ```python
+from quarchpy.device import scanDevices, getQuarchDevice
+from quarchpy.user_interface import userSelectDevice
 
+# You can work with the deviceList dictionary yourself, or use the inbuilt 'selector' functions to help
+# Here we use the user selection function to display the list on screen and return the module connection string
+# for the selected device
+moduleStr = userSelectDevice(
+    deviceList,
+    additionalOptions=["Rescan", "All Conn Types", "Quit"],
+    nice=True
+)
+if moduleStr == "quit":
+    return 0
+
+# If you know the name of the module you would like to talk to then you can skip module selection and hardcode the string.
+# moduleStr = "USB:QTL1999-05-005"
+
+# Create a device using the module connection string
+print("\n\nConnecting to the selected device")
+myDevice = getQuarchDevice(moduleStr)
 ```
 
+### Basic Control
+
+```python
+# Basic identify commands (optional)
+print("\nDevice Name:", myDevice.sendCommand("hello?"))
+print("\nFull Identity:\n", myDevice.sendCommand("*idn?"))
+# Always close the connection
+myDevice.closeConnection()
+print("\nConnection closed.")
+```
+
+## Contributing
+
+Contributions are welcome! Please:
+- Open an issue describing the problem or requested feature.
+- Discuss design via issues or pull requests.
+- Follow existing code style and add tests where applicable.
+- Ensure changes are documented in this README or docstrings.
+- See [CONTRIBUTING](./CONTRIBUTING.md)
+
+## Support
+
+- For hardware setup and official documentation, contact Quarch Technology or visit official product docs.
+- For bugs or feature requests in this library, open an issue on the GitHub repository.
+- For commercial support, reach out to Quarch via your support contract or sales contact.
+
+---
+© Quarch Technology Ltd. All rights reserved.

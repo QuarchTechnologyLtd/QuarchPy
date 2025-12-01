@@ -31,12 +31,10 @@ QuarchPy is a Python API for the automation of Quarch hardware modules and softw
 
 - High-level Python interface to Quarch modules and software.
 - Device discovery and connection via common transports (USB, TCP/IP/LAN, serial).
-- Control of outputs and channels (enable/disable power rails, set profiles, triggers).
 - Acquisition of measurements (voltage, current, power), streaming and logging.
-- Scripting-friendly design to integrate with test frameworks (pytest, nose, CI).
+- Scripting-friendly design.
 - Structured error handling and timeouts for robust automation.
 - Cross-platform support (Windows, Linux; macOS where supported by drivers).
-- Extensible: add support for additional module types and commands.
 
 ## Getting Started
 

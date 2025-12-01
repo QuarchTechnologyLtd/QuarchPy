@@ -43,7 +43,7 @@ QuarchPy is a Python API for the automation of Quarch hardware modules and softw
 ### Requirements
 
 - Python 3.8+
-- Access to Quarch modules or emulator
+- Access to Quarch modules
 - Appropriate drivers or connectivity (USB, LAN, or serial) as required by your hardware
 - Network or OS permissions to access the device
 

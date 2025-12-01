@@ -63,7 +63,7 @@ pip install -e .
 
 ### Quickstart
 
-- Quickstart: [QUICKSTART](./QUICK_START.md)
+- Quickstart: See [QUICKSTART](./QUICK_START.md)
 
 ## Usage
 

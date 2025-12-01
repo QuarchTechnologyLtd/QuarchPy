@@ -32,28 +32,28 @@ def main():
     # You can work with the deviceList dictionary yourself, or use the inbuilt 'selector' functions to help
     # Here we use the user selection function to display the list on screen and return the module connection string
     # for the selected device
-    moduleStr = userSelectDevice(
+    module_str = userSelectDevice(
         deviceList,
         additionalOptions=["Rescan", "All Conn Types", "Quit"],
         nice=True
     )
-    if moduleStr == "quit":
+    if module_str == "quit":
         return 0
 
     # If you know the name of the module you would like to talk to then you can skip module selection and hardcode the string.
-    # moduleStr = "USB:QTL1999-05-005"
+    # module_str = "USB:QTL1999-05-005"
 
     # Create a device using the module connection string
     print("\n\nConnecting to the selected device")
-    myDevice = getQuarchDevice(moduleStr)
+    my_device = getQuarchDevice(module_str)
 
     try:
         # Basic identify commands (optional)
-        print("\nDevice Name:", myDevice.sendCommand("hello?"))
-        print("\nFull Identity:\n", myDevice.sendCommand("*idn?"))
+        print("\nDevice Name:", my_device.send_command("hello?"))
+        print("\nFull Identity:\n", my_device.send_command("*idn?"))
     finally:
         # Always close the connection
-        myDevice.closeConnection()
+        myDevice.close_connection()
         print("\nConnection closed.")
 
 if __name__ == "__main__":

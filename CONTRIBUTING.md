@@ -1,4 +1,4 @@
-# Contributing to QuarchPy (Simplified Guide)
+# Contributing to QuarchPy 
 
 Thanks for your interest in QuarchPy. This project provides a Python API for automating Quarch hardware and software. This guide gives you just enough direction to make helpful, focused contributions without unnecessary overhead.
 
@@ -46,8 +46,8 @@ Current: the `quarchpy` package.
 Planned (longer-term, subject to discussion):
 ```
 quarchpy/        # Core library
-tests/           # Pytest-based tests (not present yet)
-docs/            # Additional markdown/app notes (optional)
+tests/           # Pytest-based tests (not utilised yet)
+docs/            # Additional markdown/app notes 
 ```
 
 We are NOT using an `examples/` directory for now. If you have a helpful usage snippet, add it to:

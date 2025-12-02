@@ -148,6 +148,10 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     else:  # default to windows
         command = java_path + "\\win_amd64_jdk_jre\\bin\\java\" -jar qps.jar " + str(args)
 
+    if isQpsRunning():
+        logging.debug("QPS is already running. Not starting another instance.")
+        os.chdir(current_dir)
+        return
     if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
         if current_os in "Windows":
             process = subprocess.Popen(command,shell=True)

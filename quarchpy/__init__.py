@@ -1,6 +1,5 @@
 import os
 import sys
-#import re
 import inspect
 from ._version import __version__
 

@@ -19,12 +19,24 @@ Trivial edits (typos, very small doc tweaks) can go straight to a PR, but linkin
 ## 2. Getting Set Up
 
 ```bash
+# 1. Download the source code from the repository
 git clone https://github.com/QuarchTechnologyLtd/QuarchPy.git
+
+# 2. Move into the project directory
 cd QuarchPy
+
+# 3. Create a fresh virtual environment to isolate dependencies
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
+# 4. Activate the virtual environment
+source .venv/bin/activate        # Linux / macOS
+# .venv\Scripts\activate         # Windows (Run this instead if on Windows)
+
+# 5. Install the package in "Editable" mode
+# This allows you to modify code and see changes immediately without reinstalling
 pip install -e .
-# Optional (future use):
+
+# 6. (Optional) Install the testing framework for future development
 pip install pytest
 ```
 

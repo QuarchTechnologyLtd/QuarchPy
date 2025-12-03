@@ -232,6 +232,7 @@ Report possible security issues privately (not in a public Issue with details).
 - Open an Issue with `[question]` if unsure.
 - Provide command sequences and responses for device errors.
 - Include logging output when diagnosing connection problems.
+- You can also drop us an email: support@quarch.com
 
 ---
 

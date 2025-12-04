@@ -1,6 +1,6 @@
 # QuarchPy
 
-QuarchPy is a Python API for the automation of Quarch hardware modules and software. It enables robust, scriptable control over Quarch modules, making it straightforward to build reproducible test workflows, integrate with CI systems, and collect measurement data programmatically.
+QuarchPy is a Python API for the automation of Quarch hardware modules and software. It enables robust, scriptable control over Quarch modules, making it straightforward to build reproducible test and automation workflows.
 
 - Project repo: [QuarchTechnologyLtd/QuarchPy](https://github.com/QuarchTechnologyLtd/QuarchPy)
 - License: See [LICENSE](./quarchpy/LICENSE.rst)
@@ -11,11 +11,7 @@ QuarchPy is a Python API for the automation of Quarch hardware modules and softw
 - [Getting Started](#getting-started)
   - [Requirements](#requirements)
   - [Installation](#installation)
-  - [Quick Start](#quick-start)
-- [Usage](#usage)
-  - [Device Discovery](#device-discovery)
-  - [Connecting to a Module](#connecting-to-a-module)
-  - [Basic Control](#basic-control)
+- [Application Notes](#application-notes)
 - [Contributing](#contributing)
 - [Support](#support)
 
@@ -53,64 +49,18 @@ cd QuarchPy
 pip install -e .
 ```
 
-### Quickstart
+## Application Notes
 
-- Quickstart: See [QUICKSTART](./QUICK_START.md)
+For worked examples and detailed guides, check out our GitHub Application Notes repository:
 
-## Usage
+- [Quarch Application Notes GitHub](https://github.com/QuarchTechnologyLtd/quarchpy-appnotes)
 
-Below are common workflows. API names may differ slightly depending on your installed version.
+**Getting Started:**  
+We recommend beginning with  
+[AN-006 Python Control of Quarch Modules](https://github.com/QuarchTechnologyLtd/quarchpy-appnotes/tree/main/Application_Notes/AN-006_Python_Control_of_Quarch_Modules)  
+which provides step-by-step instructions and sample Python code for controlling Quarch modules.
 
-### Device Discovery
-
-```python
-from quarchpy.device import scanDevices
-
-# Scan for quarch devices over all connection types (USB, Serial and LAN)
-print("Scanning for devices...\n")
-deviceList = scanDevices('all', favouriteOnly=False)
-```
-
-Supported connection types:
-- USB
-- LAN (TCP | REST)
-- Serial
-
-### Connecting to a Module
-
-```python
-from quarchpy.device import scanDevices, getQuarchDevice
-from quarchpy.user_interface import userSelectDevice
-
-# You can work with the deviceList dictionary yourself, or use the inbuilt 'selector' functions to help
-# Here we use the user selection function to display the list on screen and return the module connection string
-# for the selected device
-moduleStr = userSelectDevice(
-    deviceList,
-    additionalOptions=["Rescan", "All Conn Types", "Quit"],
-    nice=True
-)
-if moduleStr == "quit":
-    return 0
-
-# If you know the name of the module you would like to talk to then you can skip module selection and hardcode the string.
-# moduleStr = "USB:QTL1999-05-005"
-
-# Create a device using the module connection string
-print("\n\nConnecting to the selected device")
-myDevice = getQuarchDevice(moduleStr)
-```
-
-### Basic Control
-
-```python
-# Basic identify commands (optional)
-print("\nDevice Name:", myDevice.sendCommand("hello?"))
-print("\nFull Identity:\n", myDevice.sendCommand("*idn?"))
-# Always close the connection
-myDevice.closeConnection()
-print("\nConnection closed.")
-```
+These resources will help you set up and script Quarch hardware with Python quickly and effectively.
 
 ## Contributing
 
@@ -128,4 +78,5 @@ Contributions are welcome! Please:
 - For commercial support, reach out to Quarch via your support contract or sales contact.
 
 ---
+
 © Quarch Technology Ltd. All rights reserved.

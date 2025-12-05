@@ -99,7 +99,7 @@ Guidelines:
 - Do not remove or rename public functions without:
   1. An Issue explaining the rationale.
   2. A deprecation period (at least one tagged release).
-- Anything commonly imported from `quarchpy.*` by users should be treated as public.
+- Anything commonly imported in quarchpyt/init.py should be treated as public."
 
 ---
 
@@ -141,8 +141,8 @@ Informal PR checklist:
 
 ## 8. Error Handling & Logging
 
-- Use `logging` internally; reserve `print()` for QUICK_START or manual scripts.
-- Catch specific exceptions where feasible.
+- Use `logging` internally; reserve `print()` for User level scripts not API.
+- Catch specific exceptions, not generic exceptions where feasible.
 - Include command/context when raising or wrapping errors.
 
 ---
@@ -200,9 +200,8 @@ If users need to know about a change:
 
 ---
 
-## 12. Release & Versioning (Lightweight)
+## 12. Release & Versioning
 
-No formal changelog yet.
 - Avoid breaking changes.
 - Use deprecation rather than removal.
 - Group related changes logically.
@@ -216,7 +215,7 @@ Do not commit:
 - Proprietary hardware dumps
 - Internal identifiers not meant for public distribution
 
-Report possible security issues privately (not in a public Issue with details).
+Report possible security issues privately (not in a public Issue with details) please contact us at support@quarch.com.
 
 ---
 
@@ -232,7 +231,7 @@ Report possible security issues privately (not in a public Issue with details).
 ## 15. Quick Flow
 
 ```
-Issue → Branch → Change → (Optional doc updates) → Commit → PR → Review → Merge
+Issue → Branch → Change → Doc updates( If required) → Commit to branch → Pull Request → Quarch Code Review → Merge/Reject
 ```
 
 Keep changes small, backward-compatible, and documented.

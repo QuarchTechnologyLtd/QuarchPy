@@ -174,26 +174,19 @@ Informal PR checklist:
 - Centralize repeated literal command strings if reused.
 - Avoid large formatting-only PRs without discussion.
 
----
-
 ## 10. Adding Commands / Device Behaviors
 
-Wrapper functions around `sendCommand()` should not be added without clear justification.
+If a wrapper function does not exist for a given QPS, QIS, or device command, contributors may add one. This enables immediate use of new features or commands added to the QPS CLI or device firmware.
 
-Required justification (via Issue or PR description):
-- What problem does the wrapper solve?
-- Why can’t users directly call `sendCommand()`?
-- Does it add validation, safety, or multi-step convenience?
-- Any timing or sequencing guarantees?
+When adding a wrapper, you **must provide**:
 
-In the wrapper’s docstring:
-- State the higher-level intent (e.g. “Convenience method to margin voltage safely.”)
-- Mention underlying device commands if helpful (`Sig:<rail>:Volt`, etc.).
-- Do not hide critical timing requirements—document them.
+- **Purpose**: Explain what higher-level need the wrapper serves.
+- **Documentation**: Include a clear docstring stating the wrapper’s intent, and mention relevant underlying commands or timing/sequencing requirements.
+- **Justification**: In your pull request or issue description, state why the wrapper is needed, what problem it solves, and its added value (validation, convenience, safety, etc).
 
-Avoid:
-- Wrappers that only rename a single `sendCommand()` call.
-- Abstractions that obscure error conditions or device states.
+Wrappers should not be trivial renames—they should add convenience, validation, or clarity beyond the underlying command.
+
+You may call device commands directly in user scripts if preferred, but wrappers are recommended for any reusable, higher-level functionality.
 
 ---
 

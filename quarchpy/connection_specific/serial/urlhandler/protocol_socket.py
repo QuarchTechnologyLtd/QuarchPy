@@ -18,6 +18,7 @@
 
 import errno
 import logging
+logger = logging.getLogger(__name__)
 import select
 import socket
 import time
@@ -113,7 +114,6 @@ class Serial(SerialBase):
             # process options now, directly altering self
             for option, values in urlparse.parse_qs(parts.query, True).items():
                 if option == 'logging':
-                    logging.basicConfig()   # XXX is that good to call it here?
                     self.logger = logging.getLogger('pySerial.socket')
                     self.logger.setLevel(LOGGER_LEVELS[values[0]])
                     self.logger.debug('enabled logging')

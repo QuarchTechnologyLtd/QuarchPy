@@ -29,6 +29,7 @@ class User_interface:
                 self.selectedInterface = ui
                 if "console" in ui:
                     import logging
+logger = logging.getLogger(__name__)
             else:
                 raise ValueError("requested ui type not valid")
 
@@ -205,7 +206,7 @@ def printText(text, fillLine=False, terminalWidth=100, fill=" ", **kwargs):
         # if line is not empty
         if text.strip() != "":
                 TestCenter.testPoint ("Quarch_Host.LogComment","Message=" + __formatForTestcenter(text),stack_level=2)
-                logging.debug(str(text))
+                logger.debug(str(text))
 
     else:
         if fillLine:
@@ -229,7 +230,7 @@ def logWarning(text, fillLine=False):
             TestCenter.testPoint("Quarch_Host.LogWarning", "Message=" + __formatForTestcenter(text))
 
     else:
-         logging.warning(text)
+         logger.warning(text)
     return
 
 def logDebug(text, fillLine=False):
@@ -245,7 +246,7 @@ def logDebug(text, fillLine=False):
             TestCenter.testPoint("Quarch_Host.LogComment", "Message=" + __formatForTestcenter(text))
 
     else:
-         logging.debug(text)
+         logger.debug(text)
     return
 
 

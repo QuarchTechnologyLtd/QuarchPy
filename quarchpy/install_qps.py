@@ -1,4 +1,5 @@
 import logging
+logger = logging.getLogger(__name__)
 import os
 import sys
 import zipfile
@@ -9,7 +10,7 @@ import xml.etree.ElementTree as ET
 from quarchpy.user_interface import printText, requestDialog
 
 # --- Configuration ---
-QPS_VERSION_FOR_DOWNLOAD = "1.49"
+QPS_VERSION_FOR_DOWNLOAD = "1.50"
 # URLs for the separate ZIP files.
 QPS_DOWNLOAD_URL = f"https://quarch.com/software_update/qps/QPS_{QPS_VERSION_FOR_DOWNLOAD}.zip"
 JDK_JRE_DOWNLOAD_URL = "https://quarch.com/software_update/qps/jdk_jres.zip"
@@ -88,7 +89,7 @@ def find_qps():
     jdk_found = jdk_jre_check_file and os.path.exists(jdk_jre_check_file)
 
     if qps_ok and jdk_found:
-        logging.info(f"QPS version {installed_qps_version} and JDK/JRE are correctly installed.")
+        logger.info(f"QPS version {installed_qps_version} and JDK/JRE are correctly installed.")
         return True
 
     printText("--- Missing or Outdated Components Detected ---")

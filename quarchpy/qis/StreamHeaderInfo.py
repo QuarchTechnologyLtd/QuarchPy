@@ -5,7 +5,8 @@ to get the detail of the stream
 
 import xml.etree.ElementTree as ET                          # XML parser
 from quarchpy.utilities.TimeValue import TimeValue          # Time object helper class
-import logging                                              # Used for debug logging calls
+import logging
+logger = logging.getLogger(__name__)                                              # Used for debug logging calls
 
 class StreamChannelInfo:
     """
@@ -77,7 +78,7 @@ class StreamHeaderInfo:
         # Check if its an XML header
         if('?xml version=' not in header_raw_xml):
             # Old format header so limited data we can obtain
-            logging.error("Stream header version not supported (not XML) or invalid data supplied")
+            logger.error("Stream header version not supported (not XML) or invalid data supplied")
             raise Exception ("Stream header version not supported (not XML) or invalid data supplied");
         else:           
             # Parse XML into structured format
@@ -90,9 +91,9 @@ class StreamHeaderInfo:
                     param_string = param_string[1:]
                     self.header_version = int(param_string)                    
                 else:
-                    logging.error('Unexpected version string found: ' + param_string)
+                    logger.error('Unexpected version string found: ' + param_string)
             except Exception as e:
-                logging.error('Exception while parsing stream header XML for header version.')
+                logger.error('Exception while parsing stream header XML for header version.')
                 raise e
                 
             # Get the device period (will not be present on multi-rate modules, those are handled has part of group parsing)

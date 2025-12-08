@@ -5,6 +5,7 @@ Provides functions to compare quarchpy versions
 
 import re
 import logging
+logger = logging.getLogger(__name__)
 from quarchpy.debug.SystemTest import get_quarchpy_version
 
 def requiredQuarchpyVersion (requiredVersion):
@@ -27,7 +28,7 @@ def requiredQuarchpyVersion (requiredVersion):
     # Check for internal dev versions of quarchpy
     currentVersion =get_quarchpy_version()
     if "dev" in currentVersion.lower():
-        logging.warning("Using Dev version of quarchpy: Allowing continue")
+        logger.warning("Using Dev version of quarchpy: Allowing continue")
         return True
     requiredVersion=requiredVersion.split(".")
     currentVersion =currentVersion.split(".")

@@ -1,4 +1,5 @@
 import logging
+logger = logging.getLogger(__name__)
 import operator
 import socket
 from sys import platform
@@ -49,7 +50,7 @@ def list_serial(debugPrint=False):
     serial_modules = dict()
 
     for i in serial_ports:
-        logging.debug("Scanning for Quarch devices on: " + str(i))
+        logger.debug("Scanning for Quarch devices on: " + str(i))
         try:
             ser = serial.Serial(i[0], 19200, timeout=0.5, write_timeout=0.5)
             ser.write(b'*serial?\r\n')
@@ -66,12 +67,12 @@ def list_serial(debugPrint=False):
 
             if serial_module[7] == "-" and serial_module[10] == "-":
                 serial_modules["SERIAL:" + str(i[0])] = serial_module
-                logging.debug("Located quarch module: " + serial_module)
+                logger.debug("Located quarch module: " + serial_module)
 
             ser.close()
-            logging.debug("Finished scanning for Quarch devices on: " + str(i))
+            logger.debug("Finished scanning for Quarch devices on: " + str(i))
         except Exception as err:
-            logging.debug("Exception during serial scan: " + str(err))
+            logger.debug("Exception during serial scan: " + str(err))
             pass
     return serial_modules
 
@@ -103,12 +104,12 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
         if hex(i.device_descriptor.idVendor) == hex(QUARCH_VENDOR_ID) and hex(i.device_descriptor.idProduct) == hex(
                 QUARCH_PRODUCT_ID1):
             try:
-                logging.debug("Opening USB handle to quarch module: " + str(i))
+                logger.debug("Opening USB handle to quarch module: " + str(i))
                 i_handle = i.open()
             except Exception as err:
-                logging.debug("USB port open exception: " + str(err))
+                logger.debug("USB port open exception: " + str(err))
                 if "LIBUSB_ERROR_ACCESS [-3]" in str(err):
-                    logging.debug("Unable to communicate with Quarch module over USB, device may be in use already.")
+                    logger.debug("Unable to communicate with Quarch module over USB, device may be in use already.")
                     if not platform == "win32":
                         if not os.path.isfile("/etc/udev/rules.d/20-quarchmodules.rules"):
                             usb_permission_error = True
@@ -119,7 +120,7 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
                 if "1944" in module_sn or "2098" in module_sn:  #use enclosure number instead of serial number
                     hdList.append(i)
             except Exception as err:
-                logging.debug("USB exception on reading serial number: " + str(err))
+                logger.debug("USB exception on reading serial number: " + str(err))
                 usb_modules["USB:???"] = "LOCKED MODULE"
                 continue
 
@@ -127,7 +128,7 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
                 if debuPrint:
                     printText(i_handle.getASCIIStringDescriptor(3) + " " + i_handle.getASCIIStringDescriptor(2) + " " + i_handle.getASCIIStringDescriptor(1))
             except Exception as err:
-                logging.error("USB exception on reading descriptor strings: " + str(err))
+                logger.error("USB exception on reading descriptor strings: " + str(err))
                 usb_modules["USB:???"] = "LOCKED MODULE"
                 continue
 
@@ -140,13 +141,13 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
                 printText(module_sn)
 
             usb_modules["USB:" + module_sn] = module_sn
-            logging.debug("Located USB module: " + module_sn)
+            logger.debug("Located USB module: " + module_sn)
 
             try:
-                logging.debug("Closing USB handle to quarch module: " + str(i))
+                logger.debug("Closing USB handle to quarch module: " + str(i))
                 i_handle.close()
             except Exception as err:
-                logging.error("Exception on closing USB port: " + str(err))
+                logger.error("Exception on closing USB port: " + str(err))
                 continue
 
     # Before returning the list of usb modules scan through the list for a 1944 create a quarch device and use sendCommand("*enclosure?")
@@ -165,14 +166,14 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
         if keyToFind in usb_modules:
             del usb_modules[keyToFind]
             usb_modules["USB:QTL" + enclNo] = "QTL" + enclNo
-            logging.debug("Located USB module: QTL" + enclNo)
+            logger.debug("Located USB module: QTL" + enclNo)
 
         QquarchDevice.ClosePort()
         QquarchDevice.deviceHandle = None
 
     if usb_permission_error:
-        logging.warning("Potential permission error accessing Quarch module(s) via USB.")
-        logging.warning("If unknown, run the command 'sudo python3 -m quarchpy.run debug --fixusb' to add a new usb rule.")
+        logger.warning("Potential permission error accessing Quarch module(s) via USB.")
+        logger.warning("If unknown, run the command 'sudo python3 -m quarchpy.run debug --fixusb' to add a new usb rule.")
 
     # Ensure discovered usb devices are populated if required.
     # Devices connected via USB must be enquired via *IDN?
@@ -203,7 +204,7 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
 
             discovered_devices.extend(temp_discovered_devices_list)
         except Exception as e:
-            logging.debug(str(e))
+            logger.debug(str(e))
 
     return usb_modules
 
@@ -222,20 +223,20 @@ def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLoo
     ip_module = None
     module_name = None
     # Broadcast the message.
-    logging.debug("Broadcast LAN discovery message for UDP scan to all network interfaces")
+    logger.debug("Broadcast LAN discovery message for UDP scan to all network interfaces")
     ipList = socket.gethostbyname_ex(socket.gethostname())
     ipList[2].append("")
-    logging.debug(os.path.basename(__file__) + ": Discovered the following interfaces: " + str(ipList))
+    logger.debug(os.path.basename(__file__) + ": Discovered the following interfaces: " + str(ipList))
 
     for ip in ipList[2]:
-        logging.debug(os.path.basename(__file__) + ": Broadcasting on : " + ip)
+        logger.debug(os.path.basename(__file__) + ": Broadcasting on : " + ip)
         try:
             mySocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             mySocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             mySocket.settimeout(lanTimeout)
             mySocket.bind((ip, 56732))
         except Exception as err:
-            logging.debug("Error while trying to bind to network interfaces: " + " Error: " + str(err))
+            logger.debug("Error while trying to bind to network interfaces: " + " Error: " + str(err))
 
         if ipAddressLookup is not None:
             # Attempts to find the device through UDP then REST
@@ -252,7 +253,7 @@ def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLoo
             try:
                 msg_received = mySocket.recvfrom(1024)
             except Exception as e:
-                logging.debug(str(e))
+                logger.debug(str(e))
                 # check if any a device was targeted directly and allow parse
                 if specifiedDevice is not None:
                     msg_received = specifiedDevice
@@ -286,7 +287,7 @@ def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLoo
                     data = repr(lines[1:]).replace("'", "").replace("b", "")
                 network_modules[index] = data
             module_name = get_user_level_serial_number(network_modules)
-            logging.debug("Found UDP response: " + module_name)
+            logger.debug("Found UDP response: " + module_name)
             ip_module = msg_received[1][0].strip()
             try:
                 # Add a QTL before modules without it.
@@ -302,28 +303,28 @@ def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLoo
                 if network_modules.get("\\x8a") or network_modules.get("138"):
                     # Append the information to the list.
                     lan_modules["TELNET:" + ip_module] = module_name
-                    logging.debug("Found Telnet module: " + module_name)
+                    logger.debug("Found Telnet module: " + module_name)
 
             # Checks if there's a value in the REST key.
             if target_conn.lower() == "all" or target_conn.lower() == "rest":
                 if network_modules.get("\\x84") or network_modules.get("132"):
                     # Append the information to the list.
                     lan_modules["REST:" + ip_module] = module_name
-                    logging.debug("Found REST module: " + module_name)
+                    logger.debug("Found REST module: " + module_name)
 
             # Checks if there's a value in the TCP key.
             if target_conn.lower() == "all" or target_conn.lower() == "tcp":
                 if network_modules.get("\\x85") or network_modules.get("133"):
                     # Append the information to the list.
                     lan_modules["TCP:" + ip_module] = module_name
-                    logging.debug("Found TCP module: " + module_name)
+                    logger.debug("Found TCP module: " + module_name)
         mySocket.close()
     if ipAddressLookup is not None:
         if moduleFound is None:
             printText("IP Scan failed, no module found.")
         else:
             printText("IP Scan succeeded, module found: " + moduleFound)
-    logging.debug("Finished UDP scan")
+    logger.debug("Finished UDP scan")
     retVal.update(lan_modules)
     return retVal
 
@@ -367,15 +368,15 @@ def lookupDevice(ipAddressLookup, mySocket, lan_modules, module_found):
     try:
         # For future reference, 0 is the C terminator for a string
         timeout = mySocket.gettimeout()
-        logging.debug("Ipaddress lookup =" + ipAddressLookup + "  timeout = " + str(timeout))
+        logger.debug("Ipaddress lookup =" + ipAddressLookup + "  timeout = " + str(timeout))
 
         mySocket.sendto(b'Discovery: Who is out there?\0\n', (str(ipAddressLookup).strip(), 30303))
         specifiedDevice = mySocket.recvfrom(256)
         # Check to see if the response contains the connection protocol
         return specifiedDevice
     except Exception as e:
-        logging.debug("Error during UDP lookup of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
-        logging.debug("No Quarch module found at this address. Please check the IP address and that you can ping it.\r\n")
+        logger.debug("Error during UDP lookup of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
+        logger.debug("No Quarch module found at this address. Please check the IP address and that you can ping it.\r\n")
 
     if specifiedDevice is None:  #Only True if TCP not found or errored
         try:
@@ -391,8 +392,8 @@ def lookupDevice(ipAddressLookup, mySocket, lan_modules, module_found):
             module_found = restDevice
             specifiedDevice = None  # Don't return rest connection, to bypass tcp parsing.
         except Exception as e:
-            logging.debug("Error During REST scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
-            logging.debug("Please check the IP address and that you can ping it.\r\n")
+            logger.debug("Error During REST scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
+            logger.debug("Please check the IP address and that you can ping it.\r\n")
         try:
             # Keep for debugging purposes
             # from threading import Thread
@@ -415,8 +416,8 @@ def lookupDevice(ipAddressLookup, mySocket, lan_modules, module_found):
             module_found = tcpDevice
             specifiedDevice = None  # Don't return tcp connection, to bypass tcp parsing.
         except Exception as e:
-            logging.debug("Error During TCP scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
-            logging.debug("Please check the IP address and that you can ping it.\r\n")
+            logger.debug("Error During TCP scan of IP address " + str(ipAddressLookup) + "  Error: " + str(e))
+            logger.debug("Please check the IP address and that you can ping it.\r\n")
 
         # Needs to return None so previous method will not attempt another lookup.
         return specifiedDevice, module_found
@@ -470,7 +471,7 @@ def get_connection_target(module_string, scan_dictionary=None, connection_prefer
                         ret_val : str
                             The Connection target of the supplied device.
     """
-    logging.debug("Getting connection target for : " + str(module_string))
+    logger.debug("Getting connection target for : " + str(module_string))
     if connection_preference is None:
         connection_preference = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
     module_string.replace("::", ":")  #QIS/QPS format to QuarchPy format
@@ -484,7 +485,7 @@ def get_connection_target(module_string, scan_dictionary=None, connection_prefer
     if serial_number.find("qtl") != -1:
         serial_number = serial_number.replace("qtl", "")
     if scan_dictionary is None:
-        logging.debug("Scanning for devices...")
+        logger.debug("Scanning for devices...")
         scan_dictionary = scanDevices(favouriteOnly=False, filterStr=[serial_number])
 
     ret_val = "Fail Module Not Found"
@@ -571,8 +572,8 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
             foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout, discovered_devices=discovered_devices))
             foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
         except Exception as e:
-            logging.error(e)
-            logging.warning("Network scan failed, check network connection")
+            logger.error(e)
+            logger.warning("Network scan failed, check network connection")
 
     if target_conn.lower() == "serial":
         foundDevices = list_serial()
@@ -596,8 +597,8 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
                         foundDevices = mergeDict(foundDevices, scannedDevices)
                         myArrayController.close_connection()
                     except Exception as e:
-                        logging.debug(e, exc_info=True)
-                        logging.debug("Cannot get serial number. Quarch device may be in use by another program.")
+                        logger.debug(e, exc_info=True)
+                        logger.debug("Cannot get serial number. Quarch device may be in use by another program.")
                         foundDevices[k] = "DEVICE IN USE"
 
     if favouriteOnly:

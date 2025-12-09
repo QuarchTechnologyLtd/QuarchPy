@@ -4,6 +4,7 @@ import time
 import os
 import sys
 import logging
+logger = logging.getLogger(__name__)
 import platform
 import inspect
 import ctypes
@@ -104,7 +105,7 @@ def USB(SerID = ''):
 
     if quarchDevice == None:
         if SerID.lower() != "list":
-            logging.critical('Quarch device ' + SerID + ' not found!')
+            logger.critical('Quarch device ' + SerID + ' not found!')
         return None
     else:
         QquarchDevice = TQuarchUSB_IF( context )
@@ -218,18 +219,18 @@ class TQuarchUSB_IF:
         try:
             self.Manufacturer = self.connection.getManufacturer()
         except Exception as e:
-            logging.debug(e)
+            logger.debug(e)
             self.Manufacturer = "Error"
 
         try:
             self.Product = self.connection.getProduct()
         except Exception as e:
-            logging.debug(e)
+            logger.debug(e)
             self.Product = "Error"
         try:
             self.SerialNumber = self.connection.getSerialNumber()
         except Exception as e:
-            logging.debug(e)
+            logger.debug(e)
             self.SerialNumber = "Error"
         self.VenderId = self.connection.device_descriptor.idVendor
         self.ProductId = self.connection.device_descriptor.idProduct
@@ -371,7 +372,7 @@ class TQuarchUSB_IF:
 
     def SendCommand( self, command ):
         if self.isOpen == 0:
-            logging.debug(os.path.basename(__file__) + ".SendCommand: Device is not open, cannot send!")
+            logger.debug(os.path.basename(__file__) + ".SendCommand: Device is not open, cannot send!")
             self.lastError = 'RunCommand: Device Not Open'
             return -1
         try:
@@ -382,14 +383,14 @@ class TQuarchUSB_IF:
                 self.lastWriteByteCount = self.deviceHandle.bulkWrite( endpoint= self.QCmdEP, data= command + pad, timeout=self.timeout )
             return self.lastWriteByteCount
         except:
-            logging.error(os.path.basename(__file__) + ".SendCommand: Exception during bulkWrite process")
+            logger.error(os.path.basename(__file__) + ".SendCommand: Exception during bulkWrite process")
             return -1
 
     def BulkReadEPTout( self, ep, n, timeOut ):
         try:
             return self.deviceHandle.bulkRead( ep, n, timeOut )
         except:
-            logging.error(os.path.basename(__file__) + ".BulkReadEPTout: Exception during bulkRead process")
+            logger.error(os.path.basename(__file__) + ".BulkReadEPTout: Exception during bulkRead process")
             return ''
 
     def BulkReadEP( self, ep, n ):
@@ -473,7 +474,7 @@ class TQuarchUSB_IF:
                 retLineStr = self.deviceHandle.bulkRead( self.QCmdEP, self.QCmdEPSize, timeout )
             # Exception can be due to device connection lost, or a temporary glitch that we can recover from
             except Exception as ex:
-                logging.error(os.path.basename(__file__) + ".FetchCmdReplyTOut: bulkRead exception (" + str(ex) + ") during response read: " + response)
+                logger.error(os.path.basename(__file__) + ".FetchCmdReplyTOut: bulkRead exception (" + str(ex) + ") during response read: " + response)
                 
                 # Run a cleanup process and see if we can recover the response
                 flushed_response = self.clean_and_flush_stuck_usb_comms ()
@@ -512,10 +513,10 @@ class TQuarchUSB_IF:
         # Transmit the command
         length = self.SendCommand( command )
         if  length == -1:
-            logging.error(os.path.basename(__file__) + ".RunCommand: SendCommand failed for command: " + command)
+            logger.error(os.path.basename(__file__) + ".RunCommand: SendCommand failed for command: " + command)
             return ''
         elif (length != 64):
-            logging.error(os.path.basename(__file__) + ".RunCommand: Unexpected number of bytes reported as sent")
+            logger.error(os.path.basename(__file__) + ".RunCommand: Unexpected number of bytes reported as sent")
 
         if expectedResponse:
             # Read all the data back

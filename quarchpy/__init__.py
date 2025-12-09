@@ -2,6 +2,60 @@ import os
 import sys
 import inspect
 from ._version import __version__
+import logging
+from pathlib import Path
+from logging.handlers import RotatingFileHandler
+
+logger = logging.getLogger("quarchpy")
+logger.setLevel(logging.DEBUG)
+
+# Don't propagate to root unless you want duplicate output
+logger.propagate = False
+
+# Only add handlers once
+if not logger.handlers:
+
+    # File handler (always debug)
+    log_dir = Path.home() / ".quarchpy"
+    log_dir.mkdir(exist_ok=True)
+    logfile = log_dir / "quarchpy.log"
+
+    file_handler = RotatingFileHandler(logfile, maxBytes=5_000_000, backupCount=5)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        "%Y-%m-%d %H:%M:%S"
+    ))
+    logger.addHandler(file_handler)
+
+    # Console: default WARNING
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.WARNING)
+    console_handler.setFormatter(logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        "%Y-%m-%d %H:%M:%S"
+    ))
+    logger.addHandler(console_handler)
+
+
+# ---- Public API for users ----
+def configure_logging(console_level=None, file_level=None, file_path=None):
+    """Reconfigure quarchpy logging safely."""
+    for handler in logger.handlers:
+        # Change console level
+        if isinstance(handler, logging.StreamHandler):
+            if console_level is not None:
+                handler.setLevel(console_level)
+
+        # Change file level and path
+        if isinstance(handler, RotatingFileHandler):
+            if file_level is not None:
+                handler.setLevel(file_level)
+            if file_path is not None:
+                handler.baseFilename = str(file_path)
+
+    logger.info("quarchpy logging reconfigured")
+
 
 # Adds / to the path.
 folder2add = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]) + "//")

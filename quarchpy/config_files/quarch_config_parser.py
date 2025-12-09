@@ -1,4 +1,5 @@
 import logging
+logger = logging.getLogger(__name__)
 import os, os.path, sys
 import inspect
 import quarchpy.config_files
@@ -245,7 +246,7 @@ def get_config_path_for_module (idn_string = None, module_connection = None):
 
     # Check for invalid parameters
     if (idn_string is None and module_connection is None):
-        logging.error("Invalid parameters, no module information given")
+        logger.error("Invalid parameters, no module information given")
         result = False
     else:
         # Prefer IDN string, otherwise use the module connection to get it now
@@ -280,12 +281,12 @@ def get_config_path_for_module (idn_string = None, module_connection = None):
         # Log the failure if we did not get all the info needed
         if (device_number is None):
             result = False
-            logging.error("Unable to identify module - no module number")
+            logger.error("Unable to identify module - no module number")
         if (device_fw is None):
-            logging.error("Unable to identify module - no firmware version")
+            logger.error("Unable to identify module - no firmware version")
             result = False
         if (device_fpga is None):
-            logging.error("Unable to identify module - no FPGA version")
+            logger.error("Unable to identify module - no FPGA version")
             result = False
 
         # If we got all the data, use it to find the config file
@@ -307,7 +308,7 @@ def get_config_path_for_module (idn_string = None, module_connection = None):
                             # Check if FPGA version matches
                             if (check_fpga_version_matches(i, device_fpga)):
                                 # Store this as a matching config file for the device
-                                logging.debug("Located matching config file: " + i["Config_Path"])
+                                logger.debug("Located matching config file: " + i["Config_Path"])
                                 config_matches.append (i)
 
             # Sort the config files into preferred order
@@ -315,7 +316,7 @@ def get_config_path_for_module (idn_string = None, module_connection = None):
                 config_matches = sort_config_headers (config_matches)
                 return config_matches[0]["Config_Path"]
             else:
-                logging.error("No matching config files were found for this module")
+                logger.error("No matching config files were found for this module")
                 return None
 
 # Attempts to parse every file on the system to check for errors in the config files or the parser
@@ -363,7 +364,7 @@ def get_config_file_headers ():
             new_config["Config_Path"] = i
             config_headers.append (new_config)
         else:
-            logging.error("Config file parse failed, @CONFIG section not found")
+            logger.error("Config file parse failed, @CONFIG section not found")
 
     return config_headers
 
@@ -401,7 +402,7 @@ def parse_section_to_dictionary (read_file):
         else:
             pos = line.find ('=')
             if (pos == -1):
-                logging.error("Config line does not meet required format of x=y: " + line)
+                logger.error("Config line does not meet required format of x=y: " + line)
                 return None
             else:
                 elements[line[:pos]] = line[pos+1:]
@@ -421,7 +422,7 @@ def check_part_number_matches(config_header, device_number):
         short_device_number = device_number[:-pos]
     # Fail on part number not including the version section
     else:
-        logging.debug("Part number did not contain the version :" + device_number)
+        logger.debug("Part number did not contain the version :" + device_number)
         return False
 
     # Loop through the allowed part numbers
@@ -437,7 +438,7 @@ def check_part_number_matches(config_header, device_number):
                 any_version = False;               
         # Fail if config number is invalid
         else:
-            logging.debug("Part number in config file is not in the right format: " + dev)
+            logger.debug("Part number in config file is not in the right format: " + dev)
             return False;
 
         # Return true if we find a number that matches in full, or one which matches in part and the any_version flag was present in the config file
@@ -459,12 +460,12 @@ def check_part_exclude_matches(config_header, device_number):
         short_device_number = device_number[:-pos]
     # Fail on part number not including the version section
     else:
-        logging.debug("Part number did not contain the version :" + device_number)
+        logger.debug("Part number did not contain the version :" + device_number)
         return False
 
     # Check that the part number is fully qualified (will not be the case if the serial number is not set)
     if ("?" in device_number):
-        logging.debug("Part number is not fully qualified :" + device_number)
+        logger.debug("Part number is not fully qualified :" + device_number)
         return False
 
     # Loop through the excluded part numbers
@@ -484,7 +485,7 @@ def check_part_exclude_matches(config_header, device_number):
                 any_version = False;               
         # Fail if config number is invalid
         else:
-            logging.debug("Exclude part number in config file is not in the right format: " + dev)
+            logger.debug("Exclude part number in config file is not in the right format: " + dev)
             return False;
 
         # Return true if we find a number that matches in full, or one which matches in part and the any_version flag was present in the config file
@@ -623,7 +624,7 @@ def parse_config_file (file):
         dev_caps.config_data = config_dict
         return dev_caps
     else:
-        logging.error("Only 'TorridonModule' class devices are currently supported")
+        logger.error("Only 'TorridonModule' class devices are currently supported")
         return None
 
 # Parses the sources section of a Torridon breaker module, returning a list of sources

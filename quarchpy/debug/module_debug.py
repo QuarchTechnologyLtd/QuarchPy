@@ -18,6 +18,7 @@ Connect any Quarch breaker/hot-plug module and run the script
 ####################################
 '''
 import logging
+logger = logging.getLogger(__name__)
 
 from quarchpy.config_files import *
 from quarchpy.device import *
@@ -73,7 +74,7 @@ def main(filepath=None):
         # We're passing the module connection here, the idn_string can be supplied instead if the module is not currently attached (simulation/demo mode)
         file = get_config_path_for_module(module_connection=my_device)
     except FileNotFoundError as err:
-        logging.error(f"Config file not found for module : {moduleStr}\nExiting Script")
+        logger.error(f"Config file not found for module : {moduleStr}\nExiting Script")
         my_device.close_connection()
         return
 
@@ -81,7 +82,7 @@ def main(filepath=None):
     dev_caps = parse_config_file(file)
 
     if not dev_caps:
-        logging.error(f"Could not parse config file for {moduleStr}\nExiting Script")
+        logger.error(f"Could not parse config file for {moduleStr}\nExiting Script")
         my_device.close_connection()
         return
     logText("\nCONFIG FILE LOCATED:")

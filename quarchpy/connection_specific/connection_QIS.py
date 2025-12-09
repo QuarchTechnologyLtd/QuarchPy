@@ -6,7 +6,8 @@ import xml.etree.ElementTree as ET
 from io import StringIO
 
 import select
-from connection_specific.StreamChannels import StreamGroups
+#from .connection_specific.StreamChannels import StreamGroups
+from .StreamChannels import StreamGroups
 
 from quarchpy.user_interface import *
 

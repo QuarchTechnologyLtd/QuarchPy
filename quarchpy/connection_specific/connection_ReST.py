@@ -1,5 +1,7 @@
-import socket, logging
-
+import socket
+import logging
+logger = logging.getLogger(__name__)
+from time import time
 try:
     import httplib as httplib
 except ImportError:

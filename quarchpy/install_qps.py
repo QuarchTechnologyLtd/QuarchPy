@@ -72,6 +72,7 @@ def _ensure_clean_qps_install():
 
     # 3. ACTION: Flag missing -> New Quarchpy install with old QPS artifact detected -> Wipe Folder
     logger.info(f"QPS flag file missing, cleaning old QPS folder, preparing for new install.")
+    artifact_removal=True
 
     if os.path.exists(qps_dir):
         try:
@@ -82,23 +83,21 @@ def _ensure_clean_qps_install():
         except OSError as e:
             logger.error(f"QuarchPy: Failed to remove old QPS folder. Error: {e}")
             logger.error("QuarchPy: Please manually delete the 'qps' folder to avoid binary conflicts.")
-            # We return here so we don't write the flag, ensuring we try again next time
-            return
-    jre_removal=True
+            artifact_removal = False
     for jre_dir in jre_dirs:
         try:
             if os.path.exists(jre_dir):
                 logger.info(f"Removing old jre from: {jre_dir}")
-                shutil.rmtree(qps_dir)  # Deletes folder and contents
+                shutil.rmtree(jre_dir)  # Deletes folder and contents
                 logger.info("QPS directory successfully cleaned.")
         except OSError as e:
             logger.error(f"Failed to remove folder. Error: {e}")
-            logger.error("Please manually delete the folder.  {jre_dir}" )
-            jre_removal = False
+            logger.error(f"Please manually delete the folder.  {jre_dir}")
+            artifact_removal = False
 
-        if jre_removal == False:
-            # We return here so we don't write the flag, ensuring we try again next time
-            return
+    if artifact_removal == False:
+        # We return here so we don't write the flag, ensuring we try again next time
+        return
 
 
 

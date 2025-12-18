@@ -38,7 +38,8 @@ class quarchPPM(quarchDevice):
         self.connectionObj = originObj.connectionObj
         self.ConString = originObj.ConString
         self.ConType = originObj.ConType
-        self.fixture_definition = self.send_command("fix:chan:xml?")
+        if not skipDefaultSyntheticChannels:
+            self.fixture_definition = self.send_command("fix:chan:xml?")
         self.default_channels: Optional[List['SyntheticChannel']] = None
 
         # Standardise a connection string format

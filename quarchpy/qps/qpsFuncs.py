@@ -84,7 +84,7 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
         args = " ".join(args)
     else:
         args=" "
-    if startQPSMinimised == True: #TODO add to release for QPS 1.38
+    if startQPSMinimised == True:
         if "-ccs" not in args.lower():
             args +=" -ccs=MIN"
 

@@ -24,11 +24,10 @@ def main(argstring,auto_update=False):
 
     # Check if an update process is required
     if (check_if_update(auto_update)or args.version !=None):
-        updateQuarchpy(args.version)
+        update_quarchpy(args.version)
 
 
-# TODO: Function name in wrong form, can we change this safely?
-def updateQuarchpy(versionNumber=None):
+def update_quarchpy(versionNumber=None):
     """
     Requests an upgrade to the quarchpy package_list. Prints to the terminal
     

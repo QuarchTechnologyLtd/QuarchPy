@@ -59,6 +59,7 @@
 # the order of the options is not relevant
 
 import logging
+logger = logging.getLogger(__name__)
 import socket
 import struct
 import threading
@@ -570,7 +571,6 @@ class Serial(SerialBase):
             # process options now, directly altering self
             for option, values in urlparse.parse_qs(parts.query, True).items():
                 if option == 'logging':
-                    logging.basicConfig()   # XXX is that good to call it here?
                     self.logger = logging.getLogger('pySerial.rfc2217')
                     self.logger.setLevel(LOGGER_LEVELS[values[0]])
                     self.logger.debug('enabled logging')

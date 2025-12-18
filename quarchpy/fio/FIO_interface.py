@@ -6,6 +6,7 @@ import subprocess
 import json
 import csv
 import logging
+logger = logging.getLogger(__name__)
 import time
 import os
 from bisect import bisect_left
@@ -394,7 +395,7 @@ def merge_fio_qis_stream(qis_stream_file, fio_output_file, unix_stream_start_tim
             # Log the two QIS times between which the FIO timestamp falls
             lower_bound = qis_times[idx - 1] if idx > 0 else None
             upper_bound = qis_times[idx] if idx < len(qis_times) else None
-            logging.debug(f"FIO timestamp {fio_time} falls between QIS times {lower_bound} and {upper_bound} at array position {idx - 1} and {idx}")
+            logger.debug(f"FIO timestamp {fio_time} falls between QIS times {lower_bound} and {upper_bound} at array position {idx - 1} and {idx}")
 
             if rounding_option == "round":
                 # Find the nearest QIS time to the FIO time
@@ -417,7 +418,7 @@ def merge_fio_qis_stream(qis_stream_file, fio_output_file, unix_stream_start_tim
         writer.writerow(merged_headers)
         writer.writerows(merged_data)
 
-    logging.debug(f"Merged data written to {output_file}")
+    logger.debug(f"Merged data written to {output_file}")
     os.remove(qis_converted_file) # remove the intermidiary file
     return output_file
 
@@ -437,7 +438,7 @@ def convert_qis_stream_to_unix_time(qis_stream_file, unix_stream_start_time):
     import re
     match = re.match(r"(\d+)([a-zA-Z]+)", unix_stream_start_time)
     if not match:
-        logging.warning("Invalid unix_stream_start_time format. Use format like '1737374310S' or '1737374310000mS'.")
+        logger.warning("Invalid unix_stream_start_time format. Use format like '1737374310S' or '1737374310000mS'.")
         return
 
     unix_start_value = int(match.group(1))
@@ -472,7 +473,7 @@ def convert_qis_stream_to_unix_time(qis_stream_file, unix_stream_start_time):
                     break
 
             if not time_unit or time_unit not in unit_multipliers:
-                logging.warning(f"Unsupported or missing time unit in the header: {time_unit}")
+                logger.warning(f"Unsupported or missing time unit in the header: {time_unit}")
                 return
 
             # Convert time units in the CSV to seconds
@@ -487,13 +488,13 @@ def convert_qis_stream_to_unix_time(qis_stream_file, unix_stream_start_time):
                     row[0] = str(int(new_time_in_seconds / time_unit_multiplier))
                 writer.writerow(row)
 
-        logging.debug(f"File successfully converted and saved as: {output_file}")
+        logger.debug(f"File successfully converted and saved as: {output_file}")
         return output_file
 
     except FileNotFoundError:
-        logging.error(f"Error: File '{qis_stream_file}' not found.")
+        logger.error(f"Error: File '{qis_stream_file}' not found.")
     except Exception as e:
-        logging.error(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
 #1737376756
 #convertQISStreamToUnixTime("Stream1.csv", "1737376756S")
 
@@ -546,7 +547,7 @@ def fio_json_to_csv(output_file):
                     jobName = str(jsonobject['jobs'][0]['jobname'])
                     # adding start annotation
                     #fioCallbacks["TEST_START"](myStream, str(startTime), jobName, comment)
-                    logging.debug(f"first job name: {jobName}   start time {startTime} ")
+                    logger.debug(f"first job name: {jobName}   start time {startTime} ")
                 # pass specific data
                 readDataValue = jsonobject['jobs'][0]['read']['iops']
                 writeDataValue = jsonobject['jobs'][0]['write']['iops']
@@ -556,7 +557,7 @@ def fio_json_to_csv(output_file):
                 jobEndTime = str(jsonobject['timestamp_ms'])
                 dataValues['timestamp_us']=int(jobEndTime)*1000
                 dataValues['job_name'] = jobName
-                logging.debug(str(dataValues))
+                logger.debug(str(dataValues))
 
                 retVal.append(dataValues)
                 # jsonLines variable is now all characters after last job + any new that come in
@@ -565,6 +566,6 @@ def fio_json_to_csv(output_file):
                 jobCount += 1
             except Exception as e:
                 # exception caused by not being able to find substring -- Last json object --
-                logging.warning("Exception Caught\n"+ str(e))
+                logger.warning("Exception Caught\n"+ str(e))
                 pass
     return retVal

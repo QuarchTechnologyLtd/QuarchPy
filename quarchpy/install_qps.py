@@ -51,22 +51,26 @@ def get_installed_qps_version(qps_folder):
 
 def _ensure_clean_qps_install():
     """
-    Checks for a version-specific flag. If missing, it assumes a new install
-    and wipes the 'connection_specific/qps' directory to remove legacy binaries.
+    Checks for a version-specific flag. If missing, it assumes a new quarchpy install
+    and wipes the old 'connection_specific/qps' directory to remove legacy binaries.
     """
     package_dir = os.path.dirname(os.path.abspath(__file__))
 
     # The directory containing the binaries
     qps_dir = os.path.join(package_dir, "connection_specific", "QPS")
+    jre_dirs =[os.path.join(package_dir, "connection_specific", "jdk_jres", "lin_amd64_jdk_jre"),
+               os.path.join(package_dir, "connection_specific", "jdk_jres", "mac_amd64_jdk_jre"),
+               os.path.join(package_dir, "connection_specific", "jdk_jres", "mac_arm64_jdk_jre"),
+               os.path.join(package_dir, "connection_specific", "jdk_jres", "win_amd64_jdk_jre")]
 
     # The flag file that indicates THIS version has been cleaned
     flag_file = os.path.join(package_dir, f".cleanup_done_{quarchpy_version}")
     logger.debug(f"Looking for flag file {flag_file}")
-    # 2. CHECK: If the flag exists, do nothing.
+    # 2. CHECK: If the flag exists, do nothing. We know the correct QPS and JREs are present
     if os.path.exists(flag_file):
         return
 
-    # 3. ACTION: Flag missing -> New Version Detected -> Wipe Folder
+    # 3. ACTION: Flag missing -> New Quarchpy install with old QPS artifact detected -> Wipe Folder
     logger.info(f"QPS flag file missing, cleaning old QPS folder, preparing for new install.")
 
     if os.path.exists(qps_dir):
@@ -80,6 +84,23 @@ def _ensure_clean_qps_install():
             logger.error("QuarchPy: Please manually delete the 'qps' folder to avoid binary conflicts.")
             # We return here so we don't write the flag, ensuring we try again next time
             return
+    jre_removal=True
+    for jre_dir in jre_dirs:
+        try:
+            if os.path.exists(jre_dir):
+                logger.info(f"Removing old jre from: {jre_dir}")
+                shutil.rmtree(qps_dir)  # Deletes folder and contents
+                logger.info("QPS directory successfully cleaned.")
+        except OSError as e:
+            logger.error(f"Failed to remove folder. Error: {e}")
+            logger.error("Please manually delete the folder.  {jre_dir}" )
+            jre_removal = False
+
+        if jre_removal == False:
+            # We return here so we don't write the flag, ensuring we try again next time
+            return
+
+
 
     # 4. CLEANUP FLAGS: Remove flags from previous versions to keep root tidy
     # Matches .cleanup_done_2.1.0, .cleanup_done_2.0.0, etc.

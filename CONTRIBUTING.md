@@ -63,11 +63,8 @@ docs/            # Additional markdown/app notes
 ```
 
 We are NOT using an `examples/` directory for now. If you have a helpful usage snippet, add it to:
-- QUICK_START.md (if it improves onboarding), or
 - The relevant function/class docstring (Google style), or
 - The Issue / PR description as a temporary reference.
-
-Do not create an `examples/` folder unless there is a future consensus to introduce it.
 
 ---
 
@@ -119,10 +116,12 @@ Until a direction is chosen, you are not required to add tests.
 ## 7. Commit Messages & Pull Requests
 
 Commit style (concise and purposeful):
+When making a commit, state the type of work done eg. bug fix, feature add, document improvement, etc...
+State the area in which the work effects eg, streaming, device connection, QPS/QIS API, data processing, etc...
 ```
-fix(power): correct margining voltage selection
-feat(discovery): add LAN retry logic
-docs(contributing): clarify API stability
+bug fix (stream processing): fix bug where stream would fail when xxx
+feature(device discovery): add LAN retry logic
+docs(contributing): clarify API cmd usage
 ```
 
 Before opening a PR:
@@ -134,7 +133,7 @@ Before opening a PR:
 Informal PR checklist:
 - Code runs locally.
 - No stray debug prints.
-- Docs (README / QUICK_START.md / docstrings) updated if behavior or API changed.
+- Docs (README / docstrings) updated if behavior or API changed.
 - Scope is clear.
 
 ---
@@ -194,21 +193,12 @@ You may call device commands directly in user scripts if preferred, but wrappers
 
 If users need to know about a change:
 - Update `README.md`.
-- Update QUICK_START.md for improved onboarding.
 - Add usage notes directly in docstrings (preferred over creating an examples directory).
 - Mark deprecated APIs clearly in docstrings (and optionally in README if widely used).
 
 ---
 
-## 12. Release & Versioning
-
-- Avoid breaking changes.
-- Use deprecation rather than removal.
-- Group related changes logically.
-
----
-
-## 13. Security / Sensitive Info
+## 12. Security / Sensitive Info
 
 Do not commit:
 - Credentials / tokens
@@ -219,7 +209,7 @@ Report possible security issues privately (not in a public Issue with details) p
 
 ---
 
-## 14. Getting Help
+## 13. Getting Help
 
 - Open an Issue with `[question]` if unsure.
 - Provide command sequences and responses for device errors.
@@ -228,7 +218,7 @@ Report possible security issues privately (not in a public Issue with details) p
 
 ---
 
-## 15. Quick Flow
+## 14. Quick Flow
 
 ```
 Issue → Branch → Change → Doc updates( If required) → Commit to branch → Pull Request → Quarch Code Review → Merge/Reject

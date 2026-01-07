@@ -10,7 +10,8 @@ and support for both terminal and TestCenter (quarch internal) execution
 # Needed for python2 compatibility
 # coding: utf-8
 from __future__ import print_function
-
+import logging
+logger = logging.getLogger(__name__)
 import traceback, sys, os, math, logging
 from quarchpy.utilities import TestCenter
 import time
@@ -25,10 +26,8 @@ class User_interface:
 
     class __user_interface:
         def __init__(self, ui):
-            if ui in ["console", "testcenter"]:
+            if ui.lower() in ["console", "testcenter"]:
                 self.selectedInterface = ui
-                if "console" in ui:
-                    import logging
             else:
                 raise ValueError("requested ui type not valid")
 
@@ -122,11 +121,7 @@ def listSelection(title="",message="",selectionList=[], additionalOptions = [], 
         print("")
         # Request user selection
         while (True):
-            if sys.version_info.major >= 3:
-                userStr = input("Please select an option:\n>")
-            else:
-                userStr = raw_input("Please select an option:\n>")
-
+            userStr = input("Please select an option:\n>")
             # Validate the response
             try:
                 userNumber = int(userStr)
@@ -169,11 +164,7 @@ def niceListSelection(selectionList,title="",message="", tableHeaders=None, inde
     print("")
     # Request user selection
     while (True):
-        if sys.version_info.major >= 3:
-            userStr = input("Please select an option:\n>")
-        else:
-            userStr = raw_input("Please select an option:\n>")
-
+        userStr = input("Please select an option:\n>")
         # Validate the response
         try:
             userNumber = int(userStr)
@@ -205,11 +196,10 @@ def printText(text, fillLine=False, terminalWidth=100, fill=" ", **kwargs):
         # if line is not empty
         if text.strip() != "":
                 TestCenter.testPoint ("Quarch_Host.LogComment","Message=" + __formatForTestcenter(text),stack_level=2)
-                logging.debug(str(text))
 
-    else:
+    else: #Console Mode
         if fillLine:
-                text +=fill*(terminalWidth-len(text)) #TODO Split string at \n or \r\n make a list, add the line fill for each item,then add back the \n and \r\n and combine together again.
+                text +=fill*(terminalWidth-len(text))
         if kwargs != {}:
             print(text, **kwargs)
         else:
@@ -219,7 +209,7 @@ def printText(text, fillLine=False, terminalWidth=100, fill=" ", **kwargs):
 def logWarning(text, fillLine=False):
     '''
     logWarning(text)
-    Processes a warning message and diaplays it using python standard logging or a warning message in test centre.
+    Processes a warning message and displays it using python standard logging or a warning message in test centre.
         arguments:
             text - a string of text, or a list of strings
     '''
@@ -229,13 +219,13 @@ def logWarning(text, fillLine=False):
             TestCenter.testPoint("Quarch_Host.LogWarning", "Message=" + __formatForTestcenter(text))
 
     else:
-         logging.warning(text)
+         logger.warning(text)
     return
 
 def logDebug(text, fillLine=False):
     '''
     logDebug(text)
-    Processes a debug message and diaplays it using python standard logging or a debug message in test centre.
+    Processes a debug message and displays it using python standard logging or a debug message in test centre.
         arguments:
             text - a string of text, or a list of strings
     '''
@@ -245,7 +235,7 @@ def logDebug(text, fillLine=False):
             TestCenter.testPoint("Quarch_Host.LogComment", "Message=" + __formatForTestcenter(text))
 
     else:
-         logging.debug(text)
+         logger.debug(text)
     return
 
 
@@ -261,10 +251,7 @@ def showDialog(message="",title=""):
 
     else:
         print(message)
-        if sys.version_info.major >= 3:
-            userStr = input("Press enter to continue\n>")
-        else:
-            userStr = raw_input("Press enter to continue\n>")
+        userStr = input("Press enter to continue\n>")
 
 
 def showImage(title="", message="", imagePath=""):
@@ -458,10 +445,7 @@ def requestDialog(title="", message="", desiredType=None, minRange=None, maxRang
             # Request user selection
             if message == "" and title != "":
                 message = title
-            if sys.version_info.major >= 3:
-                userStr = input(message + "\n>")
-            else:
-                userStr = raw_input(message + "\n>")
+            userStr = input(message + "\n>")
         if userStr == "":
             userStr = defaultUserInput
         validValue = validateUserInput(userStr, desiredType, minRange, maxRange)

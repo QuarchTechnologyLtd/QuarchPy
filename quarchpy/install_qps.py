@@ -1,13 +1,14 @@
 import logging
+logger = logging.getLogger(__name__)
+import glob
 import os
 import sys
 import zipfile
 import requests
 import shutil
 import xml.etree.ElementTree as ET
-
 from quarchpy.user_interface import printText, requestDialog
-
+from quarchpy._version import __version__ as quarchpy_version
 # --- Configuration ---
 QPS_VERSION_FOR_DOWNLOAD = "1.50"
 # URLs for the separate ZIP files.
@@ -48,11 +49,82 @@ def get_installed_qps_version(qps_folder):
     return None # Version not found in the file
 
 
+def _ensure_clean_qps_install():
+    """
+    Checks for a version-specific flag. If missing, it assumes a new quarchpy install
+    and wipes the old 'connection_specific/qps' directory to remove legacy binaries.
+    """
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # The directory containing the binaries
+    qps_dir = os.path.join(package_dir, "connection_specific", "QPS")
+    jre_dirs =[os.path.join(package_dir, "connection_specific", "jdk_jres", "lin_amd64_jdk_jre"),
+               os.path.join(package_dir, "connection_specific", "jdk_jres", "mac_amd64_jdk_jre"),
+               os.path.join(package_dir, "connection_specific", "jdk_jres", "mac_arm64_jdk_jre"),
+               os.path.join(package_dir, "connection_specific", "jdk_jres", "win_amd64_jdk_jre")]
+
+    # The flag file that indicates THIS version has been cleaned
+    flag_file = os.path.join(package_dir, f".cleanup_done_{quarchpy_version}")
+    logger.debug(f"Looking for flag file {flag_file}")
+    # 2. CHECK: If the flag exists, do nothing. We know the correct QPS and JREs are present
+    if os.path.exists(flag_file):
+        return
+
+    # 3. ACTION: Flag missing -> New Quarchpy install with old QPS artifact detected -> Wipe Folder
+    logger.info(f"QPS flag file missing, cleaning old QPS folder, preparing for new install.")
+    artifact_removal=True
+
+    if os.path.exists(qps_dir):
+        try:
+            logger.info(f"QuarchPy: Removing old QPS binaries from: {qps_dir}")
+            shutil.rmtree(qps_dir) # Deletes folder and contents
+            os.makedirs(qps_dir)   # Recreates the empty folder
+            logger.info("QuarchPy: QPS directory successfully cleaned.")
+        except OSError as e:
+            logger.error(f"QuarchPy: Failed to remove old QPS folder. Error: {e}")
+            logger.error("QuarchPy: Please manually delete the 'qps' folder to avoid binary conflicts.")
+            artifact_removal = False
+    for jre_dir in jre_dirs:
+        try:
+            if os.path.exists(jre_dir):
+                logger.info(f"Removing old jre from: {jre_dir}")
+                shutil.rmtree(jre_dir)  # Deletes folder and contents
+                logger.info("QPS directory successfully cleaned.")
+        except OSError as e:
+            logger.error(f"Failed to remove folder. Error: {e}")
+            logger.error(f"Please manually delete the folder.  {jre_dir}")
+            artifact_removal = False
+
+    if artifact_removal == False:
+        # We return here so we don't write the flag, ensuring we try again next time
+        return
+
+
+
+    # 4. CLEANUP FLAGS: Remove flags from previous versions to keep root tidy
+    # Matches .cleanup_done_2.1.0, .cleanup_done_2.0.0, etc.
+    old_flags = glob.glob(os.path.join(package_dir, ".cleanup_done_*"))
+    for f in old_flags:
+        try:
+            os.remove(f)
+        except OSError:
+            pass # Non-critical failure
+
+    # 5. SET FLAG: Create the marker so we don't wipe again for this version
+    try:
+        with open(flag_file, 'w') as f:
+            f.write("Cleanup completed.")
+    except OSError:
+        logger.warning(f"QuarchPy: Could not write cleanup flag to {flag_file}. Cleanup may run again on next import.")
+
+
 def find_qps():
     """
     Checks for QPS and JDK/JRE. If any are missing or outdated, it attempts an
     online or offline installation of the required components.
     """
+    _ensure_clean_qps_install() #Check for QPS artifact from the last quarchpy version
+
     qps_jar = "qps.jar"
     qps_path = os.path.join(EXTRACTION_FOLDER_QPS, qps_jar)
 
@@ -88,7 +160,7 @@ def find_qps():
     jdk_found = jdk_jre_check_file and os.path.exists(jdk_jre_check_file)
 
     if qps_ok and jdk_found:
-        logging.info(f"QPS version {installed_qps_version} and JDK/JRE are correctly installed.")
+        logger.info(f"QPS version {installed_qps_version} and JDK/JRE are correctly installed.")
         return True
 
     printText("--- Missing or Outdated Components Detected ---")

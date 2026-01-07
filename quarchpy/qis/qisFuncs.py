@@ -14,6 +14,7 @@ from quarchpy.install_qps import find_qps
 from quarchpy.user_interface.user_interface import printText, logDebug
 import subprocess
 import logging
+logger = logging.getLogger(__name__)
 
 
 def isQisRunning():
@@ -37,10 +38,10 @@ def isQisRunning():
         #if there's no connection to qis, an exception will be caught
         pass
     if (qisRunning is False):
-        logging.debug("QIS is not running")
+        logger.debug("QIS is not running")
         return False
     else:
-        logging.debug("QIS is running")
+        logger.debug("QIS is running")
         return True
 
 
@@ -50,10 +51,10 @@ def isQisRunningAndResponding(timeout=2):
     """
     qisRunning = isQisRunning()
     if qisRunning == False:
-        logging.debug("QIS is not running")
+        logger.debug("QIS is not running")
         return False
 
-    logging.debug("Qis is running")
+    logger.debug("Qis is running")
     myQis = QisInterface(connectionMessage=False)
     counter = 0
     maxCounter = 20
@@ -63,15 +64,15 @@ def isQisRunningAndResponding(timeout=2):
             qisResponding = True
             break
         else:
-            logging.debug("Qis returned from $version: " + str(versionResponse) + "  Expected to contain ': v'")
+            logger.debug("Qis returned from $version: " + str(versionResponse) + "  Expected to contain ': v'")
             time.sleep(timeout / maxCounter)  # We attempt to get QIS
             counter += 1
 
     if (qisRunning is False):
-        logging.debug("QIS is not running")
+        logger.debug("QIS is not running")
         return False
     else:
-        logging.debug("QIS is running")
+        logger.debug("QIS is running")
         return True
 
 
@@ -92,7 +93,7 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
 
     # Check if QPS is installed
     if not find_qps():
-        logging.error("Unable to find or install QPS... Aborting...")
+        logger.error("Unable to find or install QPS... Aborting...")
         return
 
     # java path
@@ -112,25 +113,25 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
 
     # Currently officially unsupported
     if (current_os in "Linux" and current_arch == "aarch64") or (current_os in "Darwin" and current_arch == "arm64"):
-        logging.warning("The system [" + current_os + ", " + current_arch + "] is not officially supported.")
-        logging.warning("Please contact Quarch support for running QuarchPy on this system.")
+        logger.warning("The system [" + current_os + ", " + current_arch + "] is not officially supported.")
+        logger.warning("Please contact Quarch support for running QuarchPy on this system.")
         return
 
     # ensure the jres folder has the required permissions
     permissions, message = find_java_permissions()
     if permissions is False:
-        logging.warning(message)
-        logging.warning("Not having correct permissions will prevent Quarch Java Programs to launch")
-        logging.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
+        logger.warning(message)
+        logger.warning("Not having correct permissions will prevent Quarch Java Programs to launch")
+        logger.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
         user_input = input("Would you like to fix permissions now? (Y/N)")
         if user_input.lower() == "y":
             fix_permissions()
             permissions, message = find_java_permissions()
             time.sleep(0.5)
             if permissions is False:
-                logging.warning("Attempt to fix permissions was unsuccessful. Please fix these manually.")
+                logger.warning("Attempt to fix permissions was unsuccessful. Please fix these manually.")
             else:
-                logging.warning("Attempt to fix permissions was successful. Now continuing.")
+                logger.warning("Attempt to fix permissions was successful. Now continuing.")
 
     qis_path = os.path.join(qis_path, "connection_specific", "QPS", "qis", "qis.jar")
 
@@ -255,7 +256,7 @@ def _get_std_msg_and_err_from_QIS_process(process):
             source, line = q.get(timeout=1)  # Wait for 1 second for new lines
             counter = 0
             if source == "stderr":
-                logging.error(f"{source}: {line}")
+                logger.error(f"{source}: {line}")
             else:
                 printText(f"{source}: {line}")
         except Empty:
@@ -294,10 +295,10 @@ def check_remote_qis(host='127.0.0.1', port=9722, timeout=0):
             break
 
     if (qisRunning is False):
-        logging.debug("QIS is not running")
+        logger.debug("QIS is not running")
         return False
     else:
-        logging.debug("QIS is running")
+        logger.debug("QIS is running")
         return True
 
 

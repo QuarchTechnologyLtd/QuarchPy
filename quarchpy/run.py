@@ -63,13 +63,13 @@ def _parse_run_options(args):
                 found = True
                 item[2](args[1:])
     else:
-        logging.info("No args passed")
+        logger.info("No args passed")
         found = True
         _run_help_function()
 
     # If parsing failed, error and print the available commands
     if not found:
-        logging.error("ERROR - Command line argument not recognised")
+        logger.error("ERROR - Command line argument not recognised")
         _run_help_function()
 
 
@@ -162,10 +162,10 @@ def _run_show_drives_function(args=[]):
         host_info = HostInformation()
         host_info.display_drives()
     except ImportError as err:
-        logging.error(err)
-        logging.error("Drive detection is now in the QCS standalone package. Please install the QCS package via:")
-        logging.error("'Pip install quarchQCS'")
-        logging.error("Then retry this command")
+        logger.error(err)
+        logger.error("Drive detection is now in the QCS standalone package. Please install the QCS package via:")
+        logger.error("'Pip install quarchQCS'")
+        logger.error("Then retry this command")
 
 
 def _run_qcs_function(args=[]):
@@ -185,10 +185,10 @@ def _run_qcs_function(args=[]):
         from QuarchpyQCS.driveTestCore import main as driveTestCoreMain
         driveTestCoreMain(args)
     except ImportError as err:
-        logging.error(err)
-        logging.error("QCS is now a standalone package. Please install the QCS package via:")
-        logging.error("'Pip install quarchQCS'")
-        logging.error("Then retry this command")
+        logger.error(err)
+        logger.error("QCS is now a standalone package. Please install the QCS package via:")
+        logger.error("'Pip install quarchQCS'")
+        logger.error("Then retry this command")
 
 
 def _run_qis_function(args=[]):
@@ -258,11 +258,9 @@ def _run_calibration_function(args=[]):
         retVal = calibrationUtilMain(args)
         return retVal
     except ImportError as err:
-        #TODO check err for a more specific "quarchCalibration" cannot be found rather than a generic import error
-
-        logging.error("Quarch Calibration is now in the quarchCalibration package. Please install the quarchCalibration package via:")
-        logging.error("'pip install quarchCalibration'")
-        logging.error("Then retry this command")
+        logger.error("Quarch Calibration is now in the quarchCalibration package. Please install the quarchCalibration package via:")
+        logger.error("'pip install quarchCalibration'")
+        logger.error("Then retry this command")
         traceback.print_exc()
 
 

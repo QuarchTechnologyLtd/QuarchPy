@@ -9,6 +9,7 @@ from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_pe
 from quarchpy.user_interface import *
 import subprocess
 import logging
+logger = logging.getLogger(__name__)
 
 
 def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
@@ -16,38 +17,38 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
     This func will return true if QPS is running with a working QIS connection.
     '''
     myQps=None
-    logging.debug("Checking if QPS is running")
+    logger.debug("Checking if QPS is running")
     start = time.time()
     while True:
         try:
             myQps = QpsInterface(host, port)
             break
         except Exception as e:
-            logging.debug("Error when making QPS interface. QPS may not be running.")
-            logging.debug(e)
+            logger.debug("Error when making QPS interface. QPS may not be running.")
+            logger.debug(e)
             if (time.time() - start) > timeout:
                 break
     if myQps is None:
-        logging.debug("QPS is not running")
+        logger.debug("QPS is not running")
         return False
 
-    logging.debug("Checking if QPS reports a QIS connection") # "$qis status" returns connected if it has ever had a QIS connection.
+    logger.debug("Checking if QPS reports a QIS connection") # "$qis status" returns connected if it has ever had a QIS connection.
     answer=0
     counter=0
     while True:
         answer = myQps.sendCmdVerbose(cmd="$qis status")
         if answer.lower()=="connected":
-            logging.debug("QPS Running With QIS Connected")
+            logger.debug("QPS Running With QIS Connected")
             break
         else:
-            logging.debug("QPS Running QIS NOT found. Waiting and retrying.")
+            logger.debug("QPS Running QIS NOT found. Waiting and retrying.")
             time.sleep(0.5)
             counter += 1
             if counter > 5:
-                logging.debug("QPS Running QIS NOT found after "+str(counter)+" attempts.")
+                logger.debug("QPS Running QIS NOT found after "+str(counter)+" attempts.")
                 return False
 
-    logging.debug("Checking if QPS/QIS comms are running")
+    logger.debug("Checking if QPS/QIS comms are running")
     start = time.time()
     while True:
         try:
@@ -60,11 +61,11 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
 
     # check for a 1 showing the first module to be displayed, or a no module/device error message.
     if answer[0] == "1" or "no device" in str(answer).lower() or "no module" in str(answer).lower():
-        logging.debug("QPS and QIS are running and responding with valid $list info")
+        logger.debug("QPS and QIS are running and responding with valid $list info")
         return True
     else:
-        logging.debug("QPS did not return expected output from $list")
-        logging.debug("$list: " + str(answer))
+        logger.debug("QPS did not return expected output from $list")
+        logger.debug("$list: " + str(answer))
         return False
 
 
@@ -72,7 +73,7 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
 
     # Check if QPS is installed
     if not find_qps():
-        logging.error("Unable to find or install QPS... Aborting...")
+        logger.error("Unable to find or install QPS... Aborting...")
         return
 
     if keepQisRunning:
@@ -83,7 +84,7 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
         args = " ".join(args)
     else:
         args=" "
-    if startQPSMinimised == True: #TODO add to release for QPS 1.38
+    if startQPSMinimised == True:
         if "-ccs" not in args.lower():
             args +=" -ccs=MIN"
 
@@ -106,25 +107,25 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
 
     # Currently officially unsupported
     if (current_os in "Linux" and current_arch == "aarch64") or (current_os in "Darwin" and current_arch == "arm64"):
-        logging.warning("The system [" + current_os + ", " + current_arch + "] is not officially supported.")
-        logging.warning("Please contact Quarch support for running QuarchPy on this system.")
+        logger.warning("The system [" + current_os + ", " + current_arch + "] is not officially supported.")
+        logger.warning("Please contact Quarch support for running QuarchPy on this system.")
         return
 
     # ensure the jres folder has the required permissions
     permissions, message = find_java_permissions()
     if permissions is False:
-        logging.warning(message)
-        logging.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
-        logging.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
+        logger.warning(message)
+        logger.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
+        logger.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
         user_input = input("Would you like to use auto run this now? (Y/N)")
         if user_input.lower() == "y":
             fix_permissions()
             permissions, message = find_java_permissions()
             time.sleep(0.5)
             if permissions is False:
-                logging.warning("Attempt to fix permissions was unsuccessful. Please fix manually.")
+                logger.warning("Attempt to fix permissions was unsuccessful. Please fix manually.")
             else:
-                logging.warning("Attempt to fix permissions was successful. Now continuing.")
+                logger.warning("Attempt to fix permissions was successful. Now continuing.")
 
 
     qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
@@ -149,7 +150,7 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
         command = java_path + "\\win_amd64_jdk_jre\\bin\\java\" -jar qps.jar " + str(args)
 
     if isQpsRunning():
-        logging.debug("QPS is already running. Not starting another instance.")
+        logger.debug("QPS is already running. Not starting another instance.")
         os.chdir(current_dir)
         return
     if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
@@ -172,14 +173,14 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
             if time.time() - startTime > timeout:
                 os.chdir(current_dir)
                 raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
-        logging.debug("QPS detected after " + str(time.time() - startTime) + "s")
+        logger.debug("QPS detected after " + str(time.time() - startTime) + "s")
 
         while not isQisRunning():
             if time.time() - startTime > timeout:
                 raise TimeoutError(
                     "QPS did launch but QIS did not respond during the timeout time of " + str(timeout) + " sec.")
             time.sleep(0.2)
-        logging.debug("QIS detected after " + str(time.time() - startTime) + "s")
+        logger.debug("QIS detected after " + str(time.time() - startTime) + "s")
 
     # return current working directory
     os.chdir(current_dir)
@@ -227,7 +228,7 @@ def _get_std_msg_and_err_from_QPS_process(process):
             source, line = q.get(timeout=1)  # Wait for 1 second for new lines
             counter = 0
             if source == "stderr":
-                logging.error(f"{source}: {line}")
+                logger.error(f"{source}: {line}")
             else:
                 printText(f"{source}: {line}")
         except Empty:
@@ -263,7 +264,7 @@ def GetQpsModuleSelection(QpsConnection, favouriteOnly=True, additionalOptions=[
             index = 0
             sortedDevList = []
             conPref = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
-            while len(sortedDevList) != len(devList):
+            while len(sortedDevList) < len(devList):
                 for device in devList:
                     if conPref[index] in device.upper():
                         sortedDevList.append(device)

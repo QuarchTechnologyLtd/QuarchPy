@@ -1,12 +1,9 @@
 import os
 import platform
-import sys
 import subprocess
-from typing import List
+from typing import List, Literal
 
 from quarchpy import *
-from quarchpy.device import *
-from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
 
 try:
     from importlib.metadata import distribution
@@ -17,10 +14,13 @@ except:
         print("Failed to import distribution from importlib_metadata")
 
 from quarchpy.device import *
-from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
+from quarchpy.connection_specific.jdk_jres.fix_permissions import find_java_permissions
 from quarchpy.qis.qisFuncs import isQisRunning, startLocalQis
 from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy._version import __version__
+
+# Define the allowed values
+AppType = Literal["QuarchPy", "QPS", "QIS"]
 
 def _test_communication():
     print("")
@@ -123,6 +123,16 @@ def _test_system_info():
         print("\nQIS version number: " + get_QIS_version())
     except Exception as e:
         print("\nUnable to detect QIS version. Exception:" +str(e))
+    try:
+        qis_log_dir = _get_logging_directory(app_type="QIS")
+        print("QIS Log Directory: " + qis_log_dir)
+    except:
+        print("Unable to detect QIS log directory")
+    try:
+        qps_log_dir = _get_logging_directory(app_type="QPS")
+        print("QPS Log Directory: " + qps_log_dir)
+    except:
+        print("Unable to detect QPS log directory")
 
 
 # Scan for all quarch devices on the system
@@ -209,6 +219,21 @@ def get_quarchpy_version():
     except:
         return "Unknown"
 
+def _get_logging_directory(app_type: AppType = "QuarchPy") -> str:
+    """
+    Returns the default logging directory for quarchpy/qps/qis logs.
+
+    Returns
+    -------
+    log_dir: str
+        String representation of the logging directory.
+    """
+    if "windows" in platform.platform().lower():
+        log_dir = os.path.join(os.getenv('APPDATA'), 'Local', 'Quarch', f'{app_type}', 'Logs')
+    else:
+        log_dir = os.path.join(os.path.expanduser('~'), '.quarch', f'{app_type}', 'Logs')
+
+    return log_dir
 
 def fix_usb():
     content_to_write = "SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"16d0\", MODE=\"0666\"\n" \

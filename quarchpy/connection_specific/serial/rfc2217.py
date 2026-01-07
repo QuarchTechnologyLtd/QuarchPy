@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier:    BSD-3-Clause
 
-# TODO:
+
 # - setting control line -> answer is not checked (had problems with one of the
 #   severs). consider implementing a compatibility mode flag to make check
 #   conditional

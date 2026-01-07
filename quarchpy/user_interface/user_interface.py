@@ -199,7 +199,7 @@ def printText(text, fillLine=False, terminalWidth=100, fill=" ", **kwargs):
 
     else: #Console Mode
         if fillLine:
-                text +=fill*(terminalWidth-len(text)) #TODO Split string at \n or \r\n make a list, add the line fill for each item,then add back the \n and \r\n and combine together again.
+                text +=fill*(terminalWidth-len(text))
         if kwargs != {}:
             print(text, **kwargs)
         else:

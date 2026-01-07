@@ -741,7 +741,7 @@ class quarchDevice:
                 if hasattr(self.connectionObj, 'qis') and hasattr(self.connectionObj.qis, 'connect'):
                     self.connectionObj.qis.connect()
                     logger.info("QIS connect called.")
-                    return True  # Assume success if no exception (original TODO noted lack of return check)
+                    return True  # Assume success if no exception
                 else:
                     raise AttributeError("QIS connection object or connect method not found.")
 

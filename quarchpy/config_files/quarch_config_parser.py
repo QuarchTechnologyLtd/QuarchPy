@@ -618,7 +618,7 @@ def parse_config_file (file):
                 section_dict[line_name] = line_value
     
     # Now build the appropriate module class
-    # TODO: Assuming breaker for testing
+    # Assuming breaker for testing
     if (config_dict["HEADER"]["DeviceClass"] == "TorridonModule"):
         dev_caps = TorridonBreakerModule ()
         dev_caps.config_data = config_dict

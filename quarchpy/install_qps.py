@@ -182,8 +182,8 @@ def find_qps():
 
     if not qps_jar_exists:
         printText("Quarch Power Studio (QPS) is not installed.")
-    elif not qps_version_ok:
-        printText(f"QPS requires an update. (Installed: {installed_qps_version or 'Unknown'}, Required: {QPS_VERSION_FOR_DOWNLOAD})")
+    # elif not qps_version_ok:
+    #     printText(f"QPS requires an update. (Installed: {installed_qps_version or 'Unknown'}, Required: {QPS_VERSION_FOR_DOWNLOAD})")
 
     if jdk_jre_needed:
         printText("Required Java JDK/JRE Binaries are not installed.")

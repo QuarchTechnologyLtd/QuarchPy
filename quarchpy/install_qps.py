@@ -165,11 +165,11 @@ def find_qps():
 
     # Check if the required version string starts with the installed version number.
     # This handles cases like required "1.48.1-SNAPSHOT" vs. installed "1.48".
-    qps_version_ok = False
-    if installed_qps_version:
-        qps_version_ok = QPS_VERSION_FOR_DOWNLOAD.startswith(installed_qps_version)
+    # qps_version_ok = False
+    # if installed_qps_version:
+    #     qps_version_ok = QPS_VERSION_FOR_DOWNLOAD.startswith(installed_qps_version)
 
-    qps_ok = qps_jar_exists and qps_version_ok
+    qps_ok = qps_jar_exists  # and qps_version_ok
     jdk_found = jdk_jre_check_file and os.path.exists(jdk_jre_check_file)
 
     if qps_ok and jdk_found:

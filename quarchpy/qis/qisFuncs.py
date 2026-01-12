@@ -8,9 +8,6 @@ import os, sys
 import time, platform
 from threading import Thread, Lock, Event, active_count
 from queue import Queue, Empty
-
-import quarchpy_binaries
-
 from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
 from quarchpy.install_qps import find_qps
@@ -100,7 +97,9 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
         return
 
     # java path
-    java_path = quarchpy_binaries.get_jre_home()
+    java_path = os.path.dirname(os.path.abspath(__file__))
+    java_path, junk = os.path.split(java_path)
+    java_path = os.path.join(java_path, "connection_specific", "jdk_jres")
     java_path = "\"" + java_path
 
     # change directory to /QPS/QIS
@@ -173,17 +172,17 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
 
     # different start for different OS
     if current_os == "Windows":
-        command = java_path + "\\bin\\" + command
+        command = java_path + "\\win_amd64_jdk_jre\\bin\\" + command
     elif current_os == "Linux" and current_arch == "x86_64":
-        command = java_path + "/bin/" + command
+        command = java_path + "/lin_amd64_jdk_jre/bin/" + command
     elif current_os == "Linux" and current_arch == "aarch64":
-        command = java_path + "/bin/" + command
+        command = java_path + "/lin_arm64_jdk_jre/bin/" + command
     elif current_os == "Darwin" and current_arch == "x86_64":
-        command = java_path + "/bin/" + command
+        command = java_path + "/mac_amd64_jdk_jre/bin/" + command
     elif current_os == "Darwin" and current_arch == "arm64":
-        command = java_path + "/bin/" + command
+        command = java_path + "/mac_arm64_jdk_jre/bin/" + command
     else:  # default to windows
-        command = java_path + "\\bin\\" + command
+        command = java_path + "\\win_amd64_jdk_jre\\bin\\" + command
 
     # Use the command and check QIS has launched
     # If logging to a terminal window is on then os.system should be used to view logging.

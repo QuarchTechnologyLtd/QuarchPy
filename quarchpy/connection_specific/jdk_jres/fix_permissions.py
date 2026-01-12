@@ -30,13 +30,13 @@ def find_java_permissions():
 
     # OS dependency
     if current_os in "Windows":
-        java_path = os.path.join(java_path, "win_amd64_jdk_jre","bin","java.exe")
+        java_path = os.path.join(java_path,"bin","java.exe")
     elif current_os in "Linux":
-        java_path = java_path + "/lin_amd64_jdk_jre/bin/java"
+        java_path = java_path + "/bin/java"
     elif current_os in "Darwin":
-        java_path = java_path + "/mac_amd64_jdk_jre/bin/java"
+        java_path = java_path + "/bin/java"
     else:  # default to windows
-        java_path = java_path + "\\win_amd64_jdk_jre\\bin\\java"
+        java_path = java_path + "\\bin\\java"
     # Get the file status
     st = os.stat(java_path)
     # Extract the file permissions from the file status

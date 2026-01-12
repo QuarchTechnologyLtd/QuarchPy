@@ -4,3 +4,4 @@ pandas
 numpy
 requests
 packaging
+quarchpy-binaries

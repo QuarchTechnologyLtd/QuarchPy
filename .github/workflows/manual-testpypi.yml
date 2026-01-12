@@ -44,10 +44,14 @@ jobs:
         # Unzip the downloaded file
         unzip -q "qps-release-debian.zip"
         
-        # Remove the zip file so it doesn't get packaged
+        # Move contents from the nested 'qps' folder up to the current directory
+        mv qps/* .
+        
+        # Remove the empty 'qps' folder and the zip file
+        rmdir qps
         rm "qps-release-debian.zip"
         
-        echo "QPS binaries extracted to quarchpy/connection_specific/QPS"
+        echo "QPS binaries extracted and flattened to quarchpy/connection_specific/QPS"
 
     - name: Build package
       run: |

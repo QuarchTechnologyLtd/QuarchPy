@@ -1,0 +1,39 @@
+name: Manual Dev Release to TestPyPI
+
+on:
+  # This allows you to click a button in the GitHub UI to trigger the run
+  workflow_dispatch:
+
+jobs:
+  release-testpypi:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # 'build' is the modern recommended tool, but we include setuptools/wheel/twine as well
+        pip install setuptools wheel twine build
+
+    - name: Build package
+      run: |
+        # This creates both the source tarball and the wheel in the /dist folder
+        python -m build
+
+    - name: Upload to TestPyPI
+      env:
+        # It is best practice to use env vars for twine credentials
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+        TWINE_REPOSITORY: testpypi
+      run: |
+        echo "Uploading to Test PyPI..."
+        twine upload dist/*

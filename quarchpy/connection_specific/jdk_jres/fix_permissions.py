@@ -2,6 +2,8 @@ import os
 import subprocess
 import platform
 
+import quarchpy_binaries
+
 
 def main():
 
@@ -12,19 +14,8 @@ def main():
         # Check the current OS
         current_os = platform.system()
         # JRE path
-        java_path = os.path.dirname(os.path.abspath(__file__))
-        java_path, junk = os.path.split(java_path)
-        java_path = os.path.join(java_path, "jdk_jres")
-    
-        # OS dependency
-        if current_os in "Windows":
-            java_path = java_path + "\\win_amd64_jdk_jre\\"
-        elif current_os in "Linux":
-            java_path = java_path + "/lin_amd64_jdk_jre/"
-        elif current_os in "Darwin":
-            java_path = java_path + "/mac_amd64_jdk_jre/"
-        else:  # default to windows
-            java_path = java_path + "\\win_amd64_jdk_jre\\"
+        java_path = quarchpy_binaries.get_jre_home()
+        java_path = "\"" + java_path
     
         # Ensure the jres folder has the required permissions
         subprocess.call(['chmod', '-R', '+rwx', java_path])
@@ -34,9 +25,8 @@ def find_java_permissions():
     # Check the current OS
     current_os = platform.system()
     # JRE path
-    java_path = os.path.dirname(os.path.abspath(__file__))
-    java_path, junk = os.path.split(java_path)
-    java_path = os.path.join(java_path, "jdk_jres")
+    java_path = quarchpy_binaries.get_jre_home()
+    java_path = "\"" + java_path
 
     # OS dependency
     if current_os in "Windows":

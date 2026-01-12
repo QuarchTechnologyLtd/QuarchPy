@@ -15,7 +15,6 @@ def main():
         current_os = platform.system()
         # JRE path
         java_path = quarchpy_binaries.get_jre_home()
-        java_path = "\"" + java_path
     
         # Ensure the jres folder has the required permissions
         subprocess.call(['chmod', '-R', '+rwx', java_path])

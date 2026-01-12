@@ -26,7 +26,6 @@ def find_java_permissions():
     current_os = platform.system()
     # JRE path
     java_path = quarchpy_binaries.get_jre_home()
-    java_path = "\"" + java_path
 
     # OS dependency
     if current_os in "Windows":
@@ -37,6 +36,7 @@ def find_java_permissions():
         java_path = java_path + "/bin/java"
     else:  # default to windows
         java_path = java_path + "\\bin\\java"
+
     # Get the file status
     st = os.stat(java_path)
     # Extract the file permissions from the file status
@@ -56,5 +56,7 @@ def find_java_permissions():
 
     return execute_permissions, message
 
+
 if __name__ == "__main__":
-    main()
+    # main()
+    exec_perms, msg = find_java_permissions()

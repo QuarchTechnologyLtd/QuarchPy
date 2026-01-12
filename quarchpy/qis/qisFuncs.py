@@ -95,9 +95,9 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     """
 
     # Check if QPS is installed
-    if not find_qps():
-        logger.error("Unable to find or install QPS... Aborting...")
-        return
+    # if not find_qps():
+    #     logger.error("Unable to find or install QPS... Aborting...")
+    #     return
 
     # java path
     java_path = quarchpy_binaries.get_jre_home()

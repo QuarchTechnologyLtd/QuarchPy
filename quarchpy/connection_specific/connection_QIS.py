@@ -4,6 +4,7 @@ import socket
 import threading
 import xml.etree.ElementTree as ET
 from io import StringIO
+from typing import Tuple
 
 import select
 #from .connection_specific.StreamChannels import StreamGroups
@@ -954,7 +955,7 @@ class QisInterface:
             logger.error(device + ' Unable to get stream  format.' + self.host + ':' + '{}'.format(self.port))
             raise e
 
-    def stream_get_stripes_text(self, sock, device: str) -> tuple[str, str]:
+    def stream_get_stripes_text(self, sock, device: str) -> Tuple[str, str]:
         """
         Retrieve and process text data from a QIS stream.
         We try to ready a block of data and also check for end of data and error cases

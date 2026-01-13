@@ -57,5 +57,4 @@ def find_java_permissions():
 
 
 if __name__ == "__main__":
-    # main()
-    exec_perms, msg = find_java_permissions()
+    main()

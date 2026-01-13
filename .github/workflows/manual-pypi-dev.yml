@@ -1,0 +1,79 @@
+name: Manual Dev Release to PyPI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-pypi-dev:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine build
+
+    # ---------------------------------------------------------
+    # 1. Download and Extract QPS Binaries
+    # ---------------------------------------------------------
+    - name: Download QPS Binaries (Linux)
+      env:
+        GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+      run: |
+        mkdir -p quarchpy/connection_specific/QPS
+
+        echo "Downloading QPS for Linux..."
+        gh release download \
+          --repo QuarchTechnologyLtd/QPS \
+          --pattern "qps-release-debian.zip" \
+          --dir quarchpy/connection_specific/QPS
+
+    - name: Extract QPS
+      run: |
+        cd quarchpy/connection_specific/QPS
+        unzip -q "qps-release-debian.zip"
+        mv qps/* .
+        rmdir qps
+        rm "qps-release-debian.zip"
+        echo "QPS binaries extracted and flattened."
+
+    # ---------------------------------------------------------
+    # 2. Patch Version for Dev Release
+    # ---------------------------------------------------------
+    - name: Apply Dev Version Suffix
+      run: |
+        # This finds the line: __version__ = "1.2.0"
+        # And changes it to:   __version__ = "1.2.0.dev<RunNumber>"
+        # It handles both single (') and double (") quotes.
+        
+        sed -i -E "s/(__version__\s*=\s*['\"])([^'\"]+)(['\"])/\1\2.dev${{ github.run_number }}\3/" quarchpy/_version.py
+        
+        echo "Version patched in quarchpy/_version.py for PyPI dev upload."
+        grep "__version__" quarchpy/_version.py
+
+    # ---------------------------------------------------------
+    # 3. Build and Publish
+    # ---------------------------------------------------------
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Upload to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        # NOTE: Using the PROD token here, not TestPyPI
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      run: |
+        echo "Uploading Dev Release to Production PyPI..."
+        twine upload dist/*

@@ -43,7 +43,7 @@ class quarchDevice:
         connectionTypeName (Optional[str]): Alias for ConCommsType. Set for PY type.
     """
 
-    def __init__(self, ConString: str, ConType: str = "PY", timeout: str = "5"):
+    def __init__(self, ConString: str, ConType: str = "PY", timeout: str = "5", host=None, port=None):
         """
         Initializes the quarchDevice, establishes the connection.
 
@@ -494,7 +494,7 @@ class quarchDevice:
         except Exception as e_def:
             logger.warning(f"Error setting QIS default device: {e_def}")
 
-    def _initialize_qps_connection(self):
+    def _initialize_qps_connection(self, host=None, port=None):
         """
         Initializes the connection using the QPS method.
 

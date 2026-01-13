@@ -90,6 +90,9 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
         List of additional parameters to be supplied to QIS on the command line
 
     """
+    if not find_qps():
+        logger.error("Unable to find or install QPS... Aborting...")
+        return
 
     # java path
     java_path = os.path.dirname(os.path.abspath(__file__))

@@ -63,7 +63,6 @@ setup(name='quarchpy',
             'numpy',
             'pandas',
             'requests',
-            'packaging',
-            'quarchpy-binaries>=0.0.3'],
+            'packaging'],
       include_package_data=True,
       zip_safe=False)

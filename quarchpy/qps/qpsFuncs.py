@@ -2,8 +2,6 @@ from threading import Thread, Lock, Event
 from queue import Queue, Empty
 import platform
 
-import quarchpy_binaries
-
 from quarchpy.install_qps import find_qps
 from quarchpy.qis import isQisRunning, startLocalQis
 from quarchpy.connection_specific.connection_QPS import QpsInterface
@@ -89,7 +87,9 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
     current_dir = os.getcwd()
 
     # JRE path
-    java_path = quarchpy_binaries.get_jre_home()
+    java_path = os.path.dirname(os.path.abspath(__file__))
+    java_path, junk = os.path.split(java_path)
+    java_path = os.path.join(java_path, "connection_specific", "jdk_jres")
     java_path = "\"" + java_path
     # Start to build the path towards qps.jar
     qps_path = os.path.dirname(os.path.abspath(__file__))
@@ -132,17 +132,17 @@ def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=T
 
     # OS dependency
     if current_os in "Windows":
-        command = java_path + "\\bin\\java\" -jar qps.jar " + str(args)
+        command = java_path + "\\win_amd64_jdk_jre\\bin\\java\" -jar qps.jar " + str(args)
     elif current_os in "Linux" and current_arch == "x86_64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
+        command = java_path + "/lin_amd64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
     elif current_os in "Linux" and current_arch == "aarch64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
+        command = java_path + "/lin_arm64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
     elif current_os in "Darwin" and current_arch == "x86_64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
+        command = java_path + "/mac_amd64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
     elif current_os in "Darwin" and current_arch == "arm64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
+        command = java_path + "/mac_arm64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
     else:  # default to windows
-        command = java_path + "\\bin\\java\" -jar qps.jar " + str(args)
+        command = java_path + "\\win_amd64_jdk_jre\\bin\\java\" -jar qps.jar " + str(args)
 
     if isQpsRunning():
         logger.debug("QPS is already running. Not starting another instance.")

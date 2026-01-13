@@ -80,7 +80,7 @@ jobs:
           exit 1
         fi
         
-        echo "✅ Versions match. Proceeding with release."
+        echo "Versions match. Proceeding with release."
 
     # ---------------------------------------------------------
     # 3. Build and Publish

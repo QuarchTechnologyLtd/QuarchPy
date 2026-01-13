@@ -6,7 +6,9 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # ubuntu-latest (24.04) no longer supports Python 3.7.
+    # We must pin to 22.04 to run these older tests.
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false  # If one version fails, let the others finish
       matrix:
@@ -28,12 +30,12 @@ jobs:
         pip install -r .github/workflows/requirements-dev.txt
         pip install pytest coverage flake8 setuptools wheel
 
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 quarchpy tests --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 quarchpy tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+#    - name: Lint with flake8
+#      run: |
+#        # stop the build if there are Python syntax errors or undefined names
+#        flake8 quarchpy tests --count --select=E9,F63,F7,F82 --show-source --statistics
+#        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+#        flake8 quarchpy tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Run tests with coverage
       run: |

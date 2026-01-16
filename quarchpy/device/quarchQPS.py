@@ -3,7 +3,7 @@ import logging
 logger = logging.getLogger(__name__)
 import time
 from io import StringIO
-from typing import Optional, Union, List, Any, Literal
+from typing_extensions import Optional, Union, List, Any, Literal
 import enum
 
 # Third-party imports

@@ -136,7 +136,7 @@ def find_qps():
     Checks for QPS and JDK/JRE. If any are missing or outdated, it attempts an
     online or offline installation of the required components.
     """
-    _ensure_clean_qps_install() #Check for QPS artifact from the last quarchpy version
+    _ensure_clean_qps_install() # Check for QPS artifact from the last quarchpy version
 
     qps_jar = "qps.jar"
     qps_path = os.path.join(EXTRACTION_FOLDER_QPS, qps_jar)

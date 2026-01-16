@@ -1,14 +1,16 @@
+import subprocess
+import logging
+import platform
+import socket
 from threading import Thread, Lock, Event
 from queue import Queue, Empty
-import platform
+from typing import List, Optional, Tuple, Union, Any
 
 from quarchpy.install_qps import find_qps
 from quarchpy.qis import isQisRunning, startLocalQis
 from quarchpy.connection_specific.connection_QPS import QpsInterface
 from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
 from quarchpy.user_interface import *
-import subprocess
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -68,127 +70,71 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
         logger.debug("$list: " + str(answer))
         return False
 
+def startLocalQps(
+    keepQisRunning: bool = False,
+    args: List[str] = None,
+    timeout: int = 30,
+    startQPSMinimised: bool = True,
+    host: str = '127.0.0.1'
+) -> Optional['QpsInterface']:
+    """
+    Main entry point to start a local QPS instance.
 
-def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=True):
+    Args:
+        keepQisRunning: If True, ensures QIS is also started/running.
+        args: List of command line arguments for QPS (e.g. ['-port=9823']).
+        timeout: Time in seconds to wait for QPS to become ready.
+        startQPSMinimised: If True, adds the flag to start QPS minimized.
+        host: The host address (default localhost).
 
-    # Check if QPS is installed
+    Returns:
+        QpsInterface: Connected interface object if successful, None otherwise.
+    """
+    # 1. Parse ports from arguments
+    qps_port, qis_port, qis_rest_port = _parse_ports(args)
+
+    # 2. Check if already running
+    if _check_port_open(host, qps_port):
+        logger.debug(f"QPS instance on port {qps_port} is already running. Connecting...")
+        # Assuming QpsInterface can be imported or is available in scope
+        return QpsInterface(host=host, port=qps_port)
+
+    # 3. Check for QPS installation
     if not find_qps():
         logger.error("Unable to find or install QPS... Aborting...")
-        return
+        return None
 
+    # 4. Handle QIS Backend (if required)
     if keepQisRunning:
-        if not isQisRunning():
-            startLocalQis()
+        if not _ensure_qis_running(host, qis_port, qis_rest_port, timeout):
+            return None
 
-    if args.__len__() !=0:
-        args = " ".join(args)
-    else:
-        args=" "
-    if startQPSMinimised == True:
-        if "-ccs" not in args.lower():
-            args +=" -ccs=MIN"
+    # 5. Prepare Command and Environment
+    command, qps_dir = _prepare_qps_launch_env(args, startQPSMinimised)
+    if not command or not qps_dir:
+        return None
 
-    # Record current working directory
+    # 6. Launch QPS Process
     current_dir = os.getcwd()
+    try:
+        os.chdir(qps_dir) # Switch to QPS dir for launch dependencies
+        process = _launch_process(command, args)
+    finally:
+        os.chdir(current_dir) # Always return to original dir
 
-    # JRE path
-    java_path = os.path.dirname(os.path.abspath(__file__))
-    java_path, junk = os.path.split(java_path)
-    java_path = os.path.join(java_path, "connection_specific", "jdk_jres")
-    java_path = "\"" + java_path
-    # Start to build the path towards qps.jar
-    qps_path = os.path.dirname(os.path.abspath(__file__))
-    qps_path, junk = os.path.split(qps_path)
+    # 7. Wait for QPS to be ready
+    if not _wait_for_service(host, qps_port, timeout, process, args):
+        return None
 
-    # Check the current OS
-    current_os = platform.system()
-    current_arch = platform.machine()
-    current_arch = current_arch.lower()  # ensure comparing same case
-
-    # Currently officially unsupported
-    if (current_os in "Linux" and current_arch == "aarch64") or (current_os in "Darwin" and current_arch == "arm64"):
-        logger.warning("The system [" + current_os + ", " + current_arch + "] is not officially supported.")
-        logger.warning("Please contact Quarch support for running QuarchPy on this system.")
-        return
-
-    # ensure the jres folder has the required permissions
-    permissions, message = find_java_permissions()
-    if permissions is False:
-        logger.warning(message)
-        logger.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
-        logger.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
-        user_input = input("Would you like to use auto run this now? (Y/N)")
-        if user_input.lower() == "y":
-            fix_permissions()
-            permissions, message = find_java_permissions()
-            time.sleep(0.5)
-            if permissions is False:
-                logger.warning("Attempt to fix permissions was unsuccessful. Please fix manually.")
-            else:
-                logger.warning("Attempt to fix permissions was successful. Now continuing.")
-
-
-    qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
-
-
-    # Change the working directory to the directory containing qps.jar
-    os.chdir(os.path.dirname(qps_path))
-
-
-    # OS dependency
-    if current_os in "Windows":
-        command = java_path + "\\win_amd64_jdk_jre\\bin\\java\" -jar qps.jar " + str(args)
-    elif current_os in "Linux" and current_arch == "x86_64":
-        command = java_path + "/lin_amd64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
-    elif current_os in "Linux" and current_arch == "aarch64":
-        command = java_path + "/lin_arm64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
-    elif current_os in "Darwin" and current_arch == "x86_64":
-        command = java_path + "/mac_amd64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
-    elif current_os in "Darwin" and current_arch == "arm64":
-        command = java_path + "/mac_arm64_jdk_jre/bin/java\" -jar qps.jar " + str(args)
-    else:  # default to windows
-        command = java_path + "\\win_amd64_jdk_jre\\bin\\java\" -jar qps.jar " + str(args)
-
-    if isQpsRunning():
-        logger.debug("QPS is already running. Not starting another instance.")
-        os.chdir(current_dir)
-        return
-    if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
-        if current_os in "Windows":
-            process = subprocess.Popen(command,shell=True)
-        else:
-            # Add a hold command to keep the terminal open (useful for bash)
-            command_with_pause = command + "; exec bash"
-            process = subprocess.run(command_with_pause, shell=True)
-    else:
-        if sys.version_info[0] < 3:
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        else:
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
-
-        startTime = time.time()
-        while not isQpsRunning():
-            time.sleep(0.2)
-            _get_std_msg_and_err_from_QPS_process(process)
-            if time.time() - startTime > timeout:
-                os.chdir(current_dir)
-                raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
-        logger.debug("QPS detected after " + str(time.time() - startTime) + "s")
-
-        while not isQisRunning():
-            if time.time() - startTime > timeout:
-                raise TimeoutError(
-                    "QPS did launch but QIS did not respond during the timeout time of " + str(timeout) + " sec.")
-            time.sleep(0.2)
-        logger.debug("QIS detected after " + str(time.time() - startTime) + "s")
-
-    # return current working directory
-    os.chdir(current_dir)
-    return
-
+    # 8. Return Connected Interface
+    try:
+        return QpsInterface(host=host, port=qps_port)
+    except Exception as e:
+        logger.error(f"QPS started, but failed to create interface object: {e}")
+        return None
 
 def reader(stream, q, source, lock,stop_flag):
-    '''
+    """
     Used to read output and place it in a queue for multithreaded reading
     :param stream:
     :param q:
@@ -196,7 +142,7 @@ def reader(stream, q, source, lock,stop_flag):
     :param lock: The lock for the queue
     :param stop_flag: Flag to exit the loop and close the thread
     :return: None
-    '''
+    """
     while not stop_flag.is_set():
         line = stream.readline()
         if not line:
@@ -204,14 +150,13 @@ def reader(stream, q, source, lock,stop_flag):
         with lock:
             q.put((source, line.strip()))
 
-
 def _get_std_msg_and_err_from_QPS_process(process):
-    '''
+    """
     Uses multithreading to check for stderr and stdmsg passed by the process that launches QPS
     This allows the user to understand why QPS might not have appeared.
     :param process: The Process Used to launch QPS
     :return: None
-    '''
+    """
     # Read back stdmsg and stderr in seperate threads so they are non blocking
     q = Queue()
     lock = Lock()
@@ -303,3 +248,162 @@ def GetQpsModuleSelection(QpsConnection, favouriteOnly=True, additionalOptions=[
             continue
         else:
             return myDeviceID
+
+# ==========================================
+#           HELPER FUNCTIONS
+# ==========================================
+
+def _parse_ports(args: List[str]) -> Tuple[int, int, int]:
+    """Extracts QPS and QIS ports from the argument list."""
+    qps_port = 9822
+    qis_port = 9722
+    qis_rest_port = 9780
+
+    for arg in args:
+        arg_lower = arg.lower()
+        if "-port=" in arg_lower:
+            qps_port = int(arg.split('=')[1])
+        elif "-qisport=" in arg_lower:
+            qis_port = int(arg.split('=')[1])
+        elif "-qisrestport=" in arg_lower:
+            qis_rest_port = int(arg.split('=')[1])
+
+    return qps_port, qis_port, qis_rest_port
+
+
+def _ensure_qis_running(host: str, qis_port: int, qis_rest_port: int, timeout: int) -> bool:
+    """Checks if QIS is running on the target port, starts it if not."""
+    if _check_port_open(host, qis_port):
+        return True
+
+    logger.debug(f"Starting QIS on ports {qis_port}/{qis_rest_port}...")
+    qis_args = [f'-port={qis_port}', f'-restport={qis_rest_port}']
+    startLocalQis(args=qis_args)
+
+    # Wait for QIS
+    start_time = time.time()
+    while not _check_port_open(host, qis_port):
+        if time.time() - start_time > timeout:
+            logger.error(f"QIS failed to start on port {qis_port} within timeout.")
+            return False
+        time.sleep(0.5)
+
+    return True
+
+
+def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> Tuple[Optional[str], Optional[str]]:
+    """Resolves paths, checks OS support/permissions, and builds the java command."""
+
+    # Check OS Support
+    current_os = platform.system()
+    current_arch = platform.machine().lower()
+
+    if (current_os == "Linux" and current_arch == "aarch64") or (current_os == "Darwin" and current_arch == "arm64"):
+        logger.warning(f"System [{current_os}, {current_arch}] is not officially supported.")
+        return None, None
+
+    # Handle Permissions
+    _handle_java_permissions()
+
+    # Resolve Paths
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    base_path, junk = os.path.split(base_path)
+    java_root = os.path.join(base_path, "connection_specific", "jdk_jres")
+    qps_jar_path = os.path.join(base_path, "connection_specific", "QPS", "qps.jar")
+    qps_dir = os.path.dirname(qps_jar_path)
+
+    # Select Java Binary
+    java_bin = _get_java_binary_path(java_root, current_os, current_arch)
+
+    # Build Command String
+    args_str = " ".join(args) if args else " "
+    if startQPSMinimised and "-ccs" not in args_str.lower():
+        args_str += " -ccs=MIN"
+
+    # Quote paths
+    command = f'"{java_bin}" -jar qps.jar {args_str}'
+
+    return command, qps_dir
+
+
+def _get_java_binary_path(java_root: str, current_os: str, current_arch: str) -> str:
+    """Selects the correct Java binary for the architecture."""
+    if current_os == "Windows":
+        return os.path.join(java_root, "win_amd64_jdk_jre", "bin", "java")
+    elif current_os == "Linux":
+        folder = "lin_arm64_jdk_jre" if current_arch == "aarch64" else "lin_amd64_jdk_jre"
+        return os.path.join(java_root, folder, "bin", "java")
+    elif current_os == "Darwin":
+        folder = "mac_arm64_jdk_jre" if current_arch == "arm64" else "mac_amd64_jdk_jre"
+        return os.path.join(java_root, folder, "bin", "java")
+
+    # Fallback
+    return os.path.join(java_root, "win_amd64_jdk_jre", "bin", "java")
+
+
+def _handle_java_permissions() -> None:
+    """Checks and attempts to fix Java execution permissions."""
+    permissions, message = find_java_permissions()
+    if not permissions:
+        logger.warning(message)
+        try:
+            fix_permissions()
+            permissions, _ = find_java_permissions()
+            if not permissions:
+                logger.warning("Auto-fix for permissions failed. Please fix manually.")
+            else:
+                logger.warning("Permissions fixed successfully.")
+        except Exception as e:
+            logger.warning(f"Permission fix error: {e}")
+
+
+def _launch_process(command: str, args: List[str]) -> subprocess.Popen:
+    """Launches the subprocess, handling logging flags."""
+    args_str = " ".join(args) if args else ""
+
+    if "-logging=ON" in args_str:
+        if platform.system() == "Windows":
+            return subprocess.Popen(command, shell=True)
+        else:
+            return subprocess.run(command + "; exec bash", shell=True)
+    else:
+        # NOTE: 'text=True' was added in Python 3.7.
+        # For older compatibility (3.6) 'universal_newlines=True' is used, but 3.7+ supports both.
+        # We assume 3.7+ here as requested.
+        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                text=True, shell=True)
+
+
+def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subprocess.Popen], args: List[str]) -> bool:
+    """Polls the port until open, checking process output for errors."""
+    start_time = time.time()
+    args_str = " ".join(args) if args else ""
+    logging_on = "-logging=ON" in args_str
+
+    while True:
+        if _check_port_open(host, port):
+            logger.debug(f"Service detected on port {port} after {time.time() - start_time:.2f}s")
+            return True
+
+        # If hidden, drain pipes to prevent deadlock and check for crashes
+        if not logging_on and process:
+            # Assuming _get_std_msg_and_err_from_QPS_process is defined in your module
+            _get_std_msg_and_err_from_QPS_process(process)
+
+        if time.time() - start_time > timeout:
+            logger.error(f"Service failed to launch on port {port} within {timeout}s.")
+            return False
+
+        time.sleep(0.2)
+
+
+def _check_port_open(host: str, port: int) -> bool:
+    """Simple TCP connect check."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1)
+    try:
+        s.connect((host, int(port)))
+        s.close()
+        return True
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        return False

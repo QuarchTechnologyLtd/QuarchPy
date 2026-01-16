@@ -1,12 +1,14 @@
 name: Manual Dev Release to TestPyPI
 
 on:
-  # This allows you to click a button in the GitHub UI to trigger the run
   workflow_dispatch:
 
 jobs:
   release-testpypi:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read  # Often needed to download from GH packages
 
     steps:
     - name: Checkout code
@@ -20,17 +22,44 @@ jobs:
     - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
-        # 'build' is the modern recommended tool, but we include setuptools/wheel/twine as well
         pip install setuptools wheel twine build
+
+    - name: Download QPS Binaries (Linux)
+      env:
+        GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+      run: |
+        # Create the destination directory
+        mkdir -p quarchpy/connection_specific/QPS
+
+        echo "Downloading QPS for Linux..."
+        gh release download \
+          --repo QuarchTechnologyLtd/QPS \
+          --pattern "qps-release-debian.zip" \
+          --dir quarchpy/connection_specific/QPS
+
+    - name: Extract QPS
+      run: |
+        cd quarchpy/connection_specific/QPS
+        
+        # Unzip the downloaded file
+        unzip -q "qps-release-debian.zip"
+        
+        # Move contents from the nested 'qps' folder up to the current directory
+        mv qps/* .
+        
+        # Remove the empty 'qps' folder and the zip file
+        rmdir qps
+        rm "qps-release-debian.zip"
+        
+        echo "QPS binaries extracted and flattened to quarchpy/connection_specific/QPS"
 
     - name: Build package
       run: |
-        # This creates both the source tarball and the wheel in the /dist folder
+        # Creates source tarball and wheel in /dist
         python -m build
 
     - name: Upload to TestPyPI
       env:
-        # It is best practice to use env vars for twine credentials
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
         TWINE_REPOSITORY: testpypi

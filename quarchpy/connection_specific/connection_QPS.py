@@ -1,15 +1,11 @@
 import sys
 import socket
-import time
-import datetime
-import subprocess
-import os
-import random
 import logging
-logger = logging.getLogger(__name__)
 import time
 import re
 from quarchpy.user_interface import user_interface
+
+logger = logging.getLogger(__name__)
 
 class QpsInterface:
     def __init__(self, host='127.0.0.1', port=9822):
@@ -194,6 +190,13 @@ class QpsInterface:
 
         #return list of devices
         return deviceList
+
+    def select_device(self, favourite_only=True):
+        """
+        Opens a UI prompt for the user to select a device available on this QPS instance.
+        """
+        from quarchpy.qps.qpsFuncs import get_qps_module_selection
+        return get_qps_module_selection(self, favourite_only=favourite_only)
 
 
     def open_recording(self, file_path, cmdTimeout=5, pollInterval=3, startOpenTimout=5):

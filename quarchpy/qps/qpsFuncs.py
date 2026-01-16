@@ -1,6 +1,9 @@
+import socket
+from subprocess import CompletedProcess, Popen
 from threading import Thread, Lock, Event
 from queue import Queue, Empty
 import platform
+from typing import Optional, List, Any, Tuple, Union
 
 import quarchpy_binaries
 
@@ -70,121 +73,57 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
         logger.debug("$list: " + str(answer))
         return False
 
+def startLocalQps(
+        keepQisRunning: bool = False,
+        args: List[str] = [],
+        timeout: int = 30,
+        startQPSMinimised: bool = True,
+        host: str = '127.0.0.1'
+) -> Optional['QpsInterface']:
+    """
+    Main entry point to start a local QPS instance.
+    """
+    # 1. Parse ports from arguments
+    qps_port, qis_port, qis_rest_port = _parse_ports(args)
 
-def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=True):
+    # 2. Check if already running on the specific target port
+    if _check_port_open(host, qps_port):
+        logger.debug(f"QPS instance on port {qps_port} is already running. Connecting...")
+        return QpsInterface(host=host, port=qps_port)
 
+    # 3. Check for QPS installation
     if not find_qps():
         logger.error("Unable to find or install QPS... Aborting...")
-        return
+        return None
 
+    # 4. Handle QIS Backend (if required)
     if keepQisRunning:
-        if not isQisRunning():
-            startLocalQis()
+        if not _ensure_qis_running(host, qis_port, qis_rest_port, timeout):
+            return None
 
-    if args.__len__() !=0:
-        args = " ".join(args)
-    else:
-        args=" "
-    if startQPSMinimised == True:
-        if "-ccs" not in args.lower():
-            args +=" -ccs=MIN"
+    # 5. Prepare Command and Environment
+    command, qps_dir = _prepare_qps_launch_env(args, startQPSMinimised)
+    if not command:
+        return None
 
-    # Record current working directory
+    # 6. Launch QPS Process
     current_dir = os.getcwd()
+    try:
+        os.chdir(qps_dir)  # Switch to QPS dir for launch dependencies
+        process = _launch_process(command, args)
+    finally:
+        os.chdir(current_dir)  # Always return to original dir
 
-    # JRE path
-    java_path = quarchpy_binaries.get_jre_home()
-    java_path = "\"" + java_path
-    # Start to build the path towards qps.jar
-    qps_path = os.path.dirname(os.path.abspath(__file__))
-    qps_path, junk = os.path.split(qps_path)
+    # 7. Wait for QPS to be ready
+    if not _wait_for_service(host, qps_port, timeout, process, args):
+        return None
 
-    # Check the current OS
-    current_os = platform.system()
-    current_arch = platform.machine()
-    current_arch = current_arch.lower()  # ensure comparing same case
-
-    # Currently officially unsupported
-    if (current_os in "Linux" and current_arch == "aarch64") or (current_os in "Darwin" and current_arch == "arm64"):
-        logger.warning("The system [" + current_os + ", " + current_arch + "] is not officially supported.")
-        logger.warning("Please contact Quarch support for running QuarchPy on this system.")
-        return
-
-    # ensure the jres folder has the required permissions
-    permissions, message = find_java_permissions()
-    if permissions is False:
-        logger.warning(message)
-        logger.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
-        logger.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
-        user_input = input("Would you like to use auto run this now? (Y/N)")
-        if user_input.lower() == "y":
-            fix_permissions()
-            permissions, message = find_java_permissions()
-            time.sleep(0.5)
-            if permissions is False:
-                logger.warning("Attempt to fix permissions was unsuccessful. Please fix manually.")
-            else:
-                logger.warning("Attempt to fix permissions was successful. Now continuing.")
-
-
-    qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
-
-
-    # Change the working directory to the directory containing qps.jar
-    os.chdir(os.path.dirname(qps_path))
-
-
-    # OS dependency
-    if current_os in "Windows":
-        command = java_path + "\\bin\\java\" -jar qps.jar " + str(args)
-    elif current_os in "Linux" and current_arch == "x86_64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
-    elif current_os in "Linux" and current_arch == "aarch64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
-    elif current_os in "Darwin" and current_arch == "x86_64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
-    elif current_os in "Darwin" and current_arch == "arm64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
-    else:  # default to windows
-        command = java_path + "\\bin\\java\" -jar qps.jar " + str(args)
-
-    if isQpsRunning():
-        logger.debug("QPS is already running. Not starting another instance.")
-        os.chdir(current_dir)
-        return
-    if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
-        if current_os in "Windows":
-            process = subprocess.Popen(command,shell=True)
-        else:
-            # Add a hold command to keep the terminal open (useful for bash)
-            command_with_pause = command + "; exec bash"
-            process = subprocess.run(command_with_pause, shell=True)
-    else:
-        if sys.version_info[0] < 3:
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        else:
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
-
-        startTime = time.time()
-        while not isQpsRunning():
-            time.sleep(0.2)
-            _get_std_msg_and_err_from_QPS_process(process)
-            if time.time() - startTime > timeout:
-                os.chdir(current_dir)
-                raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
-        logger.debug("QPS detected after " + str(time.time() - startTime) + "s")
-
-        while not isQisRunning():
-            if time.time() - startTime > timeout:
-                raise TimeoutError(
-                    "QPS did launch but QIS did not respond during the timeout time of " + str(timeout) + " sec.")
-            time.sleep(0.2)
-        logger.debug("QIS detected after " + str(time.time() - startTime) + "s")
-
-    # return current working directory
-    os.chdir(current_dir)
-    return
-
+    # 8. Return Connected Interface
+    try:
+        return QpsInterface(host=host, port=qps_port)
+    except Exception as e:
+        logger.error(f"QPS started, but failed to create interface object: {e}")
+        return None
 
 def reader(stream, q, source, lock,stop_flag):
     '''
@@ -302,3 +241,330 @@ def GetQpsModuleSelection(QpsConnection, favouriteOnly=True, additionalOptions=[
             continue
         else:
             return myDeviceID
+
+def get_qps_module_selection(
+        qps_connection: 'QpsInterface',
+        favourite_only: bool = True,
+        additional_options: Optional[List[str]] = None,
+        scan: bool = True
+) -> Any | None:
+    """
+    Scans for QPS devices and prompts the user to select one.
+    """
+    if additional_options is None:
+        additional_options = ['rescan', 'all con types', 'ip scan']
+
+    # State variables
+    favourite = favourite_only
+    ip_address = None
+
+    while True:
+        printText("QPS scanning for devices")
+
+        # 1. Fetch raw list from QPS
+        dev_list = _fetch_device_list(qps_connection, scan, ip_address)
+
+        # 2. Check for empty results and sanitize
+        # If no devices found, force favorite mode off to prevent sorting bugs
+        if _is_list_empty_or_error(dev_list):
+            favourite = False
+
+        # Remove REST devices (unsupported here)
+        dev_list = [x for x in dev_list if "rest" not in x]
+
+        # 3. Apply 'Favourite' Logic (Sort by type & Deduplicate)
+        if favourite:
+            dev_list = _apply_favourite_sorting(dev_list)
+
+        # 4. Apply TestCenter formatting (if applicable)
+        display_list = _format_for_testcenter(dev_list)
+
+        # 5. Show UI
+        selection = listSelection(
+            title="Select a Quarch module",
+            message="Select a Quarch module",
+            selectionList=display_list,
+            additionalOptions=additional_options,
+            nice=True,
+            tableHeaders=["Module"],
+            indexReq=True
+        )
+
+        # 6. Handle User Response
+        # If the user picked a device, return it. If they picked an option, loop again.
+        action = _parse_selection_action(selection)
+
+        if action == "RETURN_DEVICE":
+            return selection
+        elif action == "RESCAN":
+            ip_address = None
+            favourite = True
+            continue
+        elif action == "SHOW_ALL":
+            printText('Displaying all connection types...')
+            favourite = False
+            continue
+        elif action == "IP_SCAN":
+            ip_address = requestDialog("Please input IP Address of the module you would like to connect to: ")
+            favourite = False
+            continue
+
+
+# ==========================================
+#           HELPER FUNCTIONS
+# ==========================================
+
+def _parse_ports(args: List[str]) -> Tuple[int, int, int]:
+    """Extracts QPS and QIS ports from the argument list."""
+    qps_port = 9822
+    qis_port = 9722
+    qis_rest_port = 9780
+
+    for arg in args:
+        arg_lower = arg.lower()
+        if "-port=" in arg_lower:
+            try:
+                qps_port = int(arg.split('=')[1])
+            except (IndexError, ValueError):
+                pass
+        elif "-qisport=" in arg_lower:
+            try:
+                qis_port = int(arg.split('=')[1])
+            except (IndexError, ValueError):
+                pass
+        elif "-qisrestport=" in arg_lower:
+            try:
+                qis_rest_port = int(arg.split('=')[1])
+            except (IndexError, ValueError):
+                pass
+
+    return qps_port, qis_port, qis_rest_port
+
+
+def _ensure_qis_running(host: str, qis_port: int, qis_rest_port: int, timeout: int) -> bool:
+    """Checks if QIS is running on the target port, starts it if not."""
+    if _check_port_open(host, qis_port):
+        return True
+
+    logger.debug(f"Starting QIS on ports {qis_port}/{qis_rest_port}...")
+    qis_args = [f'-port={qis_port}', f'-restport={qis_rest_port}']
+    startLocalQis(args=qis_args)
+
+    # Wait for QIS
+    start_time = time.time()
+    while not _check_port_open(host, qis_port):
+        if time.time() - start_time > timeout:
+            logger.error(f"QIS failed to start on port {qis_port} within timeout.")
+            return False
+        time.sleep(0.5)
+
+    return True
+
+
+def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> Tuple[Optional[str], Optional[str]]:
+    """Resolves paths using quarchpy_binaries, checks permissions, and builds command."""
+
+    # 1. Check OS Support
+    current_os = platform.system()
+    current_arch = platform.machine().lower()
+
+    if (current_os == "Linux" and current_arch == "aarch64") or (current_os == "Darwin" and current_arch == "arm64"):
+        logger.warning(f"The system [{current_os}, {current_arch}] is not officially supported.")
+        logger.warning("Please contact Quarch support for running QuarchPy on this system.")
+        return None, None
+
+    # 2. Handle Permissions
+    _handle_java_permissions()
+
+    # 3. Resolve Paths using quarchpy_binaries
+    if 'quarchpy_binaries' not in globals() and 'quarchpy_binaries' not in locals():
+        # Fallback if module isn't imported or available
+        logger.error("quarchpy_binaries module not found. Cannot locate JRE.")
+        return None, None
+
+    try:
+        java_home = quarchpy_binaries.get_jre_home()
+    except Exception as e:
+        logger.error(f"Failed to get JRE home: {e}")
+        return None, None
+
+    # Resolve QPS Jar Path
+    qps_root = os.path.dirname(os.path.abspath(__file__))
+    qps_root, _ = os.path.split(qps_root)  # Up one level
+    qps_jar_path = os.path.join(qps_root, "connection_specific", "QPS", "qps.jar")
+    qps_dir = os.path.dirname(qps_jar_path)
+
+    # 4. Construct Command
+    # Determine separator based on OS (Windows uses \, Linux/Mac use /)
+
+    java_bin = "bin/java"
+    if current_os == "Windows":
+        java_bin = r"bin\java"
+
+    # Full path to java executable
+    java_exe = os.path.join(java_home, java_bin)
+
+    # Wrap java path in quotes for safety
+    java_exe_quoted = f'"{java_exe}"'
+
+    # Prepare Args String
+    args_str = " ".join(args) if args else " "
+    if startQPSMinimised and "-ccs" not in args_str.lower():
+        args_str += " -ccs=MIN"
+
+    # Build Final Command
+    command = f'{java_exe_quoted} -jar qps.jar {args_str}'
+
+    return command, qps_dir
+
+
+def _handle_java_permissions() -> None:
+    """Checks and attempts to fix Java execution permissions."""
+    permissions, message = find_java_permissions()
+    if not permissions:
+        logger.warning(message)
+        logger.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
+        logger.warning('Run "python -m quarchpy.run permission_fix" to fix this.')
+
+
+def _launch_process(command: str, args: List[str]) -> Popen[bytes] | CompletedProcess[bytes] | Popen[str | bytes | Any]:
+    """Launches the subprocess, handling logging flags."""
+    args_str = " ".join(args) if args else ""
+
+    if "-logging=ON" in args_str:
+        if platform.system() == "Windows":
+            return subprocess.Popen(command, shell=True)
+        else:
+            return subprocess.run(command + "; exec bash", shell=True)
+    else:
+        # Use text=True for Python 3.7+
+        text_mode = True if sys.version_info >= (3, 7) else False
+        # Fallback for 3.6 if needed (universal_newlines=True)
+        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=text_mode, shell=True)
+
+
+def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subprocess.Popen], args: List[str]) -> bool:
+    """Polls the port until open, checking process output for errors."""
+    start_time = time.time()
+    args_str = " ".join(args) if args else ""
+    logging_on = "-logging=ON" in args_str
+
+    while True:
+        if _check_port_open(host, port):
+            logger.debug(f"QPS detected on port {port} after {time.time() - start_time:.2f}s")
+            return True
+
+        # If hidden, drain pipes to prevent deadlock and check for crashes
+        if not logging_on and process:
+            _get_std_msg_and_err_from_QPS_process(process)
+
+        if time.time() - start_time > timeout:
+            logger.error(f"QPS failed to launch on port {port} within timelimit of {timeout} sec.")
+            return False
+
+        time.sleep(0.2)
+
+
+def _check_port_open(host: str, port: int) -> bool:
+    """Simple TCP connect check."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1)
+    try:
+        s.connect((host, int(port)))
+        s.close()
+        return True
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        return False
+
+
+def _fetch_device_list(qps: 'QpsInterface', scan: bool, ip_address: Optional[str]) -> List[str]:
+    """Retrieves the device list from QPS, handling IP scan logic."""
+    if ip_address is None:
+        return qps.getDeviceList(scan=scan)
+    else:
+        return qps.getDeviceList(scan=scan, ipAddress=ip_address)
+
+
+def _is_list_empty_or_error(dev_list: List[str]) -> bool:
+    """Checks if the returned list is empty or contains error messages."""
+    if not dev_list:
+        return True
+    first_item = dev_list[0].lower()
+    return "no device" in first_item or "no module" in first_item
+
+
+def _apply_favourite_sorting(dev_list: List[str]) -> List[str]:
+    """
+    Sorts devices by connection preference and removes duplicates.
+    Preference Order: USB > TCP > SERIAL > REST > TELNET
+    """
+    sorted_list = _sort_by_connection_type(dev_list)
+    deduped_list = _deduplicate_physical_devices(sorted_list)
+    return deduped_list
+
+
+def _sort_by_connection_type(dev_list: List[str]) -> List[str]:
+    """Reorders the list based on specific connection type priority."""
+    sorted_list = []
+    con_pref = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
+
+    for pref in con_pref:
+        for device in dev_list:
+            if pref in device.upper():
+                if device not in sorted_list:
+                    sorted_list.append(device)
+    return sorted_list
+
+
+def _deduplicate_physical_devices(dev_list: List[str]) -> List[str]:
+    """
+    Filters the list to keep only the highest priority connection for each unique device ID.
+    (e.g., if both USB::QTL1 and TCP::QTL1 exist, keep only USB because it appeared first).
+    """
+    unique_list = []
+    seen_ids = set()
+
+    for device in dev_list:
+        try:
+            # Extract the unique serial (e.g., 'QTL1234' from 'USB::QTL1234')
+            if "::" in device:
+                device_id = device.split("::")[1]
+                if device_id not in seen_ids:
+                    unique_list.append(device)
+                    seen_ids.add(device_id)
+            else:
+                # Fallback for non-standard formats
+                if device not in unique_list:
+                    unique_list.append(device)
+        except IndexError:
+            if device not in unique_list:
+                unique_list.append(device)
+
+    return unique_list
+
+
+def _format_for_testcenter(dev_list: List[str]) -> Union[List[str], str]:
+    """
+    Formats the list specifically for the TestCenter interface if active.
+    TestCenter requires a comma-separated string format: "Item1=Item1,Item2=Item2"
+    """
+    if User_interface.instance is not None and getattr(User_interface.instance, 'selectedInterface',
+                                                       '') == "testcenter":
+        # Convert list to TestCenter-style string
+        formatted_str = ",".join([f"{module}={module}" for module in dev_list])
+        return formatted_str
+
+    return dev_list
+
+
+def _parse_selection_action(selection: str) -> str:
+    """Determines if the selection is a device ID or a menu action."""
+    # Using 'in' allows for loose matching if the UI returns slightly different strings
+    if selection in 'rescan':
+        return "RESCAN"
+    elif selection in 'all con types':
+        return "SHOW_ALL"
+    elif selection in 'ip scan':
+        return "IP_SCAN"
+    else:
+        return "RETURN_DEVICE"

@@ -71,7 +71,6 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
 
 def startLocalQps(keepQisRunning=False, args=[], timeout=30, startQPSMinimised=True):
 
-    # Check if QPS is installed
     if not find_qps():
         logger.error("Unable to find or install QPS... Aborting...")
         return

@@ -1,4 +1,5 @@
 import logging
+
 logger = logging.getLogger(__name__)
 import glob
 import os
@@ -9,11 +10,11 @@ import shutil
 import xml.etree.ElementTree as ET
 from quarchpy.user_interface import printText, requestDialog
 from quarchpy._version import __version__ as quarchpy_version
+
 # --- Configuration ---
 QPS_VERSION_FOR_DOWNLOAD = "1.50"
 # URLs for the separate ZIP files.
 QPS_DOWNLOAD_URL = f"https://quarch.com/software_update/qps/QPS_{QPS_VERSION_FOR_DOWNLOAD}.zip"
-JDK_JRE_DOWNLOAD_URL = "https://quarch.com/software_update/qps/jdk_jres.zip"
 QPS_DOWNLOAD_URL_LATEST = "https://quarch.com/software_update/qps/QPS.zip"
 
 # --- Path definitions using __file__ ---
@@ -27,7 +28,6 @@ package_root = os.path.dirname(current_file_path)
 
 TARGET_DIR = os.path.join(package_root, "connection_specific")
 EXTRACTION_FOLDER_QPS = os.path.join(TARGET_DIR, "QPS")
-EXTRACTION_FOLDER_JDK_JRE = os.path.join(TARGET_DIR, "jdk_jres")
 
 
 def get_installed_qps_version(qps_folder):
@@ -44,149 +44,105 @@ def get_installed_qps_version(qps_folder):
                     return line.split('=', 1)[1].strip()
     except Exception as e:
         printText(f"  - Warning: Could not read version from {properties_file}. Error: {e}")
-        return None # Error reading file
+        return None  # Error reading file
 
-    return None # Version not found in the file
+    return None  # Version not found in the file
 
 
 def _ensure_clean_qps_install():
     """
-    Checks for a version-specific flag. If missing, it assumes a new quarchpy install
-    and wipes the old 'connection_specific/qps' directory to remove legacy binaries.
-
-    EXCEPTION: If a '.dev_bundle' marker file is found, we assume this is a
-    pre-packaged dev build with binaries already in place, and skip cleanup.
+    Checks if QPS is present. If found (packaged with the wheel), we leave it alone.
+    If missing, we perform a cleanup of the directory to ensure a clean state
+    before any potential manual download.
     """
     package_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # 0. DEV BUILD CHECK: If this is a bundled dev build, binaries are already here.
-    # Do NOT wipe them.
-    dev_marker = os.path.join(package_dir, ".dev_bundle")
-    if os.path.exists(dev_marker):
-        logger.debug("QuarchPy: Dev bundle marker found. Skipping binary cleanup to preserve bundled files.")
-        return
-
-    # The directory containing the binaries
+    # Define paths
     qps_dir = os.path.join(package_dir, "connection_specific", "QPS")
-    jre_dirs = [
-        os.path.join(package_dir, "connection_specific", "jdk_jres", "lin_amd64_jdk_jre"),
-        os.path.join(package_dir, "connection_specific", "jdk_jres", "mac_amd64_jdk_jre"),
-        os.path.join(package_dir, "connection_specific", "jdk_jres", "mac_arm64_jdk_jre"),
-        os.path.join(package_dir, "connection_specific", "jdk_jres", "win_amd64_jdk_jre")
-    ]
+    qps_jar = os.path.join(qps_dir, "qps.jar")
 
     # The flag file that indicates THIS version has been cleaned
-    # Ensure quarchpy_version is available here (imported or global)
     flag_file = os.path.join(package_dir, f".cleanup_done_{quarchpy_version}")
-    logger.debug(f"Looking for flag file {flag_file}")
 
-    # 2. CHECK: If the flag exists, do nothing. We know the correct QPS and JREs are present
+    # --- 1. NEW CHECK: Packaged Binary Detection ---
+    # If qps.jar exists, we assume this is a bundled install (from your new workflow).
+    # We do NOT want to delete it.
+    if os.path.exists(qps_jar):
+        logger.debug("QuarchPy: Found bundled QPS binaries. Skipping cleanup.")
+
+        # We implicitly mark cleanup as done so we don't check this every import
+        if not os.path.exists(flag_file):
+            try:
+                with open(flag_file, 'w') as f:
+                    f.write("Cleanup skipped (Bundled binaries found).")
+            except OSError:
+                pass
+        return
+
+    # --- 2. CLEANUP LOGIC (Only runs if QPS is MISSING) ---
+    # If we are here, QPS is missing. We verify if we've already cleaned up for this version.
     if os.path.exists(flag_file):
         return
 
-    # 3. ACTION: Flag missing -> New Quarchpy install with old QPS artifact detected -> Wipe Folder
-    logger.info(f"QPS flag file missing, cleaning old QPS folder, preparing for new install.")
-    artifact_removal = True
+    logger.info(f"QPS binaries missing and no flag found. Cleaning directories to prepare for installation.")
 
+    # Clean QPS folder
     if os.path.exists(qps_dir):
         try:
             logger.info(f"QuarchPy: Removing old QPS binaries from: {qps_dir}")
-            shutil.rmtree(qps_dir)  # Deletes folder and contents
-            os.makedirs(qps_dir)  # Recreates the empty folder
+            shutil.rmtree(qps_dir)
+            os.makedirs(qps_dir)
             logger.info("QuarchPy: QPS directory successfully cleaned.")
         except OSError as e:
-            logger.error(f"QuarchPy: Failed to remove old QPS folder. Error: {e}")
-            logger.error("QuarchPy: Please manually delete the 'qps' folder to avoid binary conflicts.")
-            artifact_removal = False
+            logger.error(f"QuarchPy: Failed to clean QPS folder: {e}")
 
-    for jre_dir in jre_dirs:
-        try:
-            if os.path.exists(jre_dir):
-                logger.info(f"Removing old jre from: {jre_dir}")
-                shutil.rmtree(jre_dir)  # Deletes folder and contents
-                logger.info("QPS directory successfully cleaned.")
-        except OSError as e:
-            logger.error(f"Failed to remove folder. Error: {e}")
-            logger.error(f"Please manually delete the folder.  {jre_dir}")
-            artifact_removal = False
-
-    if artifact_removal == False:
-        # We return here so we don't write the flag, ensuring we try again next time
-        return
-
-    # 4. CLEANUP FLAGS: Remove flags from previous versions to keep root tidy
-    # Matches .cleanup_done_2.1.0, .cleanup_done_2.0.0, etc.
+    # Remove old version flags
     old_flags = glob.glob(os.path.join(package_dir, ".cleanup_done_*"))
     for f in old_flags:
         try:
             os.remove(f)
         except OSError:
-            pass  # Non-critical failure
+            pass
 
-    # 5. SET FLAG: Create the marker so we don't wipe again for this version
+    # Create new flag
     try:
         with open(flag_file, 'w') as f:
-            f.write("Cleanup completed.")
+            f.write("Cleanup completed (Clean install prepared).")
     except OSError:
-        logger.warning(f"QuarchPy: Could not write cleanup flag to {flag_file}. Cleanup may run again on next import.")
+        logger.warning(f"QuarchPy: Could not write cleanup flag to {flag_file}.")
 
 
 def find_qps():
     """
-    Checks for QPS and JDK/JRE. If any are missing or outdated, it attempts an
-    online or offline installation of the required components.
+    Checks for QPS. If missing or outdated, it attempts an
+    online or offline installation. (JRE checks removed).
     """
-    _ensure_clean_qps_install() #Check for QPS artifact from the last quarchpy version
+    _ensure_clean_qps_install()
 
     qps_jar = "qps.jar"
     qps_path = os.path.join(EXTRACTION_FOLDER_QPS, qps_jar)
-
-    # --- Cross-platform JDK/JRE check ---
-    if sys.platform == "win32":
-        jdk_folder_name = "win_amd64_jdk_jre"
-        java_executable_name = "java.exe"
-    elif sys.platform == "linux":
-        jdk_folder_name = "lin_amd64_jdk_jre"
-        java_executable_name = "java"
-    elif sys.platform == "darwin":
-        jdk_folder_name = "mac_amd64_jdk_jre"
-        java_executable_name = "java"
-    else:
-        jdk_folder_name = None
-        java_executable_name = None
-
-    jdk_jre_check_file = None
-    if jdk_folder_name:
-        jdk_jre_check_file = os.path.join(EXTRACTION_FOLDER_JDK_JRE, jdk_folder_name, "bin", java_executable_name)
 
     # --- Component Verification ---
     qps_jar_exists = os.path.exists(qps_path)
     installed_qps_version = get_installed_qps_version(EXTRACTION_FOLDER_QPS)
 
+    # --- Version Checking (Commented Out per request) ---
     # Check if the required version string starts with the installed version number.
     # This handles cases like required "1.48.1-SNAPSHOT" vs. installed "1.48".
     # qps_version_ok = False
     # if installed_qps_version:
     #     qps_version_ok = QPS_VERSION_FOR_DOWNLOAD.startswith(installed_qps_version)
 
-    qps_ok = qps_jar_exists  # and qps_version_ok
-    jdk_found = jdk_jre_check_file and os.path.exists(jdk_jre_check_file)
-
-    if qps_ok and jdk_found:
-        logger.info(f"QPS version {installed_qps_version} and JDK/JRE are correctly installed.")
+    # We rely only on existence for now
+    if qps_jar_exists:
+        logger.info(f"QPS version {installed_qps_version} is correctly installed.")
         return True
 
-    printText("--- Missing or Outdated Components Detected ---")
-    qps_needed = not qps_ok
-    jdk_jre_needed = not jdk_found
+    printText("--- Missing Component Detected ---")
+    printText("Quarch Power Studio (QPS) is not installed.")
 
-    if not qps_jar_exists:
-        printText("Quarch Power Studio (QPS) is not installed.")
-    # elif not qps_version_ok:
+    # if not qps_version_ok:
     #     printText(f"QPS requires an update. (Installed: {installed_qps_version or 'Unknown'}, Required: {QPS_VERSION_FOR_DOWNLOAD})")
-
-    if jdk_jre_needed:
-        printText("Required Java JDK/JRE Binaries are not installed.")
 
     # --- Installation Logic ---
     installation_successful = False
@@ -194,20 +150,22 @@ def find_qps():
     if is_network_connection_available():
         network_available = True
         printText("\nAttempting online installation...")
-        response = requestDialog("Would you like to download and install the missing/outdated components? (y/n): ").lower()
+        response = requestDialog("Would you like to download and install QPS? (y/n): ").lower()
 
         if response == 'y':
             qps_url_to_use = QPS_DOWNLOAD_URL
 
-            if qps_needed and not is_download_url_valid(qps_url_to_use):
+            if not is_download_url_valid(qps_url_to_use):
                 printText(f"The download url {qps_url_to_use} is not valid.")
                 printText(f"Defaulting to URL for the latest version of QPS: \n{QPS_DOWNLOAD_URL_LATEST}")
 
                 latest_version = get_latest_qps_version()
                 if latest_version != QPS_VERSION_FOR_DOWNLOAD:
-                    printText(f"Warning! The version of QuarchPy you are using does not officially support the latest version of QPS ({latest_version}).")
+                    printText(
+                        f"Warning! The version of QuarchPy you are using does not officially support the latest version of QPS ({latest_version}).")
                     printText("Please consider upgrading QuarchPy.")
-                    proceed = requestDialog("Would you like to proceed with downloading the latest version? (y/n): ").lower()
+                    proceed = requestDialog(
+                        "Would you like to proceed with downloading the latest version? (y/n): ").lower()
 
                     if proceed != 'y':
                         printText("Installation cancelled by user.")
@@ -217,93 +175,57 @@ def find_qps():
                 else:
                     qps_url_to_use = QPS_DOWNLOAD_URL_LATEST
 
-            if qps_needed and not qps_url_to_use:
-                # User cancelled the download of a needed component
+            if not qps_url_to_use:
+                # User cancelled
                 installation_successful = False
             else:
-                installation_successful = install_online(qps_url_to_use, JDK_JRE_DOWNLOAD_URL, qps_needed, jdk_jre_needed)
+                installation_successful = install_online(qps_url_to_use)
     else:
         printText("\nNo internet connection detected.")
         network_available = False
 
     if response == 'n' or not network_available:
-        printText("To install manually, download the required files:")
-        if qps_needed:
-            printText(f"  - QPS: {QPS_DOWNLOAD_URL} (or latest: {QPS_DOWNLOAD_URL_LATEST})")
-        if jdk_jre_needed:
-            printText(f"  - JDK/JRE: {JDK_JRE_DOWNLOAD_URL}")
+        printText("To install manually, download the required file:")
+        printText(f"  - QPS: {QPS_DOWNLOAD_URL} (or latest: {QPS_DOWNLOAD_URL_LATEST})")
 
         requestDialog("\nPress Enter to Continue after downloading.")
-        response = requestDialog("Would you like to install from the manually downloaded ZIP file(s)? (y/n) ").lower()
+        response = requestDialog("Would you like to install from the manually downloaded ZIP file? (y/n) ").lower()
         if response == 'y':
-            installation_successful = install_offline(qps_needed, jdk_jre_needed)
+            installation_successful = install_offline()
 
     if not installation_successful:
         printText("Installation was cancelled or failed.")
         return False
 
     # --- Final Check ---
-    qps_found = os.path.exists(qps_path)
-    jdk_found = jdk_jre_check_file and os.path.exists(jdk_jre_check_file)
-    if (qps_needed and not qps_found) or (jdk_jre_needed and not jdk_found):
-        printText("\nInstallation failed. Some components are still missing.")
+    if not os.path.exists(qps_path):
+        printText("\nInstallation failed. QPS is still missing.")
         printText("Please contact Quarch Support for further help: https://quarch.com/contact/")
         return False
     else:
-        printText("\nAll required components are now installed.")
+        printText("\nQPS is now installed.")
         return True
 
 
-def install_online(qps_url, jdk_jre_url, qps_needed, jdk_jre_needed):
-    """Handles online download and extraction of required components."""
-    qps_success = not qps_needed
-    jdk_jre_success = not jdk_jre_needed
-
-    if qps_needed:
-        qps_zip_path = os.path.join(TARGET_DIR, "QPS_download.zip")
-        printText("\n--- Installing QPS ---")
-        if download_file(qps_url, qps_zip_path):
-            qps_success = extract_and_move_qps(qps_zip_path)
-            os.remove(qps_zip_path)
-            printText(f"Cleaned up {qps_zip_path}")
-        else:
-            qps_success = False
-
-    if jdk_jre_needed:
-        jdk_jre_zip_path = os.path.join(TARGET_DIR, "jdk_jre.zip")
-        printText("\n--- Installing JDK/JRE ---")
-        if download_file(jdk_jre_url, jdk_jre_zip_path):
-            jdk_jre_success = extract_and_move_jdk_jre(jdk_jre_zip_path)
-            os.remove(jdk_jre_zip_path)
-            printText(f"Cleaned up {jdk_jre_zip_path}")
-        else:
-            jdk_jre_success = False
-
-    return qps_success and jdk_jre_success
+def install_online(qps_url):
+    """Handles online download and extraction of QPS."""
+    qps_zip_path = os.path.join(TARGET_DIR, "QPS_download.zip")
+    printText("\n--- Installing QPS ---")
+    if download_file(qps_url, qps_zip_path):
+        success = extract_and_move_qps(qps_zip_path)
+        os.remove(qps_zip_path)
+        printText(f"Cleaned up {qps_zip_path}")
+        return success
+    return False
 
 
-def install_offline(qps_needed, jdk_jre_needed):
-    """Prompts user for local ZIP files and installs them."""
-    qps_success = not qps_needed
-    jdk_jre_success = not jdk_jre_needed
-
-    if qps_needed:
-        printText("\nPlease select the QPS ZIP file (e.g., QPS_1.47.zip).")
-        qps_zip_filepath = prompt_for_zip_path("Select QPS ZIP File")
-        if qps_zip_filepath:
-            qps_success = extract_and_move_qps(qps_zip_filepath)
-        else:
-            return False  # User cancelled
-
-    if jdk_jre_needed:
-        printText("\nPlease select the JDK/JRE ZIP file (jdk_jre.zip).")
-        jdk_jre_zip_filepath = prompt_for_zip_path("Select JDK/JRE ZIP File")
-        if jdk_jre_zip_filepath:
-            jdk_jre_success = extract_and_move_jdk_jre(jdk_jre_zip_filepath)
-        else:
-            return False  # User cancelled
-
-    return qps_success and jdk_jre_success
+def install_offline():
+    """Prompts user for local ZIP file and installs QPS."""
+    printText("\nPlease select the QPS ZIP file (e.g., QPS_1.47.zip).")
+    qps_zip_filepath = prompt_for_zip_path("Select QPS ZIP File")
+    if qps_zip_filepath:
+        return extract_and_move_qps(qps_zip_filepath)
+    return False  # User cancelled
 
 
 def download_file(url, destination_path):
@@ -327,6 +249,7 @@ def download_file(url, destination_path):
         printText(f"\nError: Failed to download file. {e}")
         return False
 
+
 def extract_and_move_qps(zip_filepath):
     """Extracts QPS from its ZIP and moves it to ...quarchpy\\connection_specific\\QPS."""
     temp_extract_path = os.path.join(TARGET_DIR, "temp_extract_qps")
@@ -340,52 +263,29 @@ def extract_and_move_qps(zip_filepath):
 
         src_qps_folder = temp_extract_path
         if not os.path.exists(src_qps_folder):
-            printText(f"  - Error: 'qps' folder not found in the ZIP. Extraction failed.")
+            printText(f"  - Error: Extraction failed or folder structure unexpected.")
             return False
 
+        # Handle case where QPS might be inside a subfolder in the zip
+        if "qps" in os.listdir(src_qps_folder):
+            src_qps_folder = os.path.join(src_qps_folder, "qps")
+
         os.makedirs(EXTRACTION_FOLDER_QPS, exist_ok=True)
-        dest_qps_path = EXTRACTION_FOLDER_QPS
-        if os.path.exists(dest_qps_path):
-            printText(f"  - Removing old 'qps' folder...")
-            shutil.rmtree(dest_qps_path)
-        printText(f"  - Moving 'qps' to '{EXTRACTION_FOLDER_QPS}'...")
-        shutil.move(os.path.join(src_qps_folder,"qps"), EXTRACTION_FOLDER_QPS)
-        if os.path.exists(src_qps_folder):
-            shutil.rmtree(src_qps_folder)
+
+        # Move contents
+        for item in os.listdir(src_qps_folder):
+            s = os.path.join(src_qps_folder, item)
+            d = os.path.join(EXTRACTION_FOLDER_QPS, item)
+            if os.path.isdir(s):
+                if os.path.exists(d): shutil.rmtree(d)
+                shutil.move(s, d)
+            else:
+                shutil.copy2(s, d)
+
         printText("QPS components moved successfully.")
         return True
     except (zipfile.BadZipFile, FileNotFoundError, OSError) as e:
         printText(f"\nError during QPS file operations: {e}")
-        return False
-    finally:
-        if os.path.exists(temp_extract_path):
-            shutil.rmtree(temp_extract_path)
-
-
-def extract_and_move_jdk_jre(zip_filepath):
-    """Extracts JDK/JRE from its ZIP and moves all component folders."""
-    temp_extract_path = os.path.join(TARGET_DIR, "temp_extract_jdk_jre")
-    printText(f"Processing JDK/JRE ZIP file: {os.path.basename(zip_filepath)}")
-    try:
-        if os.path.exists(temp_extract_path):
-            shutil.rmtree(temp_extract_path)
-        os.makedirs(temp_extract_path)
-        with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
-            zip_ref.extractall(temp_extract_path)
-
-        os.makedirs(EXTRACTION_FOLDER_JDK_JRE, exist_ok=True)
-        printText(f"  - Moving JDK/JRE contents to '{EXTRACTION_FOLDER_JDK_JRE}'...")
-        for item_name in os.listdir(temp_extract_path):
-            src_item = os.path.join(temp_extract_path, item_name)
-            dest_item = os.path.join(EXTRACTION_FOLDER_JDK_JRE, item_name)
-            if os.path.isdir(src_item):
-                if os.path.exists(dest_item):
-                    shutil.rmtree(dest_item)
-                shutil.move(src_item, dest_item)
-        printText("JDK/JRE components moved successfully.")
-        return True
-    except (zipfile.BadZipFile, FileNotFoundError, OSError) as e:
-        printText(f"\nError during JDK/JRE file operations: {e}")
         return False
     finally:
         if os.path.exists(temp_extract_path):
@@ -464,6 +364,6 @@ if __name__ == "__main__":
     printText("--- Running Component Check ---")
     is_installed = find_qps()
     if is_installed:
-        printText("\nSuccess! All required components are present.")
+        printText("\nSuccess! QPS is present.")
     else:
-        printText("\n--- Script finished: Not all components could be found or installed. ---")
+        printText("\n--- Script finished: QPS is missing. ---")

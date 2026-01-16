@@ -1,0 +1,98 @@
+name: Release to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on tags like v1.0.0, v2.1.5, etc.
+
+jobs:
+  release-pypi:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read  # Required to download from GH Packages
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine build
+
+    # ---------------------------------------------------------
+    # 1. Download and Extract QPS Binaries
+    # ---------------------------------------------------------
+    - name: Download QPS Binaries (Linux)
+      env:
+        GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+      run: |
+        # Create destination directory
+        mkdir -p quarchpy/connection_specific/QPS
+
+        echo "Downloading QPS for Linux..."
+        gh release download \
+          --repo QuarchTechnologyLtd/QPS \
+          --pattern "qps-release-debian.zip" \
+          --dir quarchpy/connection_specific/QPS
+
+    - name: Extract QPS
+      run: |
+        cd quarchpy/connection_specific/QPS
+        
+        # Unzip
+        unzip -q "qps-release-debian.zip"
+        
+        # Flatten: Move contents from nested 'qps' folder up one level
+        mv qps/* .
+        
+        # Cleanup
+        rmdir qps
+        rm "qps-release-debian.zip"
+        
+        echo "QPS binaries extracted and flattened."
+
+    # ---------------------------------------------------------
+    # 2. Safety Check: Tag vs Package Version
+    # ---------------------------------------------------------
+    - name: Verify Git Tag Matches Package Version
+      run: |
+        # 1. Extract version from quarchpy/_version.py
+        # Looks for: __version__ = "1.2.3" or similar
+        PACKAGE_VERSION=$(grep -oP '__version__\s*=\s*["\047]\K[^"\047]+' quarchpy/_version.py)
+        
+        # 2. Get the Git Tag (e.g., v1.2.3) and strip the 'v'
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        CLEAN_TAG=${TAG_NAME#v}
+
+        echo "Detected Package Version: $PACKAGE_VERSION"
+        echo "Detected Git Tag:         $CLEAN_TAG"
+
+        # 3. Compare
+        if [ "$PACKAGE_VERSION" != "$CLEAN_TAG" ]; then
+          echo "::error::Version Mismatch! Git tag ($CLEAN_TAG) does not match quarchpy/_version.py ($PACKAGE_VERSION)."
+          exit 1
+        fi
+        
+        echo "Versions match. Proceeding with release."
+
+    # ---------------------------------------------------------
+    # 3. Build and Publish
+    # ---------------------------------------------------------
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Upload to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      run: |
+        echo "Uploading to Production PyPI..."
+        twine upload dist/*

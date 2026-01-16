@@ -4,4 +4,5 @@ pandas
 numpy
 requests
 packaging
+quarchpy-binaries
 typing-extensions

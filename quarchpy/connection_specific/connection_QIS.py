@@ -609,6 +609,20 @@ class QisInterface:
             logger.warning(e)
             return False
 
+    def select_device(self, preferred_connection_only=True, additional_options="DEF_ARGS") -> str:
+        """
+        Scans for available modules and allows the user to select one through an interactive selection process.
+
+        Arguments:
+            preferred_connection_only : bool
+                by default (True), returns only one preferred connection eg: USB for simplicity
+            additional_options: list
+                Additional operational options provided during module selection, such as rescan,
+                all connection types, and IP scan. Defaults to ['rescan', 'all con types', 'ip scan']. These allow the
+                additional options to be given to the user and handled in the top level script
+
+        """
+        return self.get_qis_module_selection(preferred_connection_only, additional_options)
 
     def get_qis_module_selection(self, preferred_connection_only=True, additional_options="DEF_ARGS", scan=True) -> str:
         """

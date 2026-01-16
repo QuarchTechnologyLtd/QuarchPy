@@ -3,7 +3,9 @@ import socket
 import logging
 import time
 import re
-from quarchpy.user_interface import user_interface
+from typing import Union, List, Optional, Any
+
+from quarchpy.user_interface import user_interface, User_interface, printText, listSelection, requestDialog
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +111,6 @@ class QpsInterface:
         time.sleep(0.3)
         return retVal
 
-
     def disconnect(self, targetDevice):
         self.sendCmdVerbose("$disconnect")
 
@@ -118,6 +119,7 @@ class QpsInterface:
            return self.sendCmdVerbose("close")
         else:
             return self.sendCmdVerbose(conString+" close")
+
     def scanIP(self, ipAddress, sleep=10):
         """
         Triggers QPS to look at a specific IP address for a quarch module
@@ -191,13 +193,78 @@ class QpsInterface:
         #return list of devices
         return deviceList
 
-    def select_device(self, favourite_only=True):
+    def get_qps_module_selection(
+            self,
+            preferred_connection_only: bool = True,
+            additional_options: Optional[List[str]] = None,
+            scan: bool = True
+    ) -> Any | None:
+        """
+        Scans for QPS devices and prompts the user to select one.
+        """
+        if additional_options is None:
+            additional_options = ['rescan', 'all con types', 'ip scan']
+
+        # State variables
+        favourite = preferred_connection_only
+        ip_address = None
+
+        while True:
+            printText("QPS scanning for devices")
+
+            # 1. Fetch raw list from QPS
+            dev_list = self._fetch_device_list(scan, ip_address)
+
+            # 2. Check for empty results and sanitize
+            # If no devices found, force favorite mode off to prevent sorting bugs
+            if self._is_list_empty_or_error(dev_list):
+                favourite = False
+
+            # Remove REST devices (unsupported here)
+            dev_list = [x for x in dev_list if "rest" not in x]
+
+            # 3. Apply 'Favourite' Logic (Sort by type & Deduplicate)
+            if preferred_connection_only:
+                dev_list = self._apply_favourite_sorting(dev_list)
+
+            # 4. Apply TestCenter formatting (if applicable)
+            display_list = self._format_for_testcenter(dev_list)
+
+            # 5. Show UI
+            selection = listSelection(
+                title="Select a Quarch module",
+                message="Select a Quarch module",
+                selectionList=display_list,
+                additionalOptions=additional_options,
+                nice=True,
+                tableHeaders=["Module"],
+                indexReq=True
+            )
+
+            # 6. Handle User Response
+            # If the user picked a device, return it. If they picked an option, loop again.
+            action = self._parse_selection_action(selection)
+
+            if action == "RETURN_DEVICE":
+                return selection
+            elif action == "RESCAN":
+                ip_address = None
+                favourite = True
+                continue
+            elif action == "SHOW_ALL":
+                printText('Displaying all connection types...')
+                favourite = False
+                continue
+            elif action == "IP_SCAN":
+                ip_address = requestDialog("Please input IP Address of the module you would like to connect to: ")
+                favourite = False
+                continue
+
+    def select_device(self, preferred_connection_only=True):
         """
         Opens a UI prompt for the user to select a device available on this QPS instance.
         """
-        from quarchpy.qps.qpsFuncs import get_qps_module_selection
-        return get_qps_module_selection(self, favourite_only=favourite_only)
-
+        return self.get_qps_module_selection(preferred_connection_only=preferred_connection_only)
 
     def open_recording(self, file_path, cmdTimeout=5, pollInterval=3, startOpenTimout=5):
         """
@@ -242,5 +309,90 @@ class QpsInterface:
         time.sleep(1) # sleep outside the loop as there is a
         return message
 
+    def _fetch_device_list(self, scan: bool, ip_address: Optional[str]) -> List[str]:
+        """Retrieves the device list from QPS, handling IP scan logic."""
+        if ip_address is None:
+            return self.getDeviceList(scan=scan)
+        else:
+            return self.getDeviceList(scan=scan, ipAddress=ip_address)
+
+    def _is_list_empty_or_error(self, dev_list: List[str]) -> bool:
+        """Checks if the returned list is empty or contains error messages."""
+        if not dev_list:
+            return True
+        first_item = dev_list[0].lower()
+        return "no device" in first_item or "no module" in first_item
+
+    def _apply_favourite_sorting(self, dev_list: List[str]) -> List[str]:
+        """
+        Sorts devices by connection preference and removes duplicates.
+        Preference Order: USB > TCP > SERIAL > REST > TELNET
+        """
+        sorted_list = self._sort_by_connection_type(dev_list)
+        deduped_list = self._deduplicate_physical_devices(sorted_list)
+        return deduped_list
+
+    def _sort_by_connection_type(self, dev_list: List[str]) -> List[str]:
+        """Reorders the list based on specific connection type priority."""
+        sorted_list = []
+        con_pref = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
+
+        for pref in con_pref:
+            for device in dev_list:
+                if pref in device.upper():
+                    if device not in sorted_list:
+                        sorted_list.append(device)
+        return sorted_list
+
+    def _deduplicate_physical_devices(self, dev_list: List[str]) -> List[str]:
+        """
+        Filters the list to keep only the highest priority connection for each unique device ID.
+        (e.g., if both USB::QTL1 and TCP::QTL1 exist, keep only USB because it appeared first).
+        """
+        unique_list = []
+        seen_ids = set()
+
+        for device in dev_list:
+            try:
+                # Extract the unique serial (e.g., 'QTL1234' from 'USB::QTL1234')
+                if "::" in device:
+                    device_id = device.split("::")[1]
+                    if device_id not in seen_ids:
+                        unique_list.append(device)
+                        seen_ids.add(device_id)
+                else:
+                    # Fallback for non-standard formats
+                    if device not in unique_list:
+                        unique_list.append(device)
+            except IndexError:
+                if device not in unique_list:
+                    unique_list.append(device)
+
+        return unique_list
+
+    def _format_for_testcenter(self, dev_list: List[str]) -> Union[List[str], str]:
+        """
+        Formats the list specifically for the TestCenter interface if active.
+        TestCenter requires a comma-separated string format: "Item1=Item1,Item2=Item2"
+        """
+        if User_interface.instance is not None and getattr(User_interface.instance, 'selectedInterface',
+                                                           '') == "testcenter":
+            # Convert list to TestCenter-style string
+            formatted_str = ",".join([f"{module}={module}" for module in dev_list])
+            return formatted_str
+
+        return dev_list
+
+    def _parse_selection_action(self, selection: str) -> str:
+        """Determines if the selection is a device ID or a menu action."""
+        # Using 'in' allows for loose matching if the UI returns slightly different strings
+        if selection in 'rescan':
+            return "RESCAN"
+        elif selection in 'all con types':
+            return "SHOW_ALL"
+        elif selection in 'ip scan':
+            return "IP_SCAN"
+        else:
+            return "RETURN_DEVICE"
 
     

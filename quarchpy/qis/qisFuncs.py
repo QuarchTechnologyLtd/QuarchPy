@@ -28,7 +28,7 @@ def isQisRunning():
     Checks if a local instance of QIS is running and responding
     Returns
     -------
-    is_running : bool
+    is_running : bool\
         True if QIS is running and responding
     """
 
@@ -347,7 +347,7 @@ def _prepare_qis_launch_env(terminal: bool, headless: bool, args: List[str]) -> 
     root_path = os.path.dirname(base_path)
 
     # Construct path: .../connection_specific/QPS/qis/qis.jar
-    qis_jar_path = os.path.join(base_path, "connection_specific", "QPS", "qis", "qis.jar")
+    qis_jar_path = os.path.join(root_path, "connection_specific", "QPS", "qis", "qis.jar")
     qis_dir = os.path.dirname(qis_jar_path)
 
     # 4. Java Binary Selection

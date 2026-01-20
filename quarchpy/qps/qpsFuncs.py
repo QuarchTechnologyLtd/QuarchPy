@@ -307,7 +307,7 @@ def _handle_java_permissions() -> None:
         logger.warning('Run "python -m quarchpy.run permission_fix" to fix this.')
 
 
-def _launch_process(command: str, args: List[str]) -> Popen[bytes] | CompletedProcess[bytes] | Popen[str | bytes | Any]:
+def _launch_process(command: str, args: List[str]) -> Union[Popen, CompletedProcess]:
     """Launches the subprocess, handling logging flags."""
     args_str = " ".join(args) if args else ""
 

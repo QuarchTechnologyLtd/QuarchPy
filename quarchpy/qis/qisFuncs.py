@@ -10,7 +10,7 @@ import time, platform
 from subprocess import CompletedProcess, Popen
 from threading import Thread, Lock, Event, active_count
 from queue import Queue, Empty
-from typing import Optional, List, Any, Tuple
+from typing import Optional, List, Any, Tuple, Union
 
 import quarchpy_binaries
 
@@ -393,7 +393,7 @@ def _prepare_qis_launch_env(terminal: bool, headless: bool, args: List[str]) -> 
     return command, qis_dir
 
 
-def _launch_qis_process(command: str, args: List[str]) -> Popen[bytes] | CompletedProcess[bytes] | Popen[str | bytes | Any]:
+def _launch_qis_process(command: str, args: List[str]) -> Union[Popen, CompletedProcess]:
     """Launches QIS, checking for logging flags."""
     args_str = " ".join(args) if args else ""
 
@@ -404,8 +404,7 @@ def _launch_qis_process(command: str, args: List[str]) -> Popen[bytes] | Complet
             return subprocess.run(command + "; exec bash", shell=True)
     else:
         text_mode = True if sys.version_info >= (3, 7) else False
-        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                text=text_mode, shell=True)
+        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=text_mode, shell=True)
 
 
 def _wait_for_qis_service(host: str, port: int, timeout: int, process: Optional[subprocess.Popen], args: List[str]) -> bool:

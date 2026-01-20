@@ -198,7 +198,7 @@ class QpsInterface:
             preferred_connection_only: bool = True,
             additional_options: Optional[List[str]] = None,
             scan: bool = True
-    ) -> Any | None:
+    ) -> Optional[Any]:
         """
         Scans for QPS devices and prompts the user to select one.
         """

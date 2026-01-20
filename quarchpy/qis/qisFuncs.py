@@ -397,7 +397,7 @@ def _launch_qis_process(command: str, args: List[str]) -> Union[Popen, Completed
     """Launches QIS, checking for logging flags."""
     args_str = " ".join(args) if args else ""
 
-    if "-logging=ON" in args_str:
+    if "-logconsole=ON" in args_str:
         if platform.system() == "Windows":
             return subprocess.Popen(command, shell=True)
         else:
@@ -411,7 +411,7 @@ def _wait_for_qis_service(host: str, port: int, timeout: int, process: Optional[
     """Polls the specific QIS port until it opens."""
     start_time = time.time()
     args_str = " ".join(args) if args else ""
-    logging_on = "-logging=ON" in args_str
+    logging_on = "-logconsole=ON" in args_str
 
     while True:
         # 1. Check TCP Connectivity

@@ -11,6 +11,7 @@ from quarchpy.install_qps import find_qps
 from quarchpy.qis import isQisRunning, startLocalQis
 from quarchpy.connection_specific.connection_QPS import QpsInterface
 from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
+from quarchpy.qis.qisFuncs import isQisRunningAndResponding
 from quarchpy.user_interface import *
 import subprocess
 import logging
@@ -238,6 +239,9 @@ def _ensure_qis_running(host: str, qis_port: int, qis_rest_port: int, timeout: i
             return False
         time.sleep(0.5)
 
+    while isQisRunningAndResponding():
+        time.sleep(0.5)
+
     return True
 
 
@@ -311,7 +315,7 @@ def _launch_process(command: str, args: List[str]) -> Union[Popen, CompletedProc
     """Launches the subprocess, handling logging flags."""
     args_str = " ".join(args) if args else ""
 
-    if "-logging=ON" in args_str:
+    if "-logconsole=ON" in args_str:
         if platform.system() == "Windows":
             return subprocess.Popen(command, shell=True)
         else:
@@ -327,7 +331,7 @@ def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subp
     """Polls the port until open, checking process output for errors."""
     start_time = time.time()
     args_str = " ".join(args) if args else ""
-    logging_on = "-logging=ON" in args_str
+    logging_on = "-logconsole=ON" in args_str
 
     while True:
         if _check_port_open(host, port):

@@ -110,12 +110,6 @@ def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
     current_arch = platform.machine()
     current_arch = current_arch.lower()  # ensure comparing same case
 
-    # Currently officially unsupported
-    if (current_os in "Linux" and current_arch == "aarch64") or (current_os in "Darwin" and current_arch == "arm64"):
-        logger.warning("The system [" + current_os + ", " + current_arch + "] is not officially supported.")
-        logger.warning("Please contact Quarch support for running QuarchPy on this system.")
-        return
-
     # ensure the jres folder has the required permissions
     permissions, message = find_java_permissions()
     if permissions is False:

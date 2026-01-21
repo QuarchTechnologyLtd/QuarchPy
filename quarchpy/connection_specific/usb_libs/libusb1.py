@@ -48,6 +48,7 @@ import ctypes.util
 import platform
 import os.path
 import sys
+import libusb_package
 
 class Enum(object):
     def __init__(self, member_dict, scope_dict=None):
@@ -170,6 +171,14 @@ def _loadLibrary():
     if sys.version_info[:2] >= (2, 6):
         loader_kw['use_errno'] = True
         loader_kw['use_last_error'] = True
+
+    try:
+        bundled_path = libusb_package.find_library("usb-1.0")
+        if bundled_path:
+            return dll_loader(bundled_path, **loader_kw)
+    except Exception:
+        pass  # If bundled fails, proceed to system search below
+
     try:
         return dll_loader('libusb-1.0' + suffix, **loader_kw)
     except OSError:

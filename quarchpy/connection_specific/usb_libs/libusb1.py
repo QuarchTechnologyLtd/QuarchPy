@@ -174,6 +174,18 @@ def _loadLibrary():
 
     try:
         bundled_path = libusb_package.find_library("usb-1.0")
+
+        # If that failed (macOS/Linux), find the file manually
+        import os
+        # Get the folder where libus_package is located
+        wrapper_dir = os.path.dirname(libusb_package.__file__)
+
+        # Look for the dylib/so in that folder
+        potential_path = os.path.join(wrapper_dir, "libusb-1.0" + suffix)
+
+        if os.path.exists(potential_path):
+            bundled_path = potential_path
+
         if bundled_path:
             return dll_loader(bundled_path, **loader_kw)
     except Exception:

@@ -236,24 +236,82 @@ def _get_logging_directory(app_type: AppType = "QuarchPy") -> str:
 
     return log_dir
 
+
+import os
+import sys
+import platform
+
+
 def fix_usb():
+    print("\n--- USB Permission Setup ---")
+
+    rule_file_path = "/etc/udev/rules.d/20-quarchmodules.rules"
+
+    # --- CHECK EXISTING INSTALLATION ---
+    # We check if the file exists AND if it contains the correct settings
+    if os.path.exists(rule_file_path):
+        try:
+            with open(rule_file_path, 'r') as f:
+                content = f.read()
+                # We look for the Vendor ID (16d0) and the writable mode (0666)
+                if 'idVendor' in content and '16d0' in content and '0666' in content:
+                    print("USB permissions appear to be correctly set up already. No changes needed.")
+                    return  # Exit the function here
+        except IOError:
+            # If we can't read the file for some reason, we assume we need to fix it
+            pass
+
+    # --- IF WE REACH HERE, PERMISSIONS ARE MISSING ---
+
+    print("This script needs to update your system permissions to allow access to the device.")
+    print(f"We will add a rule file to: {rule_file_path}")
+
+    # Link provided before any action is taken
+    print("\nFor full details on why this is required, please read:")
+    print("https://quarch.com/support/faqs/usb/#linux-permissions")
+    print("----------------------------")
+
+    # Ask for permission before proceeding
+    response = input("Do you want to proceed with these changes? (y/n): ")
+    if response.lower() != 'y':
+        print("Operation cancelled by user.")
+        return
+
+    # Check if the user is root (UID 0)
+    print("\nStep 1: Checking for administrator privileges...")
+    if os.geteuid() != 0:
+        print(">> Current user is not admin. Elevating permissions now...")
+
+        # Re-run the script with sudo
+        args = ['sudo', sys.executable] + sys.argv
+        os.execvp('sudo', args)
+
+    # If we reach here, we are root
+    print(">> Administrator privileges confirmed.")
+
+    print("Step 2: Defining the access rules (Vendor ID: 16d0)...")
     content_to_write = "SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"16d0\", MODE=\"0666\"\n" \
                        "SUBSYSTEM==\"usb_device\", ATTRS{idVendor}==\"16d0\", MODE=\"0666\""
 
     if "centos" in str(platform.platform()).lower():
+        print(">> CentOS detected. Applying group permissions fix...")
         content_to_write = "SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"16d0\", MODE=\"0666\", GROUP=*\n " \
                            "SUBSYSTEM==\"usb_device\", ATTRS{idVendor}==\"16d0\", MODE=\"0666\", GROUP=*"
 
-    destination = "/etc/udev/rules.d/20-quarchmodules.rules"
+    print("Step 3: Saving the rule file...")
+    try:
+        f = open(rule_file_path, "w")
+        f.write(content_to_write)
+        f.close()
+    except IOError as e:
+        print(f"!! Failed to write file: {e}")
+        return
 
-    f = open("/etc/udev/rules.d/20-quarchmodules.rules", "w")
-    f.write(content_to_write)
-    f.close()
-
+    print("Step 4: Reloading system USB drivers...")
     os.system("udevadm control --reload")
     os.system("udevadm trigger")
 
-    print("USB rule added to file : /etc/udev/rules.d/20-quarchmodules.rules")
+    print("\nSUCCESS: USB Setup Complete.")
 
 def _check_fw():
     print("")

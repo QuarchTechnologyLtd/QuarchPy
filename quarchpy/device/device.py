@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Optional, Tuple, Any, Union  # Added for type hinting in docstrings
 import logging
-logger = logging.getLogger(__name__)
 import os
 import re
 import sys
@@ -9,8 +8,9 @@ import time
 
 from quarchpy.qps import isQpsRunning
 from quarchpy.qis import isQisRunning
-
 from quarchpy.connection import QISConnection, PYConnection, QPSConnection
+
+logger = logging.getLogger(__name__)
 # Check Python version and set timeout exception
 if sys.version_info.major == 2:
     try:
@@ -22,6 +22,14 @@ if sys.version_info.major == 2:
         logger.error(f"Socket timeout unavailable: {e}")
 else:
     timeout_exception = TimeoutError  # Python 3: Use built-in TimeoutError
+
+class _InstanceWrapper:
+    """Helper class to wrap external instances to match expected connectionObj structure."""
+    def __init__(self, interface_obj, mode: str):
+        if mode == "QPS":
+            self.qps = interface_obj
+        elif mode == "QIS":
+            self.qis = interface_obj
 
 # --- Main Device Class ---
 class quarchDevice:
@@ -43,19 +51,26 @@ class quarchDevice:
         connectionTypeName (Optional[str]): Alias for ConCommsType. Set for PY type.
     """
 
-    def __init__(self, ConString: str, ConType: str = "PY", timeout: str = "5", host=None, port=None):
+    def __init__(self,
+                 ConString: str,
+                 ConType: str = "PY",
+                 timeout: str = "5",
+                 qps_instance: Optional['QpsInterface'] = None,
+                 qis_instance: Optional['QisInterface'] = None):
         """
         Initializes the quarchDevice, establishes the connection.
 
         Performs initial parameter validation, determines the connection type,
         delegates to specific helper methods to create the underlying connection
         object (PYConnection, QISConnection, or QPSConnection), and verifies
-        the connection.
+        the connection. Supports injection of existing QIS/QPS instances.
 
         Args:
             ConString (str): The connection string (e.g., "USB:ID", "TCP:IP", "QIS:ID").
             ConType (str, optional): The connection mode ('PY', 'QIS', 'QPS'). Defaults to "PY".
             timeout (str, optional): Communication timeout in seconds. Defaults to "5".
+            qps_instance (Optional[QpsInterface], optional): An existing QPS instance to use. Defaults to None.
+            qis_instance (Optional[QisInterface], optional): An existing QIS instance to use. Defaults to None.
 
         Raises:
             ValueError: If ConString format is invalid or timeout is not numeric.
@@ -74,6 +89,12 @@ class quarchDevice:
         self.timeout = 5  # Default int timeout
         self.is_module_resetting = False
 
+        # Determine ConType based on provided instances
+        if qps_instance:
+            self.ConType = "QPS"
+        if qis_instance:
+            self.ConType = "QIS"
+
         # Call helper to store and validate parameters
         self._store_and_validate_params(ConString, ConType, timeout)
 
@@ -84,9 +105,9 @@ class quarchDevice:
         if con_type_upper == "PY":
             self._initialize_py_connection()
         elif con_type_upper.startswith("QIS"):
-            self._initialize_qis_connection()
+            self._initialize_qis_connection(existing_instance=qis_instance)
         elif con_type_upper.startswith("QPS"):
-            self._initialize_qps_connection()
+            self._initialize_qps_connection(existing_instance=qps_instance)
         else:
             # Invalid ConType should have been caught by check_module_format
             raise ValueError(f"Invalid connection type '{self.ConType}'.")
@@ -442,13 +463,16 @@ class quarchDevice:
             return True
         return False
 
-    def _initialize_qis_connection(self):
+    def _initialize_qis_connection(self, existing_instance: Optional['QisInterface'] = None):
         """
         Initializes the connection using the QIS method.
 
         Parses host/port, prepares connection string, creates QISConnection object,
         verifies the device presence on the server using the common helper, and
-        sets the device as default on the QIS server.
+        sets the device as default on the QIS server. Also supports injection of an existing QIS instance.
+
+        Args:
+            qis_instance (Optional[QisInterface], optional): An existing QIS instance to use. Defaults to None.
 
         Sets:
             self.connectionObj, self.ConString.
@@ -459,27 +483,33 @@ class quarchDevice:
             ImportError: If QISConnection class is missing.
         """
         logger.debug("Attempting QIS connection...")
-        host, port = self._parse_server_details(default_port=9722)
         self._prepare_server_con_string()
 
-        # Create QISConnection object
-        try:
-            # Assumes QISConnection is imported
-            self.connectionObj = QISConnection(self.ConString, host, port)
-            logger.debug(f"QISConnection object created for '{self.ConString}' via {host}:{port}")
-        except Exception as e_qisconn:
-            logger.error(f"Failed to create QISConnection: {e_qisconn}", exc_info=True)
-            raise ConnectionError("Failed to establish QIS connection.") from e_qisconn
+        if existing_instance:
+            # Extract details directly from the provided instance
+            host = getattr(existing_instance, 'host', 'unknown')
+            port = getattr(existing_instance, 'port', 'unknown')
 
-        # Verify device presence on the QIS server
+            # Wrap it to match self.connectionObj.qis structure
+            self.connectionObj = _InstanceWrapper(existing_instance, "QIS")
+            logger.debug(f"Using provided QIS instance for '{self.ConString}' at {host}:{port}")
+        else:
+            # Legacy creation
+            host, port = self._parse_server_details(default_port=9722)
+            try:
+                self.connectionObj = QISConnection(self.ConString, host, port)
+                logger.debug(f"QISConnection object created for '{self.ConString}' via {host}:{port}")
+            except Exception as e_qisconn:
+                raise ConnectionError("Failed to establish QIS connection.") from e_qisconn
+
+        # Verify device presence (uses the connection object we just set up)
         try:
-            # Pass the QIS-specific sub-object (self.connectionObj.qis) to the helper
             self._verify_server_device(self.connectionObj.qis, "QIS")
         except TimeoutError as e_timeout:
-            self.close_connection()  # Close object if verification failed
-            raise e_timeout  # Re-raise timeout
+            self.close_connection()
+            raise e_timeout
         except Exception as e_qis_conn:
-            self.close_connection()  # Close object if verification failed
+            self.close_connection()
             raise ConnectionError(f"Failed QIS device verification: {e_qis_conn}") from e_qis_conn
 
         # Set QIS default device
@@ -493,13 +523,18 @@ class quarchDevice:
                 logger.warning(f"QIS command '$default {self.ConString}' failed.")
         except Exception as e_def:
             logger.warning(f"Error setting QIS default device: {e_def}")
+            pass
 
-    def _initialize_qps_connection(self, host=None, port=None):
+    def _initialize_qps_connection(self, existing_instance: Optional['QpsInterface'] = None):
         """
         Initializes the connection using the QPS method.
 
         Parses host/port, prepares connection string, creates QPSConnection object,
         and verifies the device presence on the server using the common helper.
+        Also supports injection of an existing QPS instance.
+
+        Args:
+            existing_instance (Optional[QpsInterface], optional): An existing QPS instance to use. Defaults to None.
 
         Sets:
             self.connectionObj, self.ConString (potentially updated).
@@ -510,29 +545,34 @@ class quarchDevice:
             ImportError: If QPSConnection class is missing.
         """
         logger.debug("Attempting QPS connection...")
-        host, port = self._parse_server_details(default_port=9822)  # type: ignore[misc] # Private call ok
-        self._prepare_server_con_string()  # type: ignore[misc] # Private call ok
+        self._prepare_server_con_string()
 
-        # Create QPSConnection object
-        try:
-            # Assumes QPSConnection is imported
-            self.connectionObj = QPSConnection(host, port)
-            logger.debug(f"QPSConnection object created via {host}:{port}")
-        except Exception as e_qpsconn:
-            logger.error(f"Failed to create QPSConnection: {e_qpsconn}", exc_info=True)
-            raise ConnectionError("Failed to establish QPS connection.") from e_qpsconn
+        if existing_instance:
+            # Extract details directly from the provided instance
+            host = getattr(existing_instance, 'host', 'unknown')
+            port = getattr(existing_instance, 'port', 'unknown')
 
-        # Verify device presence on the QPS server
+            # Wrap it to match self.connectionObj.qps structure
+            self.connectionObj = _InstanceWrapper(existing_instance, "QPS")
+            logger.debug(f"Using provided QPS instance for '{self.ConString}' at {host}:{port}")
+        else:
+            # Legacy creation
+            host, port = self._parse_server_details(default_port=9822)
+            try:
+                self.connectionObj = QPSConnection(host, port)
+                logger.debug(f"QPSConnection object created via {host}:{port}")
+            except Exception as e_qpsconn:
+                raise ConnectionError("Failed to establish QPS connection.") from e_qpsconn
+
+        # Verify device presence
         try:
-            # Pass the QPS-specific sub-object (self.connectionObj.qps) to the helper
-            self._verify_server_device(self.connectionObj.qps, "QPS")  # type: ignore[misc] # Private call ok
+            self._verify_server_device(self.connectionObj.qps, "QPS")
         except TimeoutError as e_timeout:
-            self.close_connection()  # Close object if verification failed
-            raise e_timeout  # Re-raise timeout
+            self.close_connection()
+            raise e_timeout
         except Exception as e_qps_conn:
-            self.close_connection()  # Close object if verification failed
+            self.close_connection()
             raise ConnectionError(f"Failed QPS device verification: {e_qps_conn}") from e_qps_conn
-        # QPS typically doesn't use/need a '$default' command
 
     def _verify_connection_object(self):
         """
@@ -1254,7 +1294,11 @@ def checkModuleFormat(ConString: str) -> bool:
 
 
 # --- getQuarchDevice / get_quarch_device ---
-def get_quarch_device(connectionTarget: str, ConType: str = "PY", timeout: str = "5") -> 'Union[quarchDevice, subDevice]':
+def get_quarch_device(connectionTarget: str,
+                      ConType: str = "PY",
+                      timeout: str = "5",
+                      qps_instance: Optional['QpsInterface'] = None,
+                      qis_instance: Optional['QisInterface'] = None) -> 'Union[quarchDevice, subDevice]':
     """
     Creates and returns a quarchDevice or subDevice instance.
 
@@ -1271,6 +1315,10 @@ def get_quarch_device(connectionTarget: str, ConType: str = "PY", timeout: str =
             currently defaults to "PY" internally based on original logic.
         timeout (str, optional): The connection timeout in seconds as a string.
             Defaults to "5".
+        qps_instance (Optional[QpsInterface], optional): An optional QpsInterface instance
+            to use for QPS connections. Defaults to None.
+        qis_instance (Optional[QisInterface], optional): An optional QisInterface instance
+            to use for QIS connections. Defaults to None.
 
     Returns:
         quarchDevice | subDevice | Any: An instance representing the connected device.
@@ -1328,7 +1376,7 @@ def get_quarch_device(connectionTarget: str, ConType: str = "PY", timeout: str =
         # Standard device connection
         logger.debug(f"Standard device connection for: {connectionTarget}")
         # Use passed ConType and timeout
-        myDevice = quarchDevice(connectionTarget, ConType=ConType, timeout=timeout)
+        myDevice = quarchDevice(connectionTarget, ConType=ConType, timeout=timeout, qps_instance=qps_instance, qis_instance=qis_instance)
         logger.info(f"Successfully connected to standard device: {connectionTarget}")
 
     return myDevice

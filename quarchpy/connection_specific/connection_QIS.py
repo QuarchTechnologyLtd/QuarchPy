@@ -609,8 +609,7 @@ class QisInterface:
             logger.warning(e)
             return False
 
-
-    def get_qis_module_selection(self, preferred_connection_only=True, additional_options="DEF_ARGS", scan=True) -> str:
+    def get_qis_module_selection(self, preferred_connection_only=True, additional_options=['rescan', 'all con types', 'ip scan'], scan=True) -> str:
         """
         Scans for available modules and allows the user to select one through an interactive selection process.
         Can also handle additional custom options and some built-in ones such as rescanning
@@ -634,10 +633,6 @@ class QisInterface:
             ValueError: Raised if no valid selection is made or the provided IP address is invalid.
         """
 
-        # Avoid mutable warning by adding the argument list in the function rather than the header
-        if additional_options == "DEF_ARGS":
-            additional_options = ['rescan', 'all con types', 'ip scan']
-
         table_headers = ["Modules"]
         ip_address = None
         favourite = preferred_connection_only
@@ -650,8 +645,8 @@ class QisInterface:
                 found_devices = self.qis_scan_devices(scan=scan, preferred_connection_only=favourite, ip_address=ip_address)
 
             my_device_id = listSelection(title="Select a module",message="Select a module",
-                                          selectionList=found_devices, additionalOptions= additional_options,
-                                          nice=True, tableHeaders=table_headers, indexReq=True)
+                                         selectionList=found_devices, additionalOptions= additional_options,
+                                         nice=True, tableHeaders=table_headers, indexReq=True)
 
             if my_device_id.lower() == 'rescan':
                 favourite = True

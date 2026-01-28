@@ -76,15 +76,23 @@ def main(filepath=None):
     except FileNotFoundError as err:
         logger.error(f"Config file not found for module : {moduleStr}\nExiting Script")
         my_device.close_connection()
-        return
+        return None
 
     # Parse the file to get the device capabilities
-    dev_caps = parse_config_file(file)
+    try:
+        dev_caps = parse_config_file(file)
+    except Exception as err:
+        logger.error(f"Could not parse config file for {moduleStr}\nExiting Script"
+                     f"\nError details: {err}")
+        print(f"Could not parse config file for {moduleStr}\nPlease note only breaker and hot-plug modules are currently supported."
+              f"\nExiting Script")
+        my_device.close_connection()
+        return None
 
     if not dev_caps:
         logger.error(f"Could not parse config file for {moduleStr}\nExiting Script")
         my_device.close_connection()
-        return
+        return None
     logText("\nCONFIG FILE LOCATED:")
     logText(file)
     logText("\n")

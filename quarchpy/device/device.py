@@ -514,8 +514,15 @@ class quarchDevice:
 
         # Set QIS default device
         try:
-            self.connectionObj.qis.sendAndReceiveCmd(cmd=f"$default {self.ConString}")
-        except Exception:
+            set_default_cmd = f"$default {self.ConString}"
+            logger.debug(f"Setting QIS default device: {set_default_cmd}")
+            # Assumes sendAndReceiveCmd exists on QIS object
+            response = self.connectionObj.qis.sendAndReceiveCmd(cmd=set_default_cmd)
+            logger.debug(f"QIS set default response: {response}")
+            if "fail" in response.lower():
+                logger.warning(f"QIS command '$default {self.ConString}' failed.")
+        except Exception as e_def:
+            logger.warning(f"Error setting QIS default device: {e_def}")
             pass
 
     def _initialize_qps_connection(self, existing_instance: Optional['QpsInterface'] = None):

@@ -87,7 +87,9 @@ def startLocalQis(
     headless: bool = False,
     args: List[str] = [],
     timeout: int = 20,
-    host: str = '127.0.0.1'
+    host: str = '127.0.0.1',
+    port: int = 9722,
+    restport: int = 9780
 ) -> Optional['QisInterface']:
     """
     Executes QIS on the local system and returns a connected interface.
@@ -95,46 +97,58 @@ def startLocalQis(
     Args:
         terminal: True if QIS terminal should be shown on startup.
         headless: True if app should be run in headless mode.
-        args: List of additional parameters (e.g. ['-port=9723']).
+        args: List of additional parameters.
         timeout: Time in seconds to wait for launch.
         host: Host address (default localhost).
-
-    Returns:
-        QisInterface: Connected interface object if successful, None otherwise.
+        port: The Telnet port to use (Default: 9722).
+        restport: The REST port to use (Default: 9780).
     """
-    # 1. Parse port from arguments (Default QIS port is 9722)
-    qis_port = _parse_qis_port(args)
+    # 0. Prepare Arguments
+    # We copy the list to avoid modifying the input in place
+    launch_args = args.copy()
 
-    # 2. Check if already running on the target port
-    if _check_port_open(host, qis_port):
-        logger.debug(f"QIS instance on port {qis_port} is already running. Connecting...")
-        return QisInterface(host=host, port=qis_port)
+    # Sync 'port' arg to CLI flags if non-default
+    if port != 9722:
+        # Only add if not already manually present in args
+        if not any("-port=" in arg for arg in launch_args):
+            launch_args.append(f"-port={port}")
 
-    # 3. Check for installation
+    # Sync 'restport' arg to CLI flags if non-default
+    if restport != 9780:
+        if not any("-restport=" in arg for arg in launch_args):
+            launch_args.append(f"-restport={restport}")
+
+    # 1. Check if already running (Use the explicit 'port' integer)
+    if _check_port_open(host, port):
+        logger.debug(f"QIS instance on port {port} is already running. Connecting...")
+        return QisInterface(host=host, port=port)
+
+    # 2. Check for installation
     if not find_qps():
         logger.error("Unable to find QPS/QIS directory... Aborting...")
         return None
 
-    # 4. Prepare Command and Environment
-    command, qis_dir = _prepare_qis_launch_env(terminal, headless, args)
+    # 3. Prepare Command and Environment
+    # Note: We pass 'launch_args' which now includes our port flags
+    command, qis_dir = _prepare_qis_launch_env(terminal, headless, launch_args)
     if not command:
         return None
 
-    # 5. Launch QIS Process
+    # 4. Launch QIS Process
     current_dir = os.getcwd()
     try:
         os.chdir(qis_dir)
-        process = _launch_qis_process(command, args)
+        process = _launch_qis_process(command, launch_args)
     finally:
         os.chdir(current_dir)
 
-    # 6. Wait for QIS to be ready
-    if not _wait_for_qis_service(host, qis_port, timeout, process, args):
+    # 5. Wait for QIS to be ready
+    if not _wait_for_qis_service(host, port, timeout, process, launch_args):
         return None
 
-    # 7. Return Connected Interface
+    # 6. Return Connected Interface
     try:
-        return QisInterface(host=host, port=qis_port)
+        return QisInterface(host=host, port=port)
     except Exception as e:
         logger.error(f"QIS started, but failed to create interface object: {e}")
         return None

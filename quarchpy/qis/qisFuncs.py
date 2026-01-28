@@ -5,9 +5,12 @@ Contains general functions for starting and stopping QIS processes
 """
 
 import os, sys
+import socket
 import time, platform
+from subprocess import CompletedProcess, Popen
 from threading import Thread, Lock, Event, active_count
 from queue import Queue, Empty
+from typing import Optional, List, Any, Tuple, Union
 
 import quarchpy_binaries
 
@@ -25,7 +28,7 @@ def isQisRunning():
     Checks if a local instance of QIS is running and responding
     Returns
     -------
-    is_running : bool
+    is_running : bool\
         True if QIS is running and responding
     """
 
@@ -79,139 +82,76 @@ def isQisRunningAndResponding(timeout=2):
         return True
 
 
-def startLocalQis(terminal=False, headless=False, args=None, timeout=20):
+def startLocalQis(
+    terminal: bool = False,
+    headless: bool = False,
+    args: List[str] = [],
+    timeout: int = 20,
+    host: str = '127.0.0.1',
+    port: int = 9722,
+    restport: int = 9780
+) -> Optional['QisInterface']:
     """
-    Executes QIS on the local system, using the version contained within quarchpy
-    
-    Parameters
-    ----------
-    terminal : bool, optional
-        True if QIS terminal should be shown on startup
-    headless : bool, optional
-        True if app should be run in headless mode for non graphical environments
-    args : list[str], optional
-        List of additional parameters to be supplied to QIS on the command line
+    Executes QIS on the local system and returns a connected interface.
 
+    Args:
+        terminal: True if QIS terminal should be shown on startup.
+        headless: True if app should be run in headless mode.
+        args: List of additional parameters.
+        timeout: Time in seconds to wait for launch.
+        host: Host address (default localhost).
+        port: The Telnet port to use (Default: 9722).
+        restport: The REST port to use (Default: 9780).
     """
+    # 0. Prepare Arguments
+    # We copy the list to avoid modifying the input in place
+    launch_args = args.copy()
+
+    # Sync 'port' arg to CLI flags if non-default
+    if port != 9722:
+        # Only add if not already manually present in args
+        if not any("-port=" in arg for arg in launch_args):
+            launch_args.append(f"-port={port}")
+
+    # Sync 'restport' arg to CLI flags if non-default
+    if restport != 9780:
+        if not any("-restport=" in arg for arg in launch_args):
+            launch_args.append(f"-restport={restport}")
+
+    # 1. Check if already running (Use the explicit 'port' integer)
+    if _check_port_open(host, port):
+        logger.debug(f"QIS instance on port {port} is already running. Connecting...")
+        return QisInterface(host=host, port=port)
+
+    # 2. Check for installation
     if not find_qps():
-        logger.error("Unable to find or install QPS... Aborting...")
-        return
+        logger.error("Unable to find QPS/QIS directory... Aborting...")
+        return None
 
-    # java path
-    java_path = quarchpy_binaries.get_jre_home()
-    java_path = "\"" + java_path
+    # 3. Prepare Command and Environment
+    # Note: We pass 'launch_args' which now includes our port flags
+    command, qis_dir = _prepare_qis_launch_env(terminal, headless, launch_args)
+    if not command:
+        return None
 
-    # change directory to /QPS/QIS
-    qis_path = os.path.dirname(os.path.abspath(__file__))
-    qis_path, junk = os.path.split(qis_path)
-
-    # OS
-    current_os = platform.system()
-    current_arch = platform.machine()
-    current_arch = current_arch.lower()  # ensure comparing same case
-
-    # Currently officially unsupported
-    if (current_os in "Linux" and current_arch == "aarch64") or (current_os in "Darwin" and current_arch == "arm64"):
-        logger.warning("The system [" + current_os + ", " + current_arch + "] is not officially supported.")
-        logger.warning("Please contact Quarch support for running QuarchPy on this system.")
-        return
-
-    # ensure the jres folder has the required permissions
-    permissions, message = find_java_permissions()
-    if permissions is False:
-        logger.warning(message)
-        logger.warning("Not having correct permissions will prevent Quarch Java Programs to launch")
-        logger.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
-        user_input = input("Would you like to fix permissions now? (Y/N)")
-        if user_input.lower() == "y":
-            fix_permissions()
-            permissions, message = find_java_permissions()
-            time.sleep(0.5)
-            if permissions is False:
-                logger.warning("Attempt to fix permissions was unsuccessful. Please fix these manually.")
-            else:
-                logger.warning("Attempt to fix permissions was successful. Now continuing.")
-
-    qis_path = os.path.join(qis_path, "connection_specific", "QPS", "qis", "qis.jar")
-
-    # record current working directory
+    # 4. Launch QIS Process
     current_dir = os.getcwd()
-    os.chdir(os.path.dirname(qis_path))
+    try:
+        os.chdir(qis_dir)
+        process = _launch_qis_process(command, launch_args)
+    finally:
+        os.chdir(current_dir)
 
-    # Building the command
+    # 5. Wait for QIS to be ready
+    if not _wait_for_qis_service(host, port, timeout, process, launch_args):
+        return None
 
-    # prefer IPV4 to IPV6
-    ipv4v6_vm_args = "-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false"
-
-    # Process command prefix. Needed for headless mode, to support OSs with no system tray.
-    # Added the flag to suppress the Java restricted method warning
-    cmd_prefix = ipv4v6_vm_args + " --enable-native-access=ALL-UNNAMED"
-    if headless is True or (args is not None and "-headless" in args):
-        cmd_prefix += " -Djava.awt.headless=true"
-
-    # Ignore netty unsafe warning
-    cmd_prefix += " -Dio.netty.noUnsafe=true"
-
-    # Process command suffix (additional standard options for QIS).
-    if terminal is True:
-        cmd_suffix = " -terminal"
-    else:
-        cmd_suffix = ""
-    if args is not None:
-        for option in args:
-            # Avoid doubling the terminal option
-            if option == "-terminal" and terminal is True:
-                continue
-            # Headless option is processed seperately as a java command
-            if option != "-headless":
-                cmd_suffix = cmd_suffix + " " + option
-
-
-    command = "java\" " + cmd_prefix + " -jar qis.jar" + cmd_suffix
-
-    # different start for different OS
-    if current_os == "Windows":
-        command = java_path + "\\bin\\" + command
-    elif current_os == "Linux" and current_arch == "x86_64":
-        command = java_path + "/bin/" + command
-    elif current_os == "Linux" and current_arch == "aarch64":
-        command = java_path + "/bin/" + command
-    elif current_os == "Darwin" and current_arch == "x86_64":
-        command = java_path + "/bin/" + command
-    elif current_os == "Darwin" and current_arch == "arm64":
-        command = java_path + "/bin/" + command
-    else:  # default to windows
-        command = java_path + "\\bin\\" + command
-
-    # Use the command and check QIS has launched
-    # If logging to a terminal window is on then os.system should be used to view logging.
-    if "-logging=ON" in str(args):
-        process = subprocess.Popen(command, shell=True)
-        startTime = time.time()  # Checks for Popen launch only
-        while not isQisRunning():
-            if time.time() - startTime > timeout:
-                raise TimeoutError("QIS failed to launch within timelimit of " + str(timeout) + " sec.")
-            pass
-    else:
-        if sys.version_info[0] < 3:
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        else:
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
-
-        startTime = time.time()  #Checks for Popen launch only
-        while not isQisRunning():
-            _get_std_msg_and_err_from_QIS_process(process)
-            if time.time() - startTime > timeout:
-                raise TimeoutError("QIS failed to launch within timelimit of " + str(timeout) + " sec.")
-            pass
-
-        if isQisRunningAndResponding(timeout=timeout):
-            logDebug("QIS running and responding")
-        else:
-            logDebug("QIS running but not responding")
-
-    # change directory back to start directory
-    os.chdir(current_dir)
+    # 6. Return Connected Interface
+    try:
+        return QisInterface(host=host, port=port)
+    except Exception as e:
+        logger.error(f"QIS started, but failed to create interface object: {e}")
+        return None
 
 
 def reader(stream, q, source, lock, stop_flag):
@@ -369,3 +309,169 @@ def GetQisModuleSelection(QisConnection):
         myDeviceID = None
 
     return myDeviceID
+
+
+# ==========================================
+#           HELPER FUNCTIONS
+# ==========================================
+
+def _parse_qis_port(args: List[str]) -> int:
+    """Extracts the QIS port from arguments, defaulting to 9722."""
+    port = 9722
+    if args:
+        for arg in args:
+            if "-port=" in arg.lower():
+                try:
+                    port = int(arg.split('=')[1])
+                except (IndexError, ValueError):
+                    pass
+    return port
+
+
+def _prepare_qis_launch_env(terminal: bool, headless: bool, args: List[str]) -> Tuple[Optional[str], Optional[str]]:
+    """Resolves paths, JVM flags, and builds the QIS command string."""
+
+    # 1. OS Checks
+    current_os = platform.system()
+    current_arch = platform.machine().lower()
+
+    if (current_os == "Linux" and current_arch == "aarch64") or \
+            (current_os == "Darwin" and current_arch == "arm64"):
+        logger.warning(f"The system [{current_os}, {current_arch}] is not officially supported.")
+        return None, None
+
+    # 2. Permissions
+    _handle_java_permissions()
+
+    # 3. Path Resolution
+    if 'quarchpy_binaries' not in globals() and 'quarchpy_binaries' not in locals():
+        logger.error("quarchpy_binaries module not found.")
+        return None, None
+
+    try:
+        java_home = quarchpy_binaries.get_jre_home()
+    except Exception as e:
+        logger.error(f"Failed to get JRE home: {e}")
+        return None, None
+
+    # Locate QIS Jar
+    # Assuming standard structure relative to this file
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    # Go up one level from 'connection_specific' typically
+    root_path = os.path.dirname(base_path)
+
+    # Construct path: .../connection_specific/QPS/qis/qis.jar
+    qis_jar_path = os.path.join(root_path, "connection_specific", "QPS", "qis", "qis.jar")
+    qis_dir = os.path.dirname(qis_jar_path)
+
+    # 4. Java Binary Selection
+    java_bin_rel = "bin/java"
+    if current_os == "Windows":
+        java_bin_rel = r"bin\java"
+
+    java_exe = os.path.join(java_home, java_bin_rel)
+    java_exe_quoted = f'"{java_exe}"'
+
+    # 5. Build JVM Arguments
+    # Prefer IPv4
+    cmd_prefix = "-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false"
+    # Enable native access (required for newer Java versions)
+    cmd_prefix += " --enable-native-access=ALL-UNNAMED"
+    # Netty config
+    cmd_prefix += " -Dio.netty.noUnsafe=true"
+
+    # Headless logic
+    is_headless = headless
+    if args and "-headless" in args:
+        is_headless = True
+
+    if is_headless:
+        cmd_prefix += " -Djava.awt.headless=true"
+
+    # 6. Build Application Arguments
+    cmd_suffix = ""
+    if terminal:
+        cmd_suffix += " -terminal"
+
+    if args:
+        for option in args:
+            # Prevent double flags
+            if option == "-terminal" and terminal:
+                continue
+            if option != "-headless":
+                cmd_suffix += f" {option}"
+
+    # 7. Final Command
+    command = f'{java_exe_quoted} {cmd_prefix} -jar qis.jar{cmd_suffix}'
+
+    return command, qis_dir
+
+
+def _launch_qis_process(command: str, args: List[str]) -> Union[Popen, CompletedProcess]:
+    """Launches QIS, checking for logging flags."""
+    args_str = " ".join(args) if args else ""
+
+    if "-logconsole=ON" in args_str:
+        if platform.system() == "Windows":
+            return subprocess.Popen(command, shell=True)
+        else:
+            return subprocess.run(command + "; exec bash", shell=True)
+    else:
+        text_mode = True if sys.version_info >= (3, 7) else False
+        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=text_mode, shell=True)
+
+
+def _wait_for_qis_service(host: str, port: int, timeout: int, process: Optional[subprocess.Popen], args: List[str]) -> bool:
+    """Polls the specific QIS port until it opens."""
+    start_time = time.time()
+    args_str = " ".join(args) if args else ""
+    logging_on = "-logconsole=ON" in args_str
+
+    while True:
+        # 1. Check TCP Connectivity
+        if _check_port_open(host, port):
+            # QIS accepts the connection
+            logger.debug(f"QIS detected on port {port} after {time.time() - start_time:.2f}s")
+
+            # Optional: Extra check to ensure it's actually responding to commands
+            # (Replaces old 'isQisRunningAndResponding' logic efficiently)
+            # You could do a quick handshake here if strict validation is required,
+            # but usually TCP open is sufficient for startup success.
+            return True
+
+        # 2. Monitor Process Health
+        if not logging_on and process:
+            # Drain pipes and check if process died
+            if process.poll() is not None:
+                logger.error("QIS process terminated unexpectedly.")
+                return False
+            try:
+                _get_std_msg_and_err_from_QIS_process(process)
+            except NameError:
+                pass  # Function might not be available in this scope
+
+        # 3. Timeout Check
+        if time.time() - start_time > timeout:
+            logger.error(f"QIS failed to launch on port {port} within {timeout}s.")
+            return False
+
+        time.sleep(0.2)
+
+def _handle_java_permissions() -> None:
+    """Checks and attempts to fix Java execution permissions."""
+    permissions, message = find_java_permissions()
+    if not permissions:
+        logger.warning(message)
+        logger.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
+        logger.warning('Run "python -m quarchpy.run permission_fix" to fix this.')
+
+def _check_port_open(host: str, port: int) -> bool:
+    """Simple TCP connect check."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1)
+    try:
+        s.connect((host, int(port)))
+        s.close()
+        return True
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        return False

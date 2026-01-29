@@ -17,6 +17,7 @@ import quarchpy_binaries
 from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
 from quarchpy.install_qps import find_qps
+from quarchpy.user_interface import requestDialog
 from quarchpy.user_interface.user_interface import printText, logDebug
 import subprocess
 import logging
@@ -457,8 +458,14 @@ def _handle_java_permissions() -> None:
     permissions, message = find_java_permissions()
     if not permissions:
         logger.warning(message)
-        logger.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
-        logger.warning('Run "python -m quarchpy.run permission_fix" to fix this.')
+        printText("Not having correct permissions will prevent Quarch Java Programs from launching.")
+        printText("Would you like quarchpy to attempt to fix the permissions now? (Y/N)")
+        try:
+            user_input = requestDialog(">>> ")
+        except EOFError:
+            user_input = "N"
+        if user_input.strip().lower() in ['y', 'yes']:
+            fix_permissions()
 
 def _check_port_open(host: str, port: int) -> bool:
     """Simple TCP connect check."""

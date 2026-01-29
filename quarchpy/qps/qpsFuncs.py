@@ -339,8 +339,15 @@ def _handle_java_permissions() -> None:
     permissions, message = find_java_permissions()
     if not permissions:
         logger.warning(message)
-        logger.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
-        logger.warning('Run "python -m quarchpy.run permission_fix" to fix this.')
+        printText("Not having correct permissions will prevent Quarch Java Programs from launching.")
+        printText('Run "python -m quarchpy.run permission_fix" to fix this.')
+        printText("Would you like quarchpy to attempt to fix the permissions now? (Y/N)")
+        try:
+            user_input = requestDialog(">>> ")
+        except EOFError:
+            user_input = "N"
+        if user_input.strip().lower() in ['y', 'yes']:
+            fix_permissions()
 
 
 def _launch_process(command: str, args: List[str]) -> Union[Popen, CompletedProcess]:

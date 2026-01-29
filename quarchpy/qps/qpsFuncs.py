@@ -15,6 +15,7 @@ from quarchpy.qis.qisFuncs import isQisRunningAndResponding
 from quarchpy.user_interface import *
 import subprocess
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,7 +23,7 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
     '''
     This func will return true if QPS is running with a working QIS connection.
     '''
-    myQps=None
+    myQps = None
     logger.debug("Checking if QPS is running")
     start = time.time()
     while True:
@@ -38,12 +39,13 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
         logger.debug("QPS is not running")
         return False
 
-    logger.debug("Checking if QPS reports a QIS connection") # "$qis status" returns connected if it has ever had a QIS connection.
-    answer=0
-    counter=0
+    logger.debug(
+        "Checking if QPS reports a QIS connection")  # "$qis status" returns connected if it has ever had a QIS connection.
+    answer = 0
+    counter = 0
     while True:
         answer = myQps.sendCmdVerbose(cmd="$qis status")
-        if answer.lower()=="connected":
+        if answer.lower() == "connected":
             logger.debug("QPS Running With QIS Connected")
             break
         else:
@@ -51,7 +53,7 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
             time.sleep(0.5)
             counter += 1
             if counter > 5:
-                logger.debug("QPS Running QIS NOT found after "+str(counter)+" attempts.")
+                logger.debug("QPS Running QIS NOT found after " + str(counter) + " attempts.")
                 return False
 
     logger.debug("Checking if QPS/QIS comms are running")
@@ -74,23 +76,46 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
         logger.debug("$list: " + str(answer))
         return False
 
+
 def startLocalQps(
         keepQisRunning: bool = False,
-        args: List[str] = [],
+        args: Optional[List[str]] = [],
         timeout: int = 30,
         startQPSMinimised: bool = True,
-        host: str = '127.0.0.1'
+        host: str = '127.0.0.1',
+        port: int = 9822,
+        qis_port: int = 9722,
+        qis_rest_port: int = 9780
 ) -> Optional['QpsInterface']:
     """
     Main entry point to start a local QPS instance.
     """
-    # 1. Parse ports from arguments
-    qps_port, qis_port, qis_rest_port = _parse_ports(args)
+    # 1. Prepare Arguments
+    # We copy the list to avoid modifying the input in place
+    launch_args = args.copy()
+    if not launch_args:
+        launch_args = ""
+
+    # Sync 'port' arg to CLI flags if non-default
+    if port != 9822:
+        # Only add if not already manually present in args
+        if not any("-port=" in arg for arg in launch_args):
+            launch_args.append(f"-port={port}")
+
+    # Sync 'qisport' arg to CLI flags if non-default
+    if qis_port != 9722:
+        if not any("-qisport=" in arg for arg in launch_args):
+            launch_args.append(f"-qisport={qis_port}")
+
+    # Sync 'qisrestport' arg to CLI flags if non-default
+    if qis_rest_port != 9780:
+        if not any("-qisrestport=" in arg for arg in launch_args):
+            launch_args.append(f"-qisrestport={qis_port}")
 
     # 2. Check if already running on the specific target port
-    if _check_port_open(host, qps_port):
-        logger.debug(f"QPS instance on port {qps_port} is already running. Connecting...")
-        return QpsInterface(host=host, port=qps_port)
+    if _check_port_open(host, port):
+        logger.debug(f"QPS instance on port {port} is already running. Connecting...")
+        return QpsInterface(host=host, port=port)
 
     # 3. Check for QPS installation
     if not find_qps():
@@ -103,99 +128,17 @@ def startLocalQps(
             return None
 
     # 5. Prepare Command and Environment
-    command, qps_dir = _prepare_qps_launch_env(args, startQPSMinimised)
+    command, qps_dir = _prepare_qps_launch_env(launch_args, startQPSMinimised)
     if not command:
         return None
 
     # 6. Launch QPS Process
     current_dir = os.getcwd()
 
-    # JRE path
-    java_path = quarchpy_binaries.get_jre_home()
-    java_path = "\"" + java_path
-    # Start to build the path towards qps.jar
-    qps_path = os.path.dirname(os.path.abspath(__file__))
-    qps_path, junk = os.path.split(qps_path)
-
-    # Check the current OS
-    current_os = platform.system()
-    current_arch = platform.machine()
-    current_arch = current_arch.lower()  # ensure comparing same case
-
-    # ensure the jres folder has the required permissions
-    permissions, message = find_java_permissions()
-    if permissions is False:
-        logger.warning(message)
-        logger.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
-        logger.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
-        user_input = input("Would you like to use auto run this now? (Y/N)")
-        if user_input.lower() == "y":
-            fix_permissions()
-            permissions, message = find_java_permissions()
-            time.sleep(0.5)
-            if permissions is False:
-                logger.warning("Attempt to fix permissions was unsuccessful. Please fix manually.")
-            else:
-                logger.warning("Attempt to fix permissions was successful. Now continuing.")
-
-
-    qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
-
-
-    # Change the working directory to the directory containing qps.jar
-    os.chdir(os.path.dirname(qps_path))
-
-
-    # OS dependency
-    if current_os in "Windows":
-        command = java_path + "\\bin\\java\" -jar qps.jar " + str(args)
-    elif current_os in "Linux" and current_arch == "x86_64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
-    elif current_os in "Linux" and current_arch == "aarch64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
-    elif current_os in "Darwin" and current_arch == "x86_64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
-    elif current_os in "Darwin" and current_arch == "arm64":
-        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
-    else:  # default to windows
-        command = java_path + "\\bin\\java\" -jar qps.jar " + str(args)
-
     if isQpsRunning():
         logger.debug("QPS is already running. Not starting another instance.")
         os.chdir(current_dir)
-        return
-    if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
-        if current_os in "Windows":
-            process = subprocess.Popen(command,shell=True)
-        else:
-            # Add a hold command to keep the terminal open (useful for bash)
-            command_with_pause = command + "; exec bash"
-            process = subprocess.run(command_with_pause, shell=True)
-    else:
-        if sys.version_info[0] < 3:
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        else:
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
-
-        startTime = time.time()
-        while not isQpsRunning():
-            time.sleep(0.2)
-            _get_std_msg_and_err_from_QPS_process(process)
-            if time.time() - startTime > timeout:
-                os.chdir(current_dir)
-                raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
-        logger.debug("QPS detected after " + str(time.time() - startTime) + "s")
-
-        while not isQisRunning():
-            if time.time() - startTime > timeout:
-                raise TimeoutError(
-                    "QPS did launch but QIS did not respond during the timeout time of " + str(timeout) + " sec.")
-            time.sleep(0.2)
-        logger.debug("QIS detected after " + str(time.time() - startTime) + "s")
-
-    # return current working directory
-    os.chdir(current_dir)
-    return
+        return None
 
     try:
         os.chdir(qps_dir)  # Switch to QPS dir for launch dependencies
@@ -204,17 +147,18 @@ def startLocalQps(
         os.chdir(current_dir)  # Always return to original dir
 
     # 7. Wait for QPS to be ready
-    if not _wait_for_service(host, qps_port, timeout, process, args):
+    if not _wait_for_service(host, port, timeout, process, args):
         return None
 
     # 8. Return Connected Interface
     try:
-        return QpsInterface(host=host, port=qps_port)
+        return QpsInterface(host=host, port=port)
     except Exception as e:
         logger.error(f"QPS started, but failed to create interface object: {e}")
         return None
 
-def reader(stream, q, source, lock,stop_flag):
+
+def reader(stream, q, source, lock, stop_flag):
     '''
     Used to read output and place it in a queue for multithreaded reading
     :param stream:
@@ -250,7 +194,7 @@ def _get_std_msg_and_err_from_QPS_process(process):
     t2.start()
     counter = 0
     # check for stderr or stdmsg from the queue
-    while counter <= 3: # If 3 empty reads from the queue then move on to see if QPS is running.
+    while counter <= 3:  # If 3 empty reads from the queue then move on to see if QPS is running.
         try:
             source, line = q.get(timeout=1)  # Wait for 1 second for new lines
             counter = 0
@@ -260,24 +204,29 @@ def _get_std_msg_and_err_from_QPS_process(process):
                 printText(f"{source}: {line}")
         except Empty:
             counter += 1
-    stop_flag.set() #Close the threads and return to the main loop where QPS is check to see if its started yet
+    stop_flag.set()  #Close the threads and return to the main loop where QPS is check to see if its started yet
 
 
 def closeQps(host='127.0.0.1', port=9822):
     myQps = QpsInterface(host, port)
     myQps.sendCmdVerbose("$shutdown")
     del myQps
-    time.sleep(1) #needed as calling "isQpsRunning()" will throw an error if it ties to connect while shutdown is in progress.
+    time.sleep(
+        1)  #needed as calling "isQpsRunning()" will throw an error if it ties to connect while shutdown is in progress.
 
-def GetQpsModuleSelection(QpsConnection: 'QpsInterface', favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
+
+def GetQpsModuleSelection(QpsConnection: 'QpsInterface', favouriteOnly=True,
+                          additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
     """
     Deprecated: use QpsInterface.get_module_selection instead.
     This function will return a module selection list from QPS.
 
     """
     return (
-        QpsConnection.get_qps_module_selection(preferred_connection_only=favouriteOnly, additional_options=additionalOptions, scan=scan)
+        QpsConnection.get_qps_module_selection(preferred_connection_only=favouriteOnly,
+                                               additional_options=additionalOptions, scan=scan)
     )
+
 
 # ==========================================
 #           HELPER FUNCTIONS
@@ -339,11 +288,6 @@ def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> Tuple[O
     # 1. Check OS Support
     current_os = platform.system()
     current_arch = platform.machine().lower()
-
-    if (current_os == "Linux" and current_arch == "aarch64") or (current_os == "Darwin" and current_arch == "arm64"):
-        logger.warning(f"The system [{current_os}, {current_arch}] is not officially supported.")
-        logger.warning("Please contact Quarch support for running QuarchPy on this system.")
-        return None, None
 
     # 2. Handle Permissions
     _handle_java_permissions()

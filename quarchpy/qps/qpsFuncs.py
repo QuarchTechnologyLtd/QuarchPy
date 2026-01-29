@@ -109,6 +109,94 @@ def startLocalQps(
 
     # 6. Launch QPS Process
     current_dir = os.getcwd()
+
+    # JRE path
+    java_path = quarchpy_binaries.get_jre_home()
+    java_path = "\"" + java_path
+    # Start to build the path towards qps.jar
+    qps_path = os.path.dirname(os.path.abspath(__file__))
+    qps_path, junk = os.path.split(qps_path)
+
+    # Check the current OS
+    current_os = platform.system()
+    current_arch = platform.machine()
+    current_arch = current_arch.lower()  # ensure comparing same case
+
+    # ensure the jres folder has the required permissions
+    permissions, message = find_java_permissions()
+    if permissions is False:
+        logger.warning(message)
+        logger.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
+        logger.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
+        user_input = input("Would you like to use auto run this now? (Y/N)")
+        if user_input.lower() == "y":
+            fix_permissions()
+            permissions, message = find_java_permissions()
+            time.sleep(0.5)
+            if permissions is False:
+                logger.warning("Attempt to fix permissions was unsuccessful. Please fix manually.")
+            else:
+                logger.warning("Attempt to fix permissions was successful. Now continuing.")
+
+
+    qps_path = os.path.join(qps_path, "connection_specific", "QPS", "qps.jar")
+
+
+    # Change the working directory to the directory containing qps.jar
+    os.chdir(os.path.dirname(qps_path))
+
+
+    # OS dependency
+    if current_os in "Windows":
+        command = java_path + "\\bin\\java\" -jar qps.jar " + str(args)
+    elif current_os in "Linux" and current_arch == "x86_64":
+        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
+    elif current_os in "Linux" and current_arch == "aarch64":
+        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
+    elif current_os in "Darwin" and current_arch == "x86_64":
+        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
+    elif current_os in "Darwin" and current_arch == "arm64":
+        command = java_path + "/bin/java\" -jar qps.jar " + str(args)
+    else:  # default to windows
+        command = java_path + "\\bin\\java\" -jar qps.jar " + str(args)
+
+    if isQpsRunning():
+        logger.debug("QPS is already running. Not starting another instance.")
+        os.chdir(current_dir)
+        return
+    if "-logging=ON" in str(args): #If logging to a terminal window is on then os.system should be used to keep a window open to view logging.
+        if current_os in "Windows":
+            process = subprocess.Popen(command,shell=True)
+        else:
+            # Add a hold command to keep the terminal open (useful for bash)
+            command_with_pause = command + "; exec bash"
+            process = subprocess.run(command_with_pause, shell=True)
+    else:
+        if sys.version_info[0] < 3:
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        else:
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+
+        startTime = time.time()
+        while not isQpsRunning():
+            time.sleep(0.2)
+            _get_std_msg_and_err_from_QPS_process(process)
+            if time.time() - startTime > timeout:
+                os.chdir(current_dir)
+                raise TimeoutError("QPS failed to launch within timelimit of " + str(timeout) + " sec.")
+        logger.debug("QPS detected after " + str(time.time() - startTime) + "s")
+
+        while not isQisRunning():
+            if time.time() - startTime > timeout:
+                raise TimeoutError(
+                    "QPS did launch but QIS did not respond during the timeout time of " + str(timeout) + " sec.")
+            time.sleep(0.2)
+        logger.debug("QIS detected after " + str(time.time() - startTime) + "s")
+
+    # return current working directory
+    os.chdir(current_dir)
+    return
+
     try:
         os.chdir(qps_dir)  # Switch to QPS dir for launch dependencies
         process = _launch_process(command, args)

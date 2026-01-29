@@ -125,6 +125,37 @@ def startLocalQis(
 
     # 2. Check for installation
     if not find_qps():
+        logger.error("Unable to find or install QPS... Aborting...")
+        return
+
+    # java path
+    java_path = quarchpy_binaries.get_jre_home()
+    java_path = "\"" + java_path
+
+    # change directory to /QPS/QIS
+    qis_path = os.path.dirname(os.path.abspath(__file__))
+    qis_path, junk = os.path.split(qis_path)
+
+    # OS
+    current_os = platform.system()
+    current_arch = platform.machine()
+    current_arch = current_arch.lower()  # ensure comparing same case
+
+    # ensure the jres folder has the required permissions
+    permissions, message = find_java_permissions()
+    if permissions is False:
+        logger.warning(message)
+        logger.warning("Not having correct permissions will prevent Quarch Java Programs to launch")
+        logger.warning("Run \"python -m quarchpy.run permission_fix\" to fix this.")
+        user_input = input("Would you like to fix permissions now? (Y/N)")
+        if user_input.lower() == "y":
+            fix_permissions()
+            permissions, message = find_java_permissions()
+            time.sleep(0.5)
+            if permissions is False:
+                logger.warning("Attempt to fix permissions was unsuccessful. Please fix these manually.")
+            else:
+                logger.warning("Attempt to fix permissions was successful. Now continuing.")
         logger.error("Unable to find QPS/QIS directory... Aborting...")
         return None
 

@@ -17,6 +17,7 @@ import quarchpy_binaries
 from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
 from quarchpy.install_qps import find_qps
+from quarchpy.user_interface import requestDialog
 from quarchpy.user_interface.user_interface import printText, logDebug
 import subprocess
 import logging
@@ -89,7 +90,7 @@ def startLocalQis(
     timeout: int = 20,
     host: str = '127.0.0.1',
     port: int = 9722,
-    restport: int = 9780
+    rest_port: int = 9780
 ) -> Optional['QisInterface']:
     """
     Executes QIS on the local system and returns a connected interface.
@@ -101,7 +102,7 @@ def startLocalQis(
         timeout: Time in seconds to wait for launch.
         host: Host address (default localhost).
         port: The Telnet port to use (Default: 9722).
-        restport: The REST port to use (Default: 9780).
+        rest_port: The REST port to use (Default: 9780).
     """
     # 0. Prepare Arguments
     # We copy the list to avoid modifying the input in place
@@ -114,9 +115,9 @@ def startLocalQis(
             launch_args.append(f"-port={port}")
 
     # Sync 'restport' arg to CLI flags if non-default
-    if restport != 9780:
+    if rest_port != 9780:
         if not any("-restport=" in arg for arg in launch_args):
-            launch_args.append(f"-restport={restport}")
+            launch_args.append(f"-restport={rest_port}")
 
     # 1. Check if already running (Use the explicit 'port' integer)
     if _check_port_open(host, port):
@@ -125,7 +126,7 @@ def startLocalQis(
 
     # 2. Check for installation
     if not find_qps():
-        logger.error("Unable to find QPS/QIS directory... Aborting...")
+        logger.error("Unable to find or install QPS... Aborting...")
         return None
 
     # 3. Prepare Command and Environment
@@ -335,11 +336,6 @@ def _prepare_qis_launch_env(terminal: bool, headless: bool, args: List[str]) -> 
     current_os = platform.system()
     current_arch = platform.machine().lower()
 
-    if (current_os == "Linux" and current_arch == "aarch64") or \
-            (current_os == "Darwin" and current_arch == "arm64"):
-        logger.warning(f"The system [{current_os}, {current_arch}] is not officially supported.")
-        return None, None
-
     # 2. Permissions
     _handle_java_permissions()
 
@@ -462,8 +458,14 @@ def _handle_java_permissions() -> None:
     permissions, message = find_java_permissions()
     if not permissions:
         logger.warning(message)
-        logger.warning("Not having correct permissions will prevent Quarch Java Programs from launching.")
-        logger.warning('Run "python -m quarchpy.run permission_fix" to fix this.')
+        printText("Not having correct permissions will prevent Quarch Java Programs from launching.")
+        printText("Would you like quarchpy to attempt to fix the permissions now? (Y/N)")
+        try:
+            user_input = requestDialog(">>> ")
+        except EOFError:
+            user_input = "N"
+        if user_input.strip().lower() in ['y', 'yes']:
+            fix_permissions()
 
 def _check_port_open(host: str, port: int) -> bool:
     """Simple TCP connect check."""

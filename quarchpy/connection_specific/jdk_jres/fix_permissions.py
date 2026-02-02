@@ -11,11 +11,8 @@ def main():
     current_os = platform.system()
     if current_os != "Windows":
         print("Fixing Permissions")
-        # Check the current OS
-        current_os = platform.system()
         # JRE path
         java_path = quarchpy_binaries.get_jre_home()
-    
         # Ensure the jres folder has the required permissions
         subprocess.call(['chmod', '-R', '+rwx', java_path])
 

@@ -235,95 +235,126 @@ def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLoo
             mySocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             mySocket.settimeout(lanTimeout)
             mySocket.bind((ip, 56732))
-
-            if ipAddressLookup is not None:
-                # Attempts to find the device through UDP then REST
-                specifiedDevice, moduleFound = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules, moduleFound)
-
-            mySocket.sendto(b'Discovery: Who is out there?\0\n', ('255.255.255.255', 30303))
-            counter = 0
-            # Receive messages until timeout.
-            while True:
-                network_modules = {}
-                msg_received = None
-                counter += 1
-                # Receive raw message until timeout, then break.
-                try:
-                    msg_received = mySocket.recvfrom(1024)
-                except Exception as e:
-                    logger.debug(str(e))
-                    # check if any a device was targeted directly and allow parse
-                    if specifiedDevice is not None:
-                        msg_received = specifiedDevice
-                        specifiedDevice = None
-                    else:
-                        break
-                cont = 0
-
-                # Used split \r\n since values of 13 or 10 were looked at as /r and /n when using splitlines
-                # This fixes for all cases except if 13 is followed by 10.
-                splits = msg_received[0].split(b"\r\n")
-                del splits[-1]
-
-                # Decode the discovered device and extend the provided discovered_devices list if required
-                if discovered_devices is not None:
-                    idn_info = IDNInfo()
-                    fix_idn_info = FixtureIDNInfo()
-                    device_net_info = DeviceNetworkInfo()
-                    discovered_device: DiscoveredDevice = DiscoveredDevice(idn_info, fix_idn_info, device_net_info)
-                    discovered_device.device_info = decode_locate_packet(splits)
-                    discovered_device.populate_device_info()
-                    discovered_devices.append(discovered_device)
-
-                for lines in splits:
-                    if cont <= 1:
-                        index = cont
-                        data = repr(lines).replace("'", "").replace("b", "")
-                        cont += 1
-                    else:
-                        index = repr(lines[0]).replace("'", "")
-                        data = repr(lines[1:]).replace("'", "").replace("b", "")
-                    network_modules[index] = data
-                module_name = get_user_level_serial_number(network_modules)
-                logger.debug("Found UDP response: " + module_name)
-                ip_module = msg_received[1][0].strip()
-                try:
-                    # Add a QTL before modules without it.
-                    if "QTL" not in module_name.decode("utf-8"):
-                        module_name = "QTL" + module_name.decode("utf-8")
-                except:
-                    # Add a QTL before modules without it.
-                    if "QTL" not in module_name:
-                        module_name = "QTL" + module_name
-
-                # Checks if there's a value in the TELNET key.
-                if target_conn.lower() == "all" or target_conn.lower() == "telnet":
-                    if network_modules.get("\\x8a") or network_modules.get("138"):
-                        # Append the information to the list.
-                        lan_modules["TELNET:" + ip_module] = module_name
-                        logger.debug("Found Telnet module: " + module_name)
-
-                # Checks if there's a value in the REST key.
-                if target_conn.lower() == "all" or target_conn.lower() == "rest":
-                    if network_modules.get("\\x84") or network_modules.get("132"):
-                        # Append the information to the list.
-                        lan_modules["REST:" + ip_module] = module_name
-                        logger.debug("Found REST module: " + module_name)
-
-                # Checks if there's a value in the TCP key.
-                if target_conn.lower() == "all" or target_conn.lower() == "tcp":
-                    if network_modules.get("\\x85") or network_modules.get("133"):
-                        # Append the information to the list.
-                        lan_modules["TCP:" + ip_module] = module_name
-                        logger.debug("Found TCP module: " + module_name)
-            mySocket.close()
         except Exception as err:
             logger.debug("Error while trying to bind to network interfaces: " + " Error: " + str(err))
+
+        if ipAddressLookup is not None:
+            # Attempts to find the device through UDP then REST
+            specifiedDevice, moduleFound = lookupDevice(str(ipAddressLookup).strip(), mySocket, lan_modules, moduleFound)
+
+        mySocket.sendto(b'Discovery: Who is out there?\0\n', ('255.255.255.255', 30303))
+        counter = 0
+        # Receive messages until timeout.
+        while True:
+            network_modules = {}
+            msg_received = None
+            counter += 1
+
+            try:
+                # recvfrom returns a tuple: (bytes_data, (address, port))
+                msg_received = mySocket.recvfrom(1024)
+            except Exception as e:
+                logger.debug(str(e))
+                if specifiedDevice is not None:
+                    msg_received = specifiedDevice
+                    specifiedDevice = None
+                else:
+                    break
+
+            # --- ROBUST DATA EXTRACTION ---
+            # If msg_received is a tuple (data, addr), split them out
+            if isinstance(msg_received, tuple) and len(msg_received) >= 2:
+                raw_payload = msg_received[0]
+                addr_info = msg_received[1]  # This is (ip, port)
+            else:
+                # Fallback if data is raw bytes or something else
+                raw_payload = msg_received
+                addr_info = ("0.0.0.0", 0)
+
+            # Ensure we have bytes to split
+            if isinstance(raw_payload, bytes):
+                splits = raw_payload.split(b"\r\n")
+            else:
+                continue  # Skip this iteration if we don't have valid data
+
+            # Remove empty trailing element if it exists
+            if splits and splits[-1] == b"":
+                del splits[-1]
+            # ------------------------------
+
+            # Decode and extend discovered_devices
+            if discovered_devices is not None:
+                idn_info = IDNInfo()
+                fix_idn_info = FixtureIDNInfo()
+                device_net_info = DeviceNetworkInfo()
+                discovered_device: DiscoveredDevice = DiscoveredDevice(idn_info, fix_idn_info, device_net_info)
+                discovered_device.device_info = decode_locate_packet(splits)
+                discovered_device.populate_device_info()
+                discovered_devices.append(discovered_device)
+
+            cont = 0
+            for lines in splits:
+                if cont <= 1:
+                    index = cont
+                    data = repr(lines).replace("'", "").replace("b", "")
+                    cont += 1
+                else:
+                    # lines[0] returns an int, so we use slicing lines[0:1] to keep it bytes
+                    index = repr(lines[0:1]).replace("'", "").replace("b", "")
+                    data = repr(lines[1:]).replace("'", "").replace("b", "")
+                network_modules[index] = data
+
+            module_name = get_user_level_serial_number(network_modules)
+            logger.debug("Found UDP response: " + str(module_name))
+
+            # FIXED: Safely get the IP from our extracted addr_info
+            ip_module = addr_info[0].strip() if isinstance(addr_info, (tuple, list)) else "Unknown"
+            try:
+                # Add a QTL before modules without it.
+                if "QTL" not in module_name.decode("utf-8"):
+                    module_name = "QTL" + module_name.decode("utf-8")
+            except:
+                # Add a QTL before modules without it.
+                if "QTL" not in module_name:
+                    module_name = "QTL" + module_name
+
+            # Helper to check if this module already exists in our list with a proper IP
+            def is_duplicate_ghost(name, current_modules, protocol):
+                if ip_module != "0.0.0.0":
+                    return False
+                # Check if any existing entry for this protocol has the same module name
+                return any(m_name == name for key, m_name in current_modules.items() if key.startswith(protocol))
+
+            # Ensure module_name is a string for dictionary values and logging
+            if isinstance(module_name, bytes):
+                module_name = module_name.decode("utf-8", errors="ignore")
+
+            # Checks if there's a value in the TELNET key.
+            if target_conn.lower() in ["all", "telnet"]:
+                if network_modules.get("\\x8a") or network_modules.get("138"):
+                    if not is_duplicate_ghost(module_name, lan_modules, "TELNET:"):
+                        lan_modules[f"TELNET:{ip_module}"] = module_name
+                        logger.debug(f"Found Telnet module: {module_name} at {ip_module}")
+
+            # Checks if there's a value in the REST key.
+            if target_conn.lower() in ["all", "rest"]:
+                if network_modules.get("\\x84") or network_modules.get("132"):
+                    if not is_duplicate_ghost(module_name, lan_modules, "REST:"):
+                        lan_modules[f"REST:{ip_module}"] = module_name
+                        logger.debug(f"Found REST module: {module_name} at {ip_module}")
+
+            # Checks if there's a value in the TCP key.
+            if target_conn.lower() in ["all", "tcp"]:
+                if network_modules.get("\\x85") or network_modules.get("133"):
+                    if not is_duplicate_ghost(module_name, lan_modules, "TCP:"):
+                        lan_modules[f"TCP:{ip_module}"] = module_name
+                        logger.debug(f"Found TCP module: {module_name} at {ip_module}")
+        mySocket.close()
     if ipAddressLookup is not None:
         if moduleFound is None:
             printText("IP Scan failed, no module found.")
         else:
-            printText("IP Scan succeeded, module found: " + moduleFound)
+            printText("IP Scan succeeded, module found: " + str(moduleFound))
     logger.debug("Finished UDP scan")
     retVal.update(lan_modules)
     return retVal

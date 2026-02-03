@@ -11,10 +11,10 @@ except ImportError:
     logging.debug("Standard telnetlib not found (Python 3.13+ detected). Using drop-in replacement.")
     try:
         from telnetlib313andup import Telnet
-    except ImportError:
-        print("CRITICAL: 'telnetlib313andup' is not installed.")
-        print("Please run: pip install telnetlib-313-and-up")
-        sys.exit(1)
+    except ImportError as e:
+        logging.error("CRITICAL: 'telnetlib313andup' is not installed.")
+        logging.error("Please run: pip install telnetlib-313-and-up")
+        raise e
 # -----------------------------------------------------------
 
 class TelnetConn:

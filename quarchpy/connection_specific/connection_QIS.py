@@ -587,26 +587,30 @@ class QisInterface:
         ipAddress : str
             The IP address of the module you are looking for eg '192.168.123.123'
         """
-
         logger.debug("Starting QIS IP Address Lookup at " + ip_address)
         if not ip_address.lower().__contains__("tcp::"):
             ip_address = "TCP::" + ip_address
-        response = "No response from QIS Scan"
+
         try:
+            # The scan command triggers the hardware probe
             response = qis_connection.send_command("$scan " + ip_address)
-            # The valid response is "Located device: 192.168.1.2"
+
             if "located" in response.lower():
                 logger.debug(response)
-                # return the valid response
                 return True
-            else:
-                logger.warning("No module found at " + ip_address)
-                logger.warning(response)
-                return False
+
+            # If it didn't return 'located' immediately, wait 2 seconds
+            # and check the list one more time. QIS is often 'lazy' with updates.
+            time.sleep(2)
+            dev_list = self.get_list_details()
+            if ip_address in "".join(dev_list):
+                logger.debug(f"Device {ip_address} found in list after scan delay.")
+                return True
+
+            return False
 
         except Exception as e:
-            logger.warning("No module found at " + ip_address)
-            logger.warning(e)
+            logger.warning(f"Scan failed for {ip_address}: {e}")
             return False
 
     def get_qis_module_selection(self, preferred_connection_only=True, additional_options=['rescan', 'all con types', 'ip scan'], scan=True) -> str:
@@ -1164,99 +1168,91 @@ class QisInterface:
 
     def send_and_receive_text(self, sock, send_text='$help', device='', read_until_cursor=True) -> str:
         """
-        Internal function for command handling.  This handles complex cases such as timeouts and XML
-        response formatting, which conflicts with the default cursor
-
-        Args:
-            sock:
-                The socket to communicate over
-            send_text:
-                The command text to send
-            device:
-                Optional device ID to send the command to
-            read_until_cursor:
-                Flag to indicate if we should read until the cursor is returned
-
-        Returns:
-            Response string from the module
+        Internal function for command handling.
+        Synchronized to ensure that if rx_bytes re-establishes a connection,
+        the new socket is used for all subsequent reads.
         """
-
-        # Avoid multiple threads trying to send at once. QIS only has a single socket for all devices
+        # Avoid multiple threads trying to send at once.
         self.sockSemaphore.acquire()
         try:
+            # 1. Use the class-level socket initially, syncing the argument handle
+            if sock is not self.sock:
+                sock = self.sock
+
             # Send the command
             self.send_text(sock, send_text, device)
-            # Receive Response
-            res = self.receive_text(sock)
-            # If we get no response, log an error and try to flush using a simple stream query command
-            # If that works, we retry our command.  In fail cases we raise an exception and abort as
-            # the connection is bad
+
+            # Receive Response - receive_text calls rx_bytes which might update self.sock
+            res = self.receive_text(self.sock)
+
+            # 2. Logic for Empty Responses (Retries)
             if len(res) == 0:
-                logger.error("Empty response from QIS for cmd: " + send_text + ". To device: " + device)
-                self.send_text(sock, "stream?", device)
-                res = self.receive_text(sock)
+                logger.error(f"Empty response from QIS for cmd: {send_text}. To device: {device}")
+                # Use current class socket in case the previous call reset it
+                self.send_text(self.sock, "stream?", device)
+                res = self.receive_text(self.sock)
+
                 if len(res) != 0:
-                    self.send_text(sock, send_text, device)
-                    res = self.receive_text(sock)
+                    self.send_text(self.sock, send_text, device)
+                    res = self.receive_text(self.sock)
                     if len(res) == 0:
-                        raise (Exception("Empty response from QIS. Sent: " + send_text))
+                        raise Exception(f"Empty response from QIS after retry. Sent: {send_text}")
                 else:
-                    raise (Exception("Empty response from QIS. Sent: " + send_text))
+                    raise Exception(f"Empty response from QIS (no stream? response). Sent: {send_text}")
 
-            if res[0] == self.cursor:
-                logger.error('Only returned a cursor from QIS. Sent: ' + send_text)
-                raise (Exception("Only returned a cursor from QIS. Sent: " + send_text))
-            if 'Create Socket Fail' == res[0]: # If create socked fail (between QIS and tcp/ip module)
-                logger.error(res[0])
-                raise (Exception("Failed to open QIS to module socked. Sent: " + send_text))
-            if 'Connection Timeout' == res[0]:
-                logger.error(res[0])
-                raise (Exception("Connection timeout from QIS. Sent: " + send_text))
+            # 3. Check for specific QIS error strings
+            if res.startswith(self.cursor):
+                logger.error(f'Only returned a cursor from QIS. Sent: {send_text}')
+                raise Exception(f"Only returned a cursor from QIS. Sent: {send_text}")
 
-            # If reading until a cursor comes back, then keep reading until a cursor appears or max tries exceeded
-            # Because large XML responses are possible, we need to validate them as complete before looking
-            # for a final cursor
+            if 'Create Socket Fail' in res:
+                logger.error(res)
+                raise Exception(f"Failed to open QIS to module socket. Sent: {send_text}")
+
+            if 'Connection Timeout' in res:
+                logger.error(res)
+                raise Exception(f"Connection timeout from QIS backend. Sent: {send_text}")
+
+            # 4. Multi-part Read Logic (XML vs Normal String)
             if read_until_cursor:
-
                 max_reads = 1000
                 count = 1
                 is_xml = False
 
                 while True:
-
-                    # Determine if the response is XML based on its start
-                    if count == 1:  # Only check this on the first read
-                        if res.startswith("<?xml"):  # Likely XML if it starts with '<'
+                    # Check for XML on the first segment
+                    if count == 1:
+                        if res.startswith("<?xml") or res.startswith("<XmlResponse"):
                             is_xml = True
-                        elif res.startswith("<XmlResponse"):
-                            is_xml = True
-
 
                     if is_xml:
-                        # Try to parse the XML to check if it's complete
                         try:
-                            ET.fromstring(res[:-1])  # If it parses, the response is complete
-                            return res[:-1]  # Exit the loop, valid XML received
+                            # Try parsing XML; if it works, we have the full response.
+                            # Using res[:-1] to trim the likely trailing cursor/newline for parsing
+                            ET.fromstring(res.rstrip('>').strip())
+                            return res.rstrip('>').strip()
                         except ET.ParseError:
-                            pass  # Keep reading until XML is complete
+                            pass  # Keep reading
                     else:
-                        # Handle normal strings
-                        if res[-1:] == self.cursor:  # If the last character is '>', stop reading
+                        # Normal string: check for the cursor at the very end
+                        if res.strip().endswith(self.cursor):
                             break
 
-                    # Receive more data
-                    res += self.receive_text(sock)
+                    # RECEIVE MORE DATA:
+                    # Crucial: Always use self.sock here to avoid [WinError 10038]
+                    new_chunk = self.receive_text(self.sock)
+                    if not new_chunk:
+                        break
+                    res += new_chunk
 
-                    # Increment count and check for max reads
                     count += 1
                     if count >= max_reads:
-                        raise Exception('Count = Error: max reads exceeded before response was complete')
+                        raise Exception('Error: max reads exceeded before response was complete')
 
             return res
 
         except Exception as e:
-            # Something went wrong during send qis cmd
-            logger.error("Error! Unable to retrieve response from QIS. Command: " + send_text)
+            logger.error(f"Error! Unable to retrieve response from QIS. Command: {send_text}")
             logger.error(e)
             raise e
         finally:
@@ -1274,9 +1270,8 @@ class QisInterface:
         """
         res = bytearray()
         res.extend(self.rx_bytes(sock))
-        res = res.decode()
-
-        return res
+        # Use 'replace' to avoid crashing on non-UTF8 hardware noise
+        return res.decode('utf-8', errors='replace')
 
     def send_text(self, sock, message='$help', device='') -> bool:
         """
@@ -1300,63 +1295,28 @@ class QisInterface:
         sock.sendall(conv_mess.encode('utf-8'))
         return True
 
-    def rx_bytes(self,sock) -> bytes:
-        """
-        Reads an array of bytes from the socket as part of handling a command response
+    def rx_bytes(self, sock) -> bytes:
+        # Use a solid 30-second window. Scans are slow; fast commands will still
+        # return instantly because select() returns as soon as data arrives.
+        timeout_in_seconds = 30
 
-        Args:
-            sock:
-                Socket to communicate over
-        Returns:
-            Bytes read
+        try:
+            # Use self.sock to ensure we are always on the active handle
+            target_sock = self.sock if self.sock else sock
+            ready = select.select([target_sock], [], [], timeout_in_seconds)
 
-        """
+            if ready[0]:
+                data = target_sock.recv(self.maxRxBytes)
+                if data:
+                    return data
 
-        max_exceptions=10
-        exceptions=0
-        max_read_repeats=50
-        read_repeats=0
-        timeout_in_seconds = 10
+            # If we hit 30s, just return empty. Do NOT close the socket.
+            logger.debug("Read timeout reached (QIS is busy or hardware is slow).")
+            return b''
 
-        #Keep trying to read bytes until we get some, unless the number of read repeats or exceptions is exceeded
-        while True:
-            try:
-                # Select.select returns a list of waitable objects which are ready. On Windows, it has to be sockets.
-                # The first argument is a list of objects to wait for reading, second writing, third 'exceptional condition'
-                # We only use the read list and our socket to check if it is readable. if no timeout is specified,
-                # then it blocks until it becomes readable.
-                # TODO: AN: It is very unclear why we try to open a new socket if data is not ready.
-                #   This would seem like a hard failure case!
-                ready = select.select([sock], [], [], timeout_in_seconds)
-                if ready[0]:
-                    ret = sock.recv(self.maxRxBytes)
-                    return ret
-                # If the socket is not ready for read, open a new one
-                else:
-                    logger.error("Timeout: No bytes were available to read from QIS")
-                    logger.debug("Opening new QIS socket")
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.connect((self.host, self.port))
-                    sock.settimeout(5)
-
-                    try:
-                        welcome_string = self.sock.recv(self.maxRxBytes).rstrip()
-                        welcome_string = 'Connected@' + self.host + ':' + str(self.port) + ' ' + '\n    ' + welcome_string
-                        logger.debug("Socket opened: " + welcome_string)
-                    except Exception as e:
-                        logger.error('Timeout: Failed to open new QIS socket and get the welcome message')
-                        raise e
-
-                    read_repeats=read_repeats+1
-                    time.sleep(0.5)
-
-            except Exception as e:
-                raise e
-
-            # If we read no data, its probably an error, but there may be cases where an empty response is valid
-            if read_repeats >= max_read_repeats:
-                logger.error('Max read repeats exceeded')
-                return b''
+        except Exception as e:
+            logger.error(f"Socket error in rx_bytes: {e}")
+            return b''
 
     def closeConnection(self, sock=None, conString: str=None) -> str:
         """

@@ -260,8 +260,7 @@ def closeQis(host='127.0.0.1', port=9722):
         QIS connection port if set to a value other than the default
         
     """
-
-    myQis = QisInterface(host, port)
+    myQis = QisInterface(host=host, port=port)
     retVal = myQis.sendAndReceiveCmd(cmd="$shutdown")
     myQis.disconnect()
     time.sleep(1)

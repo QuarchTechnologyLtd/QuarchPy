@@ -305,7 +305,7 @@ class quarchDevice:
             logger.debug(f"Replacing single colon ':' with '::' in ConString '{self.ConString}' for server connection.")
             self.ConString = self.ConString.replace(':', '::')
 
-    def _verify_server_device(self, server_conn_obj: Any, server_type: str):
+    def _verify_server_device(self, server_conn_obj: Any, server_type: str) -> bool:
         """
         Finds and verifies the target device on a QIS or QPS server.
 

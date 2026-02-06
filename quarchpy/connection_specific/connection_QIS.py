@@ -27,7 +27,7 @@ class QisInterface:
         self.deviceList = []
         self.deviceDict = {}
         self.dictSemaphore = threading.Semaphore()
-        self.connect(connection_message = connectionMessage)
+        self.connect(connection_message=connectionMessage)
         self.stripesEvent = threading.Event()
 
         self.qps_stream_header = None
@@ -47,7 +47,6 @@ class QisInterface:
         self.cursor = '>'
         #clear packets
         welcome_string = self.streamSock.recv(self.maxRxBytes).rstrip()
-
 
     def connect(self, connection_message: bool = True) -> str:
         """
@@ -78,22 +77,25 @@ class QisInterface:
             #clear packets
             try:
                 welcome_string = self.sock.recv(self.maxRxBytes).rstrip()
-                welcome_string = 'Connected@' + str(self.host) + ':' + str(self.port) + ' ' + '\n    ' + str(welcome_string)
+                welcome_string = 'Connected@' + str(self.host) + ':' + str(self.port) + ' ' + '\n    ' + str(
+                    welcome_string)
                 self.deviceDict['QIS'][0:3] = [False, 'Connected', welcome_string]
                 return welcome_string
             except Exception as e:
-                logger.error('No welcome received. Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(self.port) + ')')
+                logger.error(
+                    'No welcome received. Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(
+                        self.port) + ')')
                 logger.error('Is backend running and host accessible?')
                 self.deviceDict['QIS'][0:3] = [True, 'Disconnected', 'Unable to connect to QIS']
                 raise e
         except Exception as e:
             self.device_dict_setup('QIS')
             if connection_message:
-                logger.error('Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(self.port) + ').')
+                logger.error('Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(
+                    self.port) + ').')
                 logger.error('Is backend running and host accessible?')
             self.deviceDict['QIS'][0:3] = [True, 'Disconnected', 'Unable to connect to QIS']
             raise e
-
 
     def disconnect(self) -> str:
         """
@@ -118,12 +120,13 @@ class QisInterface:
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            message = 'Unable to end connection. ' + self.host + ':' + str(self.port) + ' \r\n' + str(exc_type) + ' ' + str(fname) + ' ' + str(exc_tb.tb_lineno)
+            message = 'Unable to end connection. ' + self.host + ':' + str(self.port) + ' \r\n' + str(
+                exc_type) + ' ' + str(fname) + ' ' + str(exc_tb.tb_lineno)
             self.deviceDict['QIS'][0:3] = [True, "Connected", message]
             raise e
         return res
 
-    def close_connection(self, sock=None, con_string: str=None) -> str:
+    def close_connection(self, sock=None, con_string: str = None) -> str:
         """
         Orders QIS to release a given device (or all devices if no connection string is specified)
         This is more important for TCP connected devices as the socket is held open until
@@ -156,8 +159,9 @@ class QisInterface:
             return "FAIL: Unable to close connection to device(s), QIS may be already closed"
 
     def start_stream(self, module: str, file_name: str, max_file_size: int, release_on_data: bool, separator: str,
-                     stream_duration: float=None, in_memory_data: StringIO=None, output_file_handle=None, use_gzip: bool=None,
-                     gzip_compress_level: int=9):
+                     stream_duration: float = None, in_memory_data: StringIO = None, output_file_handle=None,
+                     use_gzip: bool = None,
+                     gzip_compress_level: int = 9):
         """
         Begins a stream process which will record data from the module to a CSV file or in memory CSV equivalent
 
@@ -201,7 +205,7 @@ class QisInterface:
         while self.stripesEvent.is_set():
             pass
 
-    def stop_stream(self, module, blocking:bool = True):
+    def stop_stream(self, module, blocking: bool = True):
         """
 
         Args:
@@ -216,7 +220,7 @@ class QisInterface:
 
         """
 
-        module_name=module.ConString
+        module_name = module.ConString
         i = self.device_control_index(module_name)
         self.stopFlagList[i] = False
 
@@ -230,17 +234,20 @@ class QisInterface:
                 thread_name_list = []
                 for t1 in threading.enumerate():
                     thread_name_list.append(t1.name)
-                module_streaming= module.sendCommand("rec stream?").lower() #checking if module thinks its streaming.
-                module_streaming2= module.sendCommand("stream?").lower() #checking if the module has told qis it has stopped streaming.
+                module_streaming = module.sendCommand("rec stream?").lower()  #checking if module thinks its streaming.
+                module_streaming2 = module.sendCommand(
+                    "stream?").lower()  #checking if the module has told qis it has stopped streaming.
 
                 if module_name in thread_name_list or "running" in module_streaming or "running" in module_streaming2:
                     time.sleep(0.1)
                 else:
                     running = False
 
-    def start_stream_thread(self, module: str, file_name: str, max_file_size: float, release_on_data: bool, separator: str,
-                          stream_duration: int=None, in_memory_data=None, output_file_handle=None, use_gzip: bool=False,
-                          gzip_compress_level: int=9):
+    def start_stream_thread(self, module: str, file_name: str, max_file_size: float, release_on_data: bool,
+                            separator: str,
+                            stream_duration: int = None, in_memory_data=None, output_file_handle=None,
+                            use_gzip: bool = False,
+                            gzip_compress_level: int = 9):
         """
 
         Args:
@@ -385,7 +392,8 @@ class QisInterface:
                     logger.error(f"Error closing file {file_name} due to ValueError: {e_close}")
             raise ValueError(f"couldn't decode samplePeriod: {base_sample_period}")
 
-        base_sample_period_period_s = int(re.search(r'^\d*\.?\d*', base_sample_period).group()) * (10 ** base_sample_unit_exponent)
+        base_sample_period_period_s = int(re.search(r'^\d*\.?\d*', base_sample_period).group()) * (
+                    10 ** base_sample_unit_exponent)
 
         # Now we loop to process the stripes of data as they are available
         is_run = True
@@ -500,8 +508,8 @@ class QisInterface:
                     logger.warning(f"An IOError occurred while writing GZIP data for {module}.")
                     logger.warning("This can happen at high data rates if compression is too slow for the I/O buffer.")
                     logger.warning(f"Current compression level is {gzip_compress_level}. "
-                                    f"Consider re-running with a lower 'gzip_compress_level' (e.g., 6 or 1) "
-                                    "if this error persists.")
+                                   f"Consider re-running with a lower 'gzip_compress_level' (e.g., 6 or 1) "
+                                   "if this error persists.")
 
                 # File might have been closed by the system if it's a pipe and the other end closed or other severe errors.
                 # Attempt to close only if this function opened it, and it seems like it might be openable/closable.
@@ -550,7 +558,7 @@ class QisInterface:
         dev_string = dev_string.replace('>', '')
         dev_string = dev_string.replace(r'\d+\) ', '')
         dev_string = dev_string.split('\r\n')
-        dev_string = filter(None, dev_string) #remove empty elements
+        dev_string = filter(None, dev_string)  #remove empty elements
 
         return dev_string
 
@@ -576,7 +584,7 @@ class QisInterface:
         dev_string = [x for x in dev_string if x]  # remove empty elements
         return dev_string
 
-    def scan_ip(self, qis_connection, ip_address) -> bool:
+    def scan_ip(self, qis_connection: "QisInterface" = None, ip_address: str = "", timeout: int = 5) -> str:
         """
         Triggers QIS to look at a specific IP address for a module
 
@@ -591,29 +599,33 @@ class QisInterface:
         if not ip_address.lower().__contains__("tcp::"):
             ip_address = "TCP::" + ip_address
 
+        if qis_connection is None:
+            qis_connection = self
+
         try:
             # The scan command triggers the hardware probe
             response = qis_connection.send_command("$scan " + ip_address)
 
             if "located" in response.lower():
                 logger.debug(response)
-                return True
+                return response
 
-            # If it didn't return 'located' immediately, wait 2 seconds
+            # If it didn't return 'located' immediately, wait 5 seconds
             # and check the list one more time. QIS is often 'lazy' with updates.
-            time.sleep(2)
+            time.sleep(timeout)
             dev_list = self.get_list_details()
             if ip_address in "".join(dev_list):
                 logger.debug(f"Device {ip_address} found in list after scan delay.")
-                return True
+                return response
 
-            return False
+            return f"Device {ip_address} not found after scan."
 
         except Exception as e:
             logger.warning(f"Scan failed for {ip_address}: {e}")
-            return False
+            return f"Scan failed for {ip_address}: {e}"
 
-    def get_qis_module_selection(self, preferred_connection_only=True, additional_options=['rescan', 'all con types', 'ip scan'], scan=True) -> str:
+    def get_qis_module_selection(self, preferred_connection_only=True,
+                                 additional_options=['rescan', 'all con types', 'ip scan'], scan=True) -> str:
         """
         Scans for available modules and allows the user to select one through an interactive selection process.
         Can also handle additional custom options and some built-in ones such as rescanning
@@ -646,10 +658,11 @@ class QisInterface:
             if scan and ip_address is None:
                 found_devices = self.qis_scan_devices(scan=scan, preferred_connection_only=favourite)
             elif scan and ip_address is not None:
-                found_devices = self.qis_scan_devices(scan=scan, preferred_connection_only=favourite, ip_address=ip_address)
+                found_devices = self.qis_scan_devices(scan=scan, preferred_connection_only=favourite,
+                                                      ip_address=ip_address)
 
-            my_device_id = listSelection(title="Select a module",message="Select a module",
-                                         selectionList=found_devices, additionalOptions= additional_options,
+            my_device_id = listSelection(title="Select a module", message="Select a module",
+                                         selectionList=found_devices, additionalOptions=additional_options,
                                          nice=True, tableHeaders=table_headers, indexReq=True)
 
             if my_device_id.lower() == 'rescan':
@@ -711,7 +724,7 @@ class QisInterface:
             found_devices = found_devices.replace('>', '')
             found_devices = found_devices.split('\r\n')
             # Can't stream over REST. Removing all REST connections.
-            temp_list= list()
+            temp_list = list()
             for item in found_devices:
                 if item is None or "rest" in item.lower() or item == "":
                     pass
@@ -831,7 +844,7 @@ class QisInterface:
             if sock is None:
                 sock = self.sock
 
-            index = 2 # index of relevant line in split string
+            index = 2  # index of relevant line in split string
             stream_status = self.send_and_receive_text(sock, send_text='stream text header', device=device)
 
             self.qps_stream_header = stream_status
@@ -884,59 +897,59 @@ class QisInterface:
                 sock = self.sock
 
             index = 1
-            stream_status = self.sendAndReceiveText(sock,'stream text header', device)
+            stream_status = self.sendAndReceiveText(sock, 'stream text header', device)
             # Check if this is an XML form header
-            if self.is_xml_header (stream_status):
-               # Get the basic averaging rate (V3 header)
-               xml_root = self.get_stream_xml_header (device=device, sock=sock)
-               # Return the time-based averaging string
-               device_period = xml_root.find('.//devicePeriod')
-               time_unit = 'uS'
-               if device_period is None:
-                   device_period = xml_root.find('.//devicePerioduS')
-                   if device_period is None:
-                       device_period = xml_root.find('.//mainPeriod')
-                       if 'ns' in  device_period.text:
-                        time_unit = 'nS'
+            if self.is_xml_header(stream_status):
+                # Get the basic averaging rate (V3 header)
+                xml_root = self.get_stream_xml_header(device=device, sock=sock)
+                # Return the time-based averaging string
+                device_period = xml_root.find('.//devicePeriod')
+                time_unit = 'uS'
+                if device_period is None:
+                    device_period = xml_root.find('.//devicePerioduS')
+                    if device_period is None:
+                        device_period = xml_root.find('.//mainPeriod')
+                        if 'ns' in device_period.text:
+                            time_unit = 'nS'
 
-               # The time column always first
-               format_header = 'Time ' + time_unit + ','
-               # Find the channels section of each group and iterate through it to add the channel columns
-               for group in xml_root.iter():
-                   if group.tag == "channels":
-                       for chan in group:
-                        # Avoid children that are not named channels
+                # The time column always first
+                format_header = 'Time ' + time_unit + ','
+                # Find the channels section of each group and iterate through it to add the channel columns
+                for group in xml_root.iter():
+                    if group.tag == "channels":
+                        for chan in group:
+                            # Avoid children that are not named channels
                             if (chan.find('.//name') is not None):
                                 name_str = chan.find('.//name').text
                                 group_str = chan.find('.//group').text
                                 unit_str = chan.find('.//units').text
-                                format_header = format_header +  name_str + " " + group_str + " " + unit_str + ","
-               format_header = format_header.rstrip(",")
-               return format_header
+                                format_header = format_header + name_str + " " + group_str + " " + unit_str + ","
+                format_header = format_header.rstrip(",")
+                return format_header
             else:
                 stream_status = stream_status.split('\r\n')
                 if 'Header Not Available' in stream_status[0]:
                     err_str = stream_status[0] + '. Check stream has been ran on device.'
                     logger.error(err_str)
                     return err_str
-                output_mode = self.sendAndReceiveText(sock,'Config Output Mode?', device)
-                power_mode = self.sendAndReceiveText(sock,'stream mode power?', device)
+                output_mode = self.sendAndReceiveText(sock, 'Config Output Mode?', device)
+                power_mode = self.sendAndReceiveText(sock, 'stream mode power?', device)
                 data_format = int(re.sub(r'^Format: ', '', stream_status[index]))
-                b0 = 1              #12V_I
-                b1 = 1 << 1         #12V_V
-                b2 = 1 << 2         #5V_I
-                b3 = 1 << 3         #5V_V
+                b0 = 1  #12V_I
+                b1 = 1 << 1  #12V_V
+                b2 = 1 << 2  #5V_I
+                b3 = 1 << 3  #5V_V
                 format_header = 'StripeNum, Trig, '
                 if data_format & b3:
                     if '3V3' in output_mode:
-                        format_header = format_header +  '3V3_V,'
+                        format_header = format_header + '3V3_V,'
                     else:
-                        format_header = format_header +  '5V_V,'
+                        format_header = format_header + '5V_V,'
                 if data_format & b2:
                     if '3V3' in output_mode:
-                        format_header = format_header +  ' 3V3_I,'
+                        format_header = format_header + ' 3V3_I,'
                     else:
-                        format_header = format_header +  ' 5V_I,'
+                        format_header = format_header + ' 5V_I,'
 
                 if data_format & b1:
                     format_header = format_header + ' 12V_V,'
@@ -983,7 +996,7 @@ class QisInterface:
             is_end_of_block = True
             stripes = stripes.rstrip("eof\r\n>")
         if stripes.endswith("\r\n>"):
-            stripes= stripes[:-1] # remove the trailing ">"
+            stripes = stripes[:-1]  # remove the trailing ">"
         # The current reader seems to lose the final line feeds, so check for this
         if len(stripes) > 0:
             if not stripes.endswith("\r\n"):
@@ -1051,7 +1064,7 @@ class QisInterface:
             self.dictSemaphore.release()
 
     # Pass in a stream header and we check if it is XML or legacy format
-    def is_xml_header (self, header_text) -> bool:
+    def is_xml_header(self, header_text) -> bool:
         """
         Checks if the given header string is in XML format (as apposed to legacy text format) or an invalid string
 
@@ -1068,7 +1081,7 @@ class QisInterface:
             return True
 
     # Internal function.  Gets the stream header and parses it into useful information
-    def get_stream_xml_header (self, device, sock=None) -> ET.Element:
+    def get_stream_xml_header(self, device, sock=None) -> ET.Element:
         """
         Gets the XML format header from an attached device (which must have run or be running a stream)
         Parses the string into XML and returns the root element
@@ -1112,8 +1125,9 @@ class QisInterface:
             # Check header format is supported by quarchpy
             version_str = xml_root.find('.//version').text
             if 'V3' not in version_str:
-                logger.error(device + ' Stream header version not compatible: ' + xml_root.find('version').text + '.' + self.host + ':' + str(self.port))
-                raise Exception ("Stream header version not supported")
+                logger.error(device + ' Stream header version not compatible: ' + xml_root.find(
+                    'version').text + '.' + self.host + ':' + str(self.port))
+                raise Exception("Stream header version not supported")
 
             # Return the XML structure for the code to use
             return xml_root
@@ -1122,7 +1136,9 @@ class QisInterface:
             logger.error(device + ' Exception while parsing stream header XML.' + self.host + ':' + str(self.port))
             raise e
 
-    def send_command (self, command: str, device: str = '', qis_socket: socket.socket=None, no_cursor_expected: bool=False, no_response_expected: bool=False, command_delay: float=0.0) -> str:
+    def send_command(self, command: str, device: str = '', qis_socket: socket.socket = None,
+                     no_cursor_expected: bool = False, no_response_expected: bool = False,
+                     command_delay: float = 0.0) -> str:
         """
         Sends a command and returns the response as a string.  Multiple lines are escaped with CRLF.
         The command is sent to the QIS socket, and depending on the command will be replied by either QIS
@@ -1163,7 +1179,7 @@ class QisInterface:
             if res[-3:] == '\r\n>':
                 res = res[:-3]  # remove last three chars - '\r\n>'
             elif res[-2:] == '\n>':
-                    res = res[:-2]  # remove last 2 chars - '\n>'
+                res = res[:-2]  # remove last 2 chars - '\n>'
             return res
 
     def send_and_receive_text(self, sock, send_text='$help', device='', read_until_cursor=True) -> str:
@@ -1318,12 +1334,12 @@ class QisInterface:
             logger.error(f"Socket error in rx_bytes: {e}")
             return b''
 
-    def closeConnection(self, sock=None, conString: str=None) -> str:
+    def closeConnection(self, sock=None, conString: str = None) -> str:
         """
         deprecated:: 2.2.13
         Use `close_connection` instead.
         """
-        return self.close_connection (sock=sock, con_string=conString)
+        return self.close_connection(sock=sock, con_string=conString)
 
     def startStream(self, module: str, fileName: str, fileMaxMB: int, releaseOnData: bool, separator: str,
                     streamDuration: int = None, inMemoryData=None, outputFileHandle=None, useGzip: bool = None,
@@ -1357,33 +1373,37 @@ class QisInterface:
         return self.scan_ip(QisConnection, ipAddress)
 
     def GetQisModuleSelection(self, favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'],
-                          scan=True):
+                              scan=True):
         """
         deprecated:: 2.2.13
         Use `get_qis_module_selection` instead.
         """
         return self.get_qis_module_selection(favouriteOnly, additionalOptions, scan)
 
-    def sendCommand(self, cmd, device="", timeout=20,sock=None,readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse=True) -> str:
+    def sendCommand(self, cmd, device="", timeout=20, sock=None, readUntilCursor=True, betweenCommandDelay=0.0,
+                    expectedResponse=True) -> str:
         """
         deprecated:: 2.2.13
         Use `send_command` instead.
         """
         return self.send_command(cmd, device, sock, False, not expectedResponse, betweenCommandDelay)
 
-    def sendCmd(self, device='', cmd='$help', sock=None, readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse = True) -> str:
+    def sendCmd(self, device='', cmd='$help', sock=None, readUntilCursor=True, betweenCommandDelay=0.0,
+                expectedResponse=True) -> str:
         """
         deprecated:: 2.2.13
         Use `send_command` instead.
         """
         return self.send_command(cmd, device, sock, not readUntilCursor, not expectedResponse, betweenCommandDelay)
 
-    def sendAndReceiveCmd(self, sock=None, cmd='$help', device='', readUntilCursor=True, betweenCommandDelay=0.0) -> str:
+    def sendAndReceiveCmd(self, sock=None, cmd='$help', device='', readUntilCursor=True,
+                          betweenCommandDelay=0.0) -> str:
         """
         deprecated:: 2.2.13
         Use `send_command` instead.
         """
-        return self.send_command(cmd, device, sock, not readUntilCursor, no_response_expected=False, command_delay=betweenCommandDelay)
+        return self.send_command(cmd, device, sock, not readUntilCursor, no_response_expected=False,
+                                 command_delay=betweenCommandDelay)
 
     def streamRunningStatus(self, device: str) -> str:
         """
@@ -1447,7 +1467,7 @@ class QisInterface:
                     time.sleep(0.5)
             time.sleep(1)
 
-    def convertStreamAverage (self, streamAveraging):
+    def convertStreamAverage(self, streamAveraging):
         """
         deprecated:: 2.2.13
         No indication this is used anywhere

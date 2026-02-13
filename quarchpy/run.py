@@ -240,7 +240,7 @@ def _run_qps_function(args=[]):
                     printText("QPS is not running")
 
     if not shutdown:
-        startLocalQps(args=args)
+        startLocalQps(args=args, startQPSMinimised=False)
 
 
 def _run_calibration_function(args=[]):

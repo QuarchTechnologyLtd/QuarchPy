@@ -1,7 +1,21 @@
-from telnetlib import Telnet
+import logging
 import time
-#from telnetlib3 import Telnet
+import sys
 
+# -----------------------------------------------------------
+# Import Logic: Handles Python 3.13+ deprecation of telnetlib
+# -----------------------------------------------------------
+try:
+    from telnetlib import Telnet
+except ImportError:
+    logging.debug("Standard telnetlib not found (Python 3.13+ detected). Using drop-in replacement.")
+    try:
+        from telnetlib313andup import Telnet
+    except ImportError as e:
+        logging.error("CRITICAL: 'telnetlib313andup' is not installed.")
+        logging.error("Please run: pip install telnetlib-313-and-up")
+        raise e
+# -----------------------------------------------------------
 
 class TelnetConn:
     def __init__(self, ConnTarget):
@@ -14,14 +28,14 @@ class TelnetConn:
         self.Connection.close()
         # The closed device reports as in use if a connection is opened to it within 0.05s.
         # This happens during scanning as rest detects the device and shows it as "in use" Putting a sleep here
-        #  allows time for the connection to be close,
+        # allows time for the connection to be close,
         time.sleep(0.15)
         return True
 
     def sendCommand(self, Command, expectedResponse = True):
         self.Connection.write((Command + "\r\n").encode('latin-1'))
-        self.Connection.read_until(b"\r\n",3)
-        Result = self.Connection.read_until(b">",3)[:-1]
+        self.Connection.read_until(b"\r\n", 3)
+        Result = self.Connection.read_until(b">", 3)[:-1]
         Result = Result.decode()
         Result = Result.strip('> \t\n\r')
         return Result.strip()

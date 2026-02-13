@@ -6,16 +6,34 @@ import logging
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
+
+# --- Dynamic Level Synchronization ---
+class SyncWithRootFilter(logging.Filter):
+    """
+    A filter that dynamically checks the root logger's level.
+    This allows the quarchpy console handler to 'point' to the
+    global python log level even if it changes mid-script.
+    """
+
+    def filter(self, record):
+        # Dynamically fetch the root logger's effective level
+        root_level = logging.getLogger().getEffectiveLevel()
+        # Only allow the log record if its level is >= the current root level
+        return record.levelno >= root_level
+
+
 logger = logging.getLogger("quarchpy")
+
+# Master Valve: Must stay DEBUG so the File Handler captures everything.
 logger.setLevel(logging.DEBUG)
 
-# Don't propagate to root unless you want duplicate output
+# Propagate to root is False because we provide our own console handler.
+# If True, you would see duplicate logs if the user also has a root handler.
 logger.propagate = False
 
 # Only add handlers once
 if not logger.handlers:
-
-    # File handler (always debug)
+    # 1. File handler (Always capture DEBUG for the 'permanent record')
     log_dir = Path.home() / ".quarchpy"
     log_dir.mkdir(exist_ok=True)
     logfile = log_dir / "quarchpy.log"
@@ -28,9 +46,15 @@ if not logger.handlers:
     ))
     logger.addHandler(file_handler)
 
-    # Console: default WARNING
+    # 2. Console: Dynamically mirrors the python root log level
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.WARNING)
+
+    # We set this to NOTSET (0) so the handler itself doesn't block anything...
+    console_handler.setLevel(logging.NOTSET)
+
+    # ...instead, we use the custom filter to do the dynamic level check.
+    console_handler.addFilter(SyncWithRootFilter())
+
     console_handler.setFormatter(logging.Formatter(
         "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         "%Y-%m-%d %H:%M:%S"
@@ -42,9 +66,14 @@ if not logger.handlers:
 def configure_logging(console_level=None, file_level=None, file_path=None):
     """Reconfigure quarchpy logging safely."""
     for handler in logger.handlers:
-        # Change console level
-        if isinstance(handler, logging.StreamHandler):
+        # Change console level (Note: Setting this overrides the SyncWithRootFilter behavior)
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, RotatingFileHandler):
             if console_level is not None:
+                # If the user explicitly sets a level, we remove the dynamic filter
+                # so it behaves exactly as the user requested.
+                for f in handler.filters:
+                    if isinstance(f, SyncWithRootFilter):
+                        handler.removeFilter(f)
                 handler.setLevel(console_level)
 
         # Change file level and path
@@ -54,61 +83,40 @@ def configure_logging(console_level=None, file_level=None, file_path=None):
             if file_path is not None:
                 handler.baseFilename = str(file_path)
 
-    logger.info("quarchpy logging reconfigured")
+    logger.info(
+        f"quarchpy logging reconfigured console_level:{console_level} file_level:{file_level} file_path:{file_path}")
 
 
-# Adds / to the path.
-folder2add = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]) + "//")
-if folder2add not in sys.path:
-    sys.path.insert(0, folder2add)
+# --- Path Management (Maintain existing legacy behavior) ---
+base_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+folders = [
+    "",
+    "disk_test",
+    "connection_specific",
+    os.path.join("connection_specific", "serial"),
+    os.path.join("connection_specific", "QIS"),
+    os.path.join("connection_specific", "usb_libs"),
+    "config_files"
+]
 
-# Adds /disk_test to the path.
-folder2add = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]) + "//disk_test")
-if folder2add not in sys.path:
-    sys.path.insert(0, folder2add)
+for folder in folders:
+    folder2add = os.path.realpath(os.path.join(base_path, folder))
+    if folder2add not in sys.path:
+        sys.path.insert(0, folder2add)
 
-# Adds /connection_specific to the path.
-folder2add = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]) + "//connection_specific")
-if folder2add not in sys.path:
-    sys.path.insert(0, folder2add)
-
-# Adds /serial to the path.
-folder2add = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]) + "//connection_specific//serial")
-if folder2add not in sys.path:
-    sys.path.insert(0, folder2add)
-
-# Adds /QIS to the path.
-folder2add = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]) + "//connection_specific//QIS")
-if folder2add not in sys.path:
-    sys.path.insert(0, folder2add)
-
-# Adds /usb_libs to the path.
-folder2add = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]) + "//connection_specific//usb_libs")
-if folder2add not in sys.path:
-    sys.path.insert(0, folder2add)
-
-# Adds /usb_libs to the path.
-folder2add = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]) + "//config_files")
-if folder2add not in sys.path:
-    sys.path.insert(0, folder2add)
-
-# Basic functions imported up to the root module in the package
+# --- Public API Imports ---
 from debug.versionCompare import requiredQuarchpyVersion
-
-#importing legacy API functions to the root module in the package.  This is to avoid
-#breacking back-compatibility with old scripts.  Avoid using these direct imports
-#and use the managed sub module format instead (from quarchpy.device import *)
 from device import quarchDevice, getQuarchDevice, get_quarch_device
 from connection_specific.connection_QIS import QisInterface, QisInterface as qisInterface
 from connection_specific.connection_QPS import QpsInterface, QpsInterface as qpsInterface
 from qis.qisFuncs import isQisRunning, startLocalQis, GetQisModuleSelection
 from qis.qisFuncs import closeQis, closeQis as closeQIS
 from device.quarchPPM import quarchPPM
-from iometer.iometerFuncs import generateIcfFromCsvLineData, readIcfCsvLineData, generateIcfFromConf, runIOMeter, processIometerInstResults
+from iometer.iometerFuncs import generateIcfFromCsvLineData, readIcfCsvLineData, generateIcfFromConf, runIOMeter, \
+    processIometerInstResults
 from device.quarchQPS import quarchQPS
 from qps.qpsFuncs import isQpsRunning, startLocalQps, GetQpsModuleSelection
 from qps.qpsFuncs import closeQps, closeQps as closeQPS
 from disk_test.DiskTargetSelection import getDiskTargetSelection, getDiskTargetSelection as GetDiskTargetSelection
 from fio.FIO_interface import runFIO
 from device.scanDevices import scanDevices
-

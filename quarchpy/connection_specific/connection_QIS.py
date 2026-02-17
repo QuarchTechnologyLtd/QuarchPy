@@ -576,14 +576,12 @@ class QisInterface:
         dev_string = [x for x in dev_string if x]  # remove empty elements
         return dev_string
 
-    def scan_ip(self, qis_connection, ip_address) -> bool:
+    def scan_ip(self, ip_address) -> str:
         """
         Triggers QIS to look at a specific IP address for a module
 
         Arguments
 
-        QisConnection : QpsInterface
-            The interface to the instance of QIS you would like to use for the scan.
         ipAddress : str
             The IP address of the module you are looking for eg '192.168.123.123'
         """
@@ -593,21 +591,21 @@ class QisInterface:
             ip_address = "TCP::" + ip_address
         response = "No response from QIS Scan"
         try:
-            response = qis_connection.send_command("$scan " + ip_address)
+            response = self.send_command("$scan " + ip_address)
             # The valid response is "Located device: 192.168.1.2"
             if "located" in response.lower():
                 logger.debug(response)
                 # return the valid response
-                return True
+                return response
             else:
                 logger.warning("No module found at " + ip_address)
                 logger.warning(response)
-                return False
+                return response
 
         except Exception as e:
             logger.warning("No module found at " + ip_address)
             logger.warning(e)
-            return False
+            return response
 
     def get_qis_module_selection(self, preferred_connection_only=True, additional_options=['rescan', 'all con types', 'ip scan'], scan=True) -> str:
         """
@@ -1118,7 +1116,13 @@ class QisInterface:
             logger.error(device + ' Exception while parsing stream header XML.' + self.host + ':' + str(self.port))
             raise e
 
-    def send_command (self, command: str, device: str = '', qis_socket: socket.socket=None, no_cursor_expected: bool=False, no_response_expected: bool=False, command_delay: float=0.0) -> str:
+    def send_command (self,
+                      command: str,
+                      device: str = '',
+                      qis_socket: socket.socket = None,
+                      cursor_expected: bool = True,
+                      response_expected: bool = True,
+                      command_delay: float = 0.0) -> str:
         """
         Sends a command and returns the response as a string.  Multiple lines are escaped with CRLF.
         The command is sent to the QIS socket, and depending on the command will be replied by either QIS
@@ -1131,10 +1135,10 @@ class QisInterface:
                 Optional Device ID string to send the command to. Use default/blank for QIS direct commands
             qis_socket:
                 Optional Socket to use for the command, if the default is not wanted
-            no_cursor_expected:
-                Optional Flag true if the command does not return a cursor, so we should not wait for it
-            no_response_expected:
-                Optional Flag true if the command does not return a response, so we should not wait for it.
+            cursor_expected:
+                Optional Flag true if the command returns a cursor, so we should wait for it
+            response_expected:
+                Optional Flag true if the command returns a response, so we should wait for it.
             command_delay:
                 Optional delay to prevent commands running in close succession.  Timed in seconds.
         Returns:
@@ -1143,13 +1147,13 @@ class QisInterface:
         if qis_socket is None:
             qis_socket = self.sock
 
-        if no_response_expected:
+        if not response_expected:
             self.send_text(qis_socket, command, device)
             return ""
         else:
             if not (device == ''):
                 self.device_dict_setup(device)
-            res = self.send_and_receive_text(qis_socket, command, device, not no_cursor_expected)
+            res = self.send_and_receive_text(qis_socket, command, device, cursor_expected)
 
             # This is a poor sleep mechanism!  Better would be to track time since the last command
             if command_delay > 0:
@@ -1389,41 +1393,40 @@ class QisInterface:
         """
         return self.get_device_list(sock)
 
-    def scanIP(self, QisConnection, ipAddress):
+    def scanIP(self, ipAddress):
         """
         deprecated:: 2.2.13
         Use `scan_ip` instead.
         """
-        return self.scan_ip(QisConnection, ipAddress)
+        return self.scan_ip(ipAddress)
 
-    def GetQisModuleSelection(self, favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'],
-                          scan=True):
+    def GetQisModuleSelection(self, favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
         """
         deprecated:: 2.2.13
         Use `get_qis_module_selection` instead.
         """
         return self.get_qis_module_selection(favouriteOnly, additionalOptions, scan)
 
-    def sendCommand(self, cmd, device="", timeout=20,sock=None,readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse=True) -> str:
+    def sendCommand(self, cmd, device="", timeout=20, sock=None, readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse=True) -> str:
         """
         deprecated:: 2.2.13
         Use `send_command` instead.
         """
-        return self.send_command(cmd, device, sock, False, not expectedResponse, betweenCommandDelay)
+        return self.send_command(cmd, device, sock, readUntilCursor, expectedResponse, betweenCommandDelay)
 
-    def sendCmd(self, device='', cmd='$help', sock=None, readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse = True) -> str:
+    def sendCmd(self, device='', cmd='$help', sock=None, readUntilCursor=True, betweenCommandDelay=0.0, expectedResponse=True) -> str:
         """
         deprecated:: 2.2.13
         Use `send_command` instead.
         """
-        return self.send_command(cmd, device, sock, not readUntilCursor, not expectedResponse, betweenCommandDelay)
+        return self.send_command(cmd, device, sock, readUntilCursor, expectedResponse, betweenCommandDelay)
 
     def sendAndReceiveCmd(self, sock=None, cmd='$help', device='', readUntilCursor=True, betweenCommandDelay=0.0) -> str:
         """
         deprecated:: 2.2.13
         Use `send_command` instead.
         """
-        return self.send_command(cmd, device, sock, not readUntilCursor, no_response_expected=False, command_delay=betweenCommandDelay)
+        return self.send_command(cmd, device, sock, cursor_expected=readUntilCursor, response_expected=True, command_delay=betweenCommandDelay)
 
     def streamRunningStatus(self, device: str) -> str:
         """

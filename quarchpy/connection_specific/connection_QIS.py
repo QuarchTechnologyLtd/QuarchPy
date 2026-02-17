@@ -601,13 +601,8 @@ class QisInterface:
                 logger.warning(response)
                 return response
 
-        response = qis_connection.send_command("$scan " + ip_address)
-        # The valid response is "Located device: 192.168.1.2"
-        if "located" in response.lower():
-            logger.debug(response)
-        else:
-            logger.warning("No module found at " + ip_address)
-            logger.warning(e)
+        except Exception as e:
+            logger.error("Error during QIS IP scan: " + str(e))
             return response
 
     def get_qis_module_selection(self, preferred_connection_only=True, additional_options=['rescan', 'all con types', 'ip scan'], scan=True) -> str:

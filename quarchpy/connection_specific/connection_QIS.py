@@ -576,14 +576,10 @@ class QisInterface:
         dev_string = [x for x in dev_string if x]  # remove empty elements
         return dev_string
 
-    def scan_ip(self, qis_connection, ip_address) -> bool:
+    def scan_ip(self, ip_address) -> str:
         """
         Triggers QIS to look at a specific IP address for a module
-
         Arguments
-
-        QisConnection : QpsInterface
-            The interface to the instance of QIS you would like to use for the scan.
         ipAddress : str
             The IP address of the module you are looking for eg '192.168.123.123'
         """
@@ -592,22 +588,16 @@ class QisInterface:
         if not ip_address.lower().__contains__("tcp::"):
             ip_address = "TCP::" + ip_address
         response = "No response from QIS Scan"
-        try:
-            response = qis_connection.send_command("$scan " + ip_address)
-            # The valid response is "Located device: 192.168.1.2"
-            if "located" in response.lower():
-                logger.debug(response)
-                # return the valid response
-                return True
-            else:
-                logger.warning("No module found at " + ip_address)
-                logger.warning(response)
-                return False
 
-        except Exception as e:
+        response = qis_connection.send_command("$scan " + ip_address)
+        # The valid response is "Located device: 192.168.1.2"
+        if "located" in response.lower():
+            logger.debug(response)
+        else:
             logger.warning("No module found at " + ip_address)
-            logger.warning(e)
-            return False
+            logger.warning(response)
+
+        return response
 
     def get_qis_module_selection(self, preferred_connection_only=True, additional_options=['rescan', 'all con types', 'ip scan'], scan=True) -> str:
         """
@@ -1311,13 +1301,9 @@ class QisInterface:
             Bytes read
 
         """
-
-        max_exceptions=10
-        exceptions=0
-        max_read_repeats=50
+        max_read_repeats=6
         read_repeats=0
         timeout_in_seconds = 10
-
         #Keep trying to read bytes until we get some, unless the number of read repeats or exceptions is exceeded
         while True:
             try:
@@ -1325,30 +1311,12 @@ class QisInterface:
                 # The first argument is a list of objects to wait for reading, second writing, third 'exceptional condition'
                 # We only use the read list and our socket to check if it is readable. if no timeout is specified,
                 # then it blocks until it becomes readable.
-                # TODO: AN: It is very unclear why we try to open a new socket if data is not ready.
-                #   This would seem like a hard failure case!
                 ready = select.select([sock], [], [], timeout_in_seconds)
                 if ready[0]:
                     ret = sock.recv(self.maxRxBytes)
-                    return ret
-                # If the socket is not ready for read, open a new one
-                else:
-                    logger.error("Timeout: No bytes were available to read from QIS")
-                    logger.debug("Opening new QIS socket")
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.connect((self.host, self.port))
-                    sock.settimeout(5)
-
-                    try:
-                        welcome_string = self.sock.recv(self.maxRxBytes).rstrip()
-                        welcome_string = 'Connected@' + self.host + ':' + str(self.port) + ' ' + '\n    ' + welcome_string
-                        logger.debug("Socket opened: " + welcome_string)
-                    except Exception as e:
-                        logger.error('Timeout: Failed to open new QIS socket and get the welcome message')
-                        raise e
-
-                    read_repeats=read_repeats+1
-                    time.sleep(0.5)
+                    return ret #TODO is ret str or byte?
+                read_repeats=read_repeats+1
+                time.sleep(0.5)
 
             except Exception as e:
                 raise e
@@ -1389,12 +1357,12 @@ class QisInterface:
         """
         return self.get_device_list(sock)
 
-    def scanIP(self, QisConnection, ipAddress):
+    def scanIP(self, ipAddress):
         """
         deprecated:: 2.2.13
         Use `scan_ip` instead.
         """
-        return self.scan_ip(QisConnection, ipAddress)
+        return self.scan_ip(ipAddress)
 
     def GetQisModuleSelection(self, favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'],
                           scan=True):

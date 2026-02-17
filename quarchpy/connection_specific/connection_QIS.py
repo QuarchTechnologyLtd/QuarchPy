@@ -1116,13 +1116,7 @@ class QisInterface:
             logger.error(device + ' Exception while parsing stream header XML.' + self.host + ':' + str(self.port))
             raise e
 
-    def send_command (self,
-                      command: str,
-                      device: str = '',
-                      qis_socket: socket.socket = None,
-                      cursor_expected: bool = True,
-                      response_expected: bool = True,
-                      command_delay: float = 0.0) -> str:
+    def send_command (self, command: str, device: str = '', qis_socket: socket.socket = None, cursor_expected: bool = True, response_expected: bool = True, command_delay: float = 0.0) -> str:
         """
         Sends a command and returns the response as a string.  Multiple lines are escaped with CRLF.
         The command is sent to the QIS socket, and depending on the command will be replied by either QIS

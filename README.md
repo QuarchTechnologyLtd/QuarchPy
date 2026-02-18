@@ -1,6 +1,6 @@
 # QuarchPy
 
-QuarchPy is a Python API for the automation of Quarch hardware modules and software. It enables robust, scriptable control over Quarch modules, making it straightforward to build reproducible test and automation workflows.
+QuarchPy is a Python API for the automation of Quarch hardware modules and software. It enables robust, scriptable control over Quarch modules, making it straightforward to build reproducible test setups.
 
 - Project repo: [QuarchTechnologyLtd/QuarchPy](https://github.com/QuarchTechnologyLtd/QuarchPy)
 - License: See [LICENSE](./quarchpy/LICENSE.rst)
@@ -12,6 +12,7 @@ QuarchPy is a Python API for the automation of Quarch hardware modules and softw
   - [Requirements](#requirements)
   - [Installation](#installation)
 - [Application Notes](#application-notes)
+- [Links](#links)
 - [Contributing](#contributing)
 - [Support](#support)
 
@@ -35,11 +36,20 @@ QuarchPy is a Python API for the automation of Quarch hardware modules and softw
 
 ### Installation
 
-Install the package from PyPI (if published):
+Install the stable release from PyPI:
 
 ```bash
 pip install quarchpy
 ```
+- PyPI project page: [https://pypi.org/project/quarchpy/](https://pypi.org/project/quarchpy/)
+
+> **Note:** QuarchPy integrates with **Quarch Power Studio (QPS)**. If QPS binaries are missing when you launch QPS from QuarchPy, the package will automatically detect this and initiate the installation process for you—no manual installation required.
+
+#### Developmental Build (pre-packaged with QPS binaries)
+
+If you need the latest developmental features or prefer to have the **QPS binaries already included**, you can use our rolling developmental release:
+
+- [Download the rolling developmental build](https://github.com/QuarchTechnologyLtd/QuarchPy/releases/tag/developmental)
 
 Or install from source:
 
@@ -61,6 +71,12 @@ We recommend beginning with
 which provides step-by-step instructions and sample Python code for controlling Quarch modules.
 
 These resources will help you set up and script Quarch hardware with Python quickly and effectively.
+
+## Links
+
+- PyPI: [https://pypi.org/project/quarchpy/](https://pypi.org/project/quarchpy/)
+- Developmental Release (rolling build with QPS binaries): [https://github.com/QuarchTechnologyLtd/QuarchPy/releases/tag/developmental](https://github.com/QuarchTechnologyLtd/QuarchPy/releases/tag/developmental)
+- Source Repo: [https://github.com/QuarchTechnologyLtd/QuarchPy](https://github.com/QuarchTechnologyLtd/QuarchPy)
 
 ## Contributing
 

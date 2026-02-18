@@ -1,10 +1,14 @@
-name: Manual Dev Release to PyPI
+name: Release to PyPI
 
 on:
+  # This workflow runs when a tag like v1.0.0 is pushed
+  push:
+    tags:
+      - 'v[0-9].[0-9]*' # Regex for tag match, must start with "v" then any number of digits a dot and any number of digits.
   workflow_dispatch:
 
 jobs:
-  release-pypi-dev:
+  release-pypi-stable:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -22,13 +26,12 @@ jobs:
     - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
-        # Added requests and packaging for the version check script
         pip install setuptools wheel twine build requests packaging
 
     # ---------------------------------------------------------
-    # 1. Version Safety Checks
+    # 1. Version Safety Checks (Enforce Stable)
     # ---------------------------------------------------------
-    - name: Verify Dev Version & Check PyPI
+    - name: Verify Stable Version & Check PyPI
       id: check_version
       run: |
         python - <<EOF
@@ -37,16 +40,14 @@ jobs:
         import re
         from packaging.version import parse
 
-        # CONFIGURATION
         VERSION_FILE = 'quarchpy/_version.py'
-        PACKAGE_NAME = 'quarchpy'  # Ensure this matches your PyPI package name
+        PACKAGE_NAME = 'quarchpy'
 
-        # 1. Extract local version from file
+        # 1. Extract local version
         local_version = None
         try:
             with open(VERSION_FILE, 'r') as f:
                 content = f.read()
-                # Regex to find __version__ = "x.y.z"
                 match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
                 if match:
                     local_version = match.group(1)
@@ -60,13 +61,14 @@ jobs:
 
         print(f"Detected local version: {local_version}")
 
-        # 2. Validate it is a Dev Release (PEP 440)
+        # 2. VALIDATE STABLE (Not a Dev/Alpha/RC release)
         parsed_v = parse(local_version)
-        if not parsed_v.is_devrelease:
-            print(f"::error::Version '{local_version}' is NOT a dev release. Please update {VERSION_FILE} with a .dev suffix (e.g., 1.2.0.dev1).")
+        if parsed_v.is_devrelease or parsed_v.is_prerelease:
+            print(f"::error::Version '{local_version}' is a DEV or PRE-RELEASE. This workflow is for STABLE releases only.")
+            print("Please remove the .dev suffix before running this.")
             sys.exit(1)
         
-        print("Version format is valid (Dev release).")
+        print("Version format is valid (Stable release).")
 
         # 3. Check if exists on PyPI
         print(f"Checking PyPI for {PACKAGE_NAME}=={local_version}...")
@@ -76,15 +78,8 @@ jobs:
             data = response.json()
             releases = data.get('releases', {}).keys()
             if local_version in releases:
-                print(f"::error::Version '{local_version}' already exists on PyPI. Increment your dev version.")
+                print(f"::error::Version '{local_version}' already exists on PyPI. You cannot overwrite a stable release.")
                 sys.exit(1)
-            else:
-                print(f"Success: Version '{local_version}' does not exist on PyPI yet.")
-        elif response.status_code == 404:
-             print("Package not found on PyPI (New package?). Proceeding.")
-        else:
-             print(f"::warning::Could not check PyPI (Status {response.status_code}). Proceeding with caution.")
-        
         EOF
 
     # ---------------------------------------------------------
@@ -95,8 +90,6 @@ jobs:
         GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
       run: |
         mkdir -p quarchpy/connection_specific/QPS
-
-        echo "Downloading QPS for Linux..."
         gh release download \
           --repo QuarchTechnologyLtd/QPS \
           --pattern "qps-release-debian.zip" \
@@ -109,19 +102,17 @@ jobs:
         mv qps/* .
         rmdir qps
         rm "qps-release-debian.zip"
-        echo "QPS binaries extracted and flattened."
 
     # ---------------------------------------------------------
     # 3. Build and Publish
     # ---------------------------------------------------------
     - name: Build package
-      run: |
-        python -m build
+      run: python -m build
 
     - name: Upload to PyPI
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
-        echo "Uploading Dev Release to Production PyPI..."
+        echo "Uploading PROPER STABLE Release to PyPI..."
         twine upload dist/*

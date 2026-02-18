@@ -1,7 +1,8 @@
 import socket
 from quarchpy.device.discovered_device import CODE_MAP
+from typing import List
 
-def decode_locate_packet(packet_fields: list[bytes]) -> dict:
+def decode_locate_packet(packet_fields: List[bytes]) -> dict:
     """
     Parses a device location packet and returns a dictionary of its properties.
 

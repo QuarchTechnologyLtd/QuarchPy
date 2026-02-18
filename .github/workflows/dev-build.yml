@@ -1,4 +1,3 @@
-# .github/workflows/dev-build.yml
 name: QuarchPy Development Build and Release
 
 on:
@@ -20,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Download and Unzip QPS Dependency
         shell: bash
@@ -130,7 +129,7 @@ jobs:
           ls -lR quarchpy/connection_specific/jdk_jres
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           cache-dependency-path: '.github/workflows/requirements-dev.txt'
@@ -198,11 +197,16 @@ jobs:
           echo "Original MANIFEST.in content:"
           cat MANIFEST.in
           
+          echo "Creating Dev Bundle Marker..."
+          echo "bundled" > quarchpy/.dev_bundle
+          
           echo "Appending rules to MANIFEST.in for dev build..."
           # Append QPS rule
           echo "recursive-include quarchpy/connection_specific/QPS *" >> MANIFEST.in
           # Append JDK rule
           echo "recursive-include quarchpy/connection_specific/jdk_jres *" >> MANIFEST.in
+          # Append Dev Marker rule
+          echo "include quarchpy/.dev_bundle" >> MANIFEST.in
           
           echo "New MANIFEST.in content:"
           cat MANIFEST.in
@@ -218,6 +222,8 @@ jobs:
           echo "Inspecting contents of generated wheel file..."
           mkdir -p wheel_contents
           unzip -q dist/*.whl -d wheel_contents
+          echo "Checking for dev marker:"
+          ls -l wheel_contents/quarchpy/.dev_bundle || echo "Marker missing!"
           echo "Listing all files inside the wheel:"
           ls -lR wheel_contents
 

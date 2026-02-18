@@ -2,6 +2,8 @@ import os
 import subprocess
 import platform
 
+import quarchpy_binaries
+
 
 def main():
 
@@ -9,23 +11,8 @@ def main():
     current_os = platform.system()
     if current_os != "Windows":
         print("Fixing Permissions")
-        # Check the current OS
-        current_os = platform.system()
         # JRE path
-        java_path = os.path.dirname(os.path.abspath(__file__))
-        java_path, junk = os.path.split(java_path)
-        java_path = os.path.join(java_path, "jdk_jres")
-    
-        # OS dependency
-        if current_os in "Windows":
-            java_path = java_path + "\\win_amd64_jdk_jre\\"
-        elif current_os in "Linux":
-            java_path = java_path + "/lin_amd64_jdk_jre/"
-        elif current_os in "Darwin":
-            java_path = java_path + "/mac_amd64_jdk_jre/"
-        else:  # default to windows
-            java_path = java_path + "\\win_amd64_jdk_jre\\"
-    
+        java_path = quarchpy_binaries.get_jre_home()
         # Ensure the jres folder has the required permissions
         subprocess.call(['chmod', '-R', '+rwx', java_path])
 
@@ -34,19 +21,18 @@ def find_java_permissions():
     # Check the current OS
     current_os = platform.system()
     # JRE path
-    java_path = os.path.dirname(os.path.abspath(__file__))
-    java_path, junk = os.path.split(java_path)
-    java_path = os.path.join(java_path, "jdk_jres")
+    java_path = quarchpy_binaries.get_jre_home()
 
     # OS dependency
     if current_os in "Windows":
-        java_path = os.path.join(java_path, "win_amd64_jdk_jre","bin","java.exe")
+        java_path = os.path.join(java_path,"bin","java.exe")
     elif current_os in "Linux":
-        java_path = java_path + "/lin_amd64_jdk_jre/bin/java"
+        java_path = java_path + "/bin/java"
     elif current_os in "Darwin":
-        java_path = java_path + "/mac_amd64_jdk_jre/bin/java"
+        java_path = java_path + "/bin/java"
     else:  # default to windows
-        java_path = java_path + "\\win_amd64_jdk_jre\\bin\\java"
+        java_path = java_path + "\\bin\\java"
+
     # Get the file status
     st = os.stat(java_path)
     # Extract the file permissions from the file status
@@ -65,6 +51,7 @@ def find_java_permissions():
         execute_permissions = False
 
     return execute_permissions, message
+
 
 if __name__ == "__main__":
     main()

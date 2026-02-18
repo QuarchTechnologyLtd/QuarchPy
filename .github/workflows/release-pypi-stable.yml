@@ -114,5 +114,5 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
-        echo "Uploading PROPER STABLE Release to PyPI..."
+        echo "Uploading STABLE Release to PyPI..."
         twine upload dist/*

@@ -6,11 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>quarchpy.qis package &#8212; quarchpy  documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=5ecbeea2" />
-    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
-    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=61cd365c" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
     <script src="../_static/documentation_options.js?v=5929fcd5"></script>
-    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -86,8 +85,8 @@ an address can be specified for remote systems.</p>
 <dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.isQisRunning">
 <span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">isQisRunning</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.isQisRunning" title="Link to this definition">¶</a></dt>
 <dd><p>Checks if a local instance of QIS is running and responding
-:returns: <strong>is_running</strong> – True if QIS is running and responding
-:rtype: bool</p>
+:returns: <strong>is_running</strong>
+:rtype: bool        True if QIS is running and responding</p>
 </dd></dl>
 
 <dl class="py function">
@@ -110,14 +109,18 @@ an address can be specified for remote systems.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="quarchpy.qis.qisFuncs.startLocalQis">
-<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">startLocalQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headless</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.qisFuncs.startLocalQis" title="Link to this definition">¶</a></dt>
-<dd><p>Executes QIS on the local system, using the version contained within quarchpy</p>
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.qisFuncs.</span></span><span class="sig-name descname"><span class="pre">startLocalQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terminal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headless</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">9722</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rest_port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">9780</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="quarchpy.connection_specific.html#quarchpy.connection_specific.connection_QIS.QisInterface" title="quarchpy.connection_specific.connection_QIS.QisInterface"><span class="pre">QisInterface</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#quarchpy.qis.qisFuncs.startLocalQis" title="Link to this definition">¶</a></dt>
+<dd><p>Executes QIS on the local system and returns a connected interface.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>terminal</strong> (<em>bool</em><em>, </em><em>optional</em>) – True if QIS terminal should be shown on startup</p></li>
-<li><p><strong>headless</strong> (<em>bool</em><em>, </em><em>optional</em>) – True if app should be run in headless mode for non graphical environments</p></li>
-<li><p><strong>args</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of additional parameters to be supplied to QIS on the command line</p></li>
+<li><p><strong>terminal</strong> – True if QIS terminal should be shown on startup.</p></li>
+<li><p><strong>headless</strong> – True if app should be run in headless mode.</p></li>
+<li><p><strong>args</strong> – List of additional parameters.</p></li>
+<li><p><strong>timeout</strong> – Time in seconds to wait for launch.</p></li>
+<li><p><strong>host</strong> – Host address (default localhost).</p></li>
+<li><p><strong>port</strong> – The Telnet port to use (Default: 9722).</p></li>
+<li><p><strong>rest_port</strong> – The REST port to use (Default: 9780).</p></li>
 </ul>
 </dd>
 </dl>
@@ -128,7 +131,7 @@ an address can be specified for remote systems.</p>
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-quarchpy.qis" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="quarchpy.qis.QisInterface">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">QisInterface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9722</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectionMessage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">QisInterface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9722</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectionMessage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="quarchpy.qis.QisInterface.GetQisModuleSelection">
@@ -225,7 +228,7 @@ their streaming thread</p>
 This is used for tracking the status of modules throughout the streaming process</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>module</strong></p>
+<dd class="field-odd"><p><strong>module</strong> – </p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
@@ -292,7 +295,7 @@ fields for each module</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="quarchpy.qis.QisInterface.get_qis_module_selection">
-<span class="sig-name descname"><span class="pre">get_qis_module_selection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">preferred_connection_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DEF_ARGS'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#quarchpy.qis.QisInterface.get_qis_module_selection" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_qis_module_selection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">preferred_connection_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['rescan',</span> <span class="pre">'all</span> <span class="pre">con</span> <span class="pre">types',</span> <span class="pre">'ip</span> <span class="pre">scan']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#quarchpy.qis.QisInterface.get_qis_module_selection" title="Link to this definition">¶</a></dt>
 <dd><p>Scans for available modules and allows the user to select one through an interactive selection process.
 Can also handle additional custom options and some built-in ones such as rescanning</p>
 <dl class="field-list simple">
@@ -406,19 +409,17 @@ No indication this is used anywhere</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="quarchpy.qis.QisInterface.scanIP">
-<span class="sig-name descname"><span class="pre">scanIP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">QisConnection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipAddress</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.scanIP" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">scanIP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ipAddress</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.QisInterface.scanIP" title="Link to this definition">¶</a></dt>
 <dd><p>deprecated:: 2.2.13
 Use <cite>scan_ip</cite> instead.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="quarchpy.qis.QisInterface.scan_ip">
-<span class="sig-name descname"><span class="pre">scan_ip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qis_connection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_address</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#quarchpy.qis.QisInterface.scan_ip" title="Link to this definition">¶</a></dt>
-<dd><p>Triggers QIS to look at a specific IP address for a module</p>
-<p>Arguments</p>
+<span class="sig-name descname"><span class="pre">scan_ip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ip_address</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#quarchpy.qis.QisInterface.scan_ip" title="Link to this definition">¶</a></dt>
+<dd><p>Triggers QIS to look at a specific IP address for a module
+Arguments</p>
 <dl class="simple">
-<dt>QisConnection<span class="classifier">QpsInterface</span></dt><dd><p>The interface to the instance of QIS you would like to use for the scan.</p>
-</dd>
 <dt>ipAddress<span class="classifier">str</span></dt><dd><p>The IP address of the module you are looking for eg ‘192.168.123.123’</p>
 </dd>
 </dl>
@@ -474,7 +475,7 @@ response formatting, which conflicts with the default cursor</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="quarchpy.qis.QisInterface.send_command">
-<span class="sig-name descname"><span class="pre">send_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qis_socket</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">socket</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_cursor_expected</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_response_expected</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command_delay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#quarchpy.qis.QisInterface.send_command" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">send_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qis_socket</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">socket</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor_expected</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_expected</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command_delay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#quarchpy.qis.QisInterface.send_command" title="Link to this definition">¶</a></dt>
 <dd><p>Sends a command and returns the response as a string.  Multiple lines are escaped with CRLF.
 The command is sent to the QIS socket, and depending on the command will be replied by either QIS
 or the hardware module.</p>
@@ -484,8 +485,8 @@ or the hardware module.</p>
 <li><p><strong>command</strong> – Command string</p></li>
 <li><p><strong>device</strong> – Optional Device ID string to send the command to. Use default/blank for QIS direct commands</p></li>
 <li><p><strong>qis_socket</strong> – Optional Socket to use for the command, if the default is not wanted</p></li>
-<li><p><strong>no_cursor_expected</strong> – Optional Flag true if the command does not return a cursor, so we should not wait for it</p></li>
-<li><p><strong>no_response_expected</strong> – Optional Flag true if the command does not return a response, so we should not wait for it.</p></li>
+<li><p><strong>cursor_expected</strong> – Optional Flag true if the command returns a cursor, so we should wait for it</p></li>
+<li><p><strong>response_expected</strong> – Optional Flag true if the command returns a response, so we should wait for it.</p></li>
 <li><p><strong>command_delay</strong> – Optional delay to prevent commands running in close succession.  Timed in seconds.</p></li>
 </ul>
 </dd>
@@ -673,7 +674,7 @@ Use <cite>stream_running_status</cite> instead.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="quarchpy.qis.QisInterface.stream_get_stripes_text">
-<span class="sig-name descname"><span class="pre">stream_get_stripes_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#quarchpy.qis.QisInterface.stream_get_stripes_text" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">stream_get_stripes_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#quarchpy.qis.QisInterface.stream_get_stripes_text" title="Link to this definition">¶</a></dt>
 <dd><p>Retrieve and process text data from a QIS stream.
 We try to ready a block of data and also check for end of data and error cases</p>
 <dl class="field-list simple">
@@ -771,7 +772,7 @@ No indication this is used anywhere</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="quarchpy.qis.StreamHeaderInfo">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">StreamHeaderInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream_header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">StreamHeaderInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream_header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.StreamHeaderInfo" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Holds the raw header information data and allows access to its various elements
 in a simple way</p>
@@ -883,20 +884,24 @@ an address can be specified for remote systems.</p>
 <dt class="sig sig-object py" id="quarchpy.qis.isQisRunning">
 <span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">isQisRunning</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.isQisRunning" title="Link to this definition">¶</a></dt>
 <dd><p>Checks if a local instance of QIS is running and responding
-:returns: <strong>is_running</strong> – True if QIS is running and responding
-:rtype: bool</p>
+:returns: <strong>is_running</strong>
+:rtype: bool        True if QIS is running and responding</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="quarchpy.qis.startLocalQis">
-<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">startLocalQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headless</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#quarchpy.qis.startLocalQis" title="Link to this definition">¶</a></dt>
-<dd><p>Executes QIS on the local system, using the version contained within quarchpy</p>
+<span class="sig-prename descclassname"><span class="pre">quarchpy.qis.</span></span><span class="sig-name descname"><span class="pre">startLocalQis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terminal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headless</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">9722</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rest_port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">9780</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="quarchpy.connection_specific.html#quarchpy.connection_specific.connection_QIS.QisInterface" title="quarchpy.connection_specific.connection_QIS.QisInterface"><span class="pre">QisInterface</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#quarchpy.qis.startLocalQis" title="Link to this definition">¶</a></dt>
+<dd><p>Executes QIS on the local system and returns a connected interface.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>terminal</strong> (<em>bool</em><em>, </em><em>optional</em>) – True if QIS terminal should be shown on startup</p></li>
-<li><p><strong>headless</strong> (<em>bool</em><em>, </em><em>optional</em>) – True if app should be run in headless mode for non graphical environments</p></li>
-<li><p><strong>args</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of additional parameters to be supplied to QIS on the command line</p></li>
+<li><p><strong>terminal</strong> – True if QIS terminal should be shown on startup.</p></li>
+<li><p><strong>headless</strong> – True if app should be run in headless mode.</p></li>
+<li><p><strong>args</strong> – List of additional parameters.</p></li>
+<li><p><strong>timeout</strong> – Time in seconds to wait for launch.</p></li>
+<li><p><strong>host</strong> – Host address (default localhost).</p></li>
+<li><p><strong>port</strong> – The Telnet port to use (Default: 9722).</p></li>
+<li><p><strong>rest_port</strong> – The REST port to use (Default: 9780).</p></li>
 </ul>
 </dd>
 </dl>
@@ -910,7 +915,7 @@ an address can be specified for remote systems.</p>
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="../index.html">quarchpy</a></h1>
 
@@ -921,16 +926,7 @@ an address can be specified for remote systems.</p>
 
 
 
-
-<search id="searchbox" style="display: none" role="search">
-    <div class="searchformwrapper">
-    <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog (Quarchpy)</a></li>
@@ -955,6 +951,16 @@ an address can be specified for remote systems.</p>
   </ul></li>
 </ul>
 </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -971,8 +977,8 @@ an address can be specified for remote systems.</p>
       &#169;2020, Quarch Technology Ltd.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
       |
       <a href="../_sources/source/quarchpy.qis.rst.txt"

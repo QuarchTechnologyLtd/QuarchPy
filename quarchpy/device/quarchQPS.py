@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+logger = logging.getLogger(__name__)
 import time
 from io import StringIO
 from typing import Optional, Union, List, Any, Literal
@@ -144,7 +145,7 @@ class quarchStream:
         command = f'$start stream "{new_directory}" {stream_duration}'.strip()
         response = self.connectionObj.qps.sendCmdVerbose(command)
         if "Error" in response:
-            logging.debug("Initial start stream command failed with 'Error', retrying once.")
+            logger.debug("Initial start stream command failed with 'Error', retrying once.")
             response = self.connectionObj.qps.sendCmdVerbose(command)
         return response
 
@@ -222,7 +223,7 @@ class quarchStream:
 
         if format == "df":
             if pd is None:
-                logging.error("Pandas is not installed, cannot return DataFrame.")
+                logger.error("Pandas is not installed, cannot return DataFrame.")
                 return None
 
             test_data = StringIO(command_response)
@@ -311,7 +312,7 @@ class quarchStream:
             Exception: If the QPS command fails or data parsing fails.
         """
         if pd is None:
-            logging.warning("pandas not imported correctly. Required for get_custom_stats_range.")
+            logger.warning("pandas not imported correctly. Required for get_custom_stats_range.")
             raise ImportError("pandas library is required for get_custom_stats_range")
 
         command_response = self.connectionObj.qps.sendCmdVerbose(
@@ -324,7 +325,7 @@ class quarchStream:
         try:
             df = pd.read_csv(test_data, sep=",", header=[0, 1], on_bad_lines="skip")
         except Exception as e:
-            logging.error(f"Unable to create pandas data frame from command response: {command_response}")
+            logger.error(f"Unable to create pandas data frame from command response: {command_response}")
             raise e
         return df
 
@@ -531,7 +532,7 @@ class quarchStream:
             while check_export_status(self.get_stream_export_status()):
                 if (time.monotonic() - start_time) > timeout:
                     raise TimeoutError(f"Stream export to CSV timed out after {timeout} seconds")
-                logging.debug("Waiting for stream export to complete...")
+                logger.debug("Waiting for stream export to complete...")
                 time.sleep(check_interval)
 
         return command_response
@@ -674,7 +675,7 @@ class quarchStream:
             try:
                 self.hide_channel(channel)
             except Exception as e:
-                logging.warning(f"Failed to hide default channel '{channel}': {e}")
+                logger.warning(f"Failed to hide default channel '{channel}': {e}")
 
     def hideAllDefaultChannels(self) -> None:
         """
@@ -773,7 +774,7 @@ class quarchStream:
                 if (time.monotonic() - start_time) > timeout:
                     raise TimeoutError(f"Timeout ({timeout}s) waiting for stream to stop. Last state: {stream_state}")
 
-                logging.debug(f"Stream buffer still emptying: {stream_state}")
+                logger.debug(f"Stream buffer still emptying: {stream_state}")
                 time.sleep(check_interval)
 
         return response
@@ -837,7 +838,7 @@ def check_stream_stopped_status(stream_status):
     # Check the stream status, so we know if anything went wrong during the capture period
     if "stopped" in stream_status:
         if "overrun" in stream_status:
-            logging.warning('Stream interrupted due to internal device buffer has filled up')
+            logger.warning('Stream interrupted due to internal device buffer has filled up')
             return Status.OVERRUN
         else:
             return Status.STOPPED

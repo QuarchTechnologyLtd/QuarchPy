@@ -6,6 +6,7 @@ import subprocess
 import os
 import random
 import logging
+logger = logging.getLogger(__name__)
 import time
 import re
 from quarchpy.user_interface import user_interface
@@ -55,7 +56,7 @@ class QpsInterface:
 
     def sendCommand(self, cmd, timeout=20, expectedResponse=True ):
         cmd = cmd + "\r\n"
-        logging.debug("Sending cmd to QPS: " + str(cmd))
+        logger.debug("Sending cmd to QPS: " + str(cmd))
         self.send(cmd)
 
         start = time.time()
@@ -68,20 +69,20 @@ class QpsInterface:
             # Keep reading from the socket if there's stuff that was retreived
             if len(str(t_response)) == 0:
                 if time.time() - start > timeout:
-                    logging.warning("Command : " + str(cmd) + " Hit timeout during QPS read. timeout = " + str(timeout))
+                    logger.warning("Command : " + str(cmd) + " Hit timeout during QPS read. timeout = " + str(timeout))
                     break
 
         pos = response.rfind('\r\n>')
         if pos == -1:
-            logging.warning("Did not retrieve trailing '\\r\\n>' from QPS read, returned full response so far")
-            logging.warning("command : " + cmd.replace('\r\n', '\\r\\n'))
-            logging.warning("returned : " + response.replace('\r\n', '\\r\\n'))
+            logger.warning("Did not retrieve trailing '\\r\\n>' from QPS read, returned full response so far")
+            logger.warning("command : " + cmd.replace('\r\n', '\\r\\n'))
+            logger.warning("returned : " + response.replace('\r\n', '\\r\\n'))
             pos = len(str(response))
         return response[:pos]
 
     def sendCmdVerbose(self, cmd, timeout=20):
         cmd = cmd + "\r\n"
-        logging.debug("Sending cmd to QPS: "+str(cmd))
+        logger.debug("Sending cmd to QPS: "+str(cmd))
         self.send(cmd)
 
         start = time.time()
@@ -94,14 +95,14 @@ class QpsInterface:
             # Keep reading from the socket if there's stuff that was retreived
             if len(str(t_response)) == 0:
                 if time.time() - start > timeout:
-                    logging.warning("Command : "+str(cmd)+ " Hit timeout during QPS read. timeout = " +str(timeout))
+                    logger.warning("Command : "+str(cmd)+ " Hit timeout during QPS read. timeout = " +str(timeout))
                     break
 
         pos = response.rfind('\r\n>')
         if pos == -1:
-            logging.warning("Did not retrieve trailing '\\r\\n>' from QPS read, returned full response so far")
-            logging.warning("command : " + cmd.replace('\r\n','\\r\\n'))
-            logging.warning("returned : " + response.replace('\r\n','\\r\\n'))
+            logger.warning("Did not retrieve trailing '\\r\\n>' from QPS read, returned full response so far")
+            logger.warning("command : " + cmd.replace('\r\n','\\r\\n'))
+            logger.warning("returned : " + response.replace('\r\n','\\r\\n'))
             pos = len(str(response))
         return response[:pos]
 
@@ -137,7 +138,7 @@ class QpsInterface:
         ipAddress = "TCP::" + ipAddress
 
         self.send("$scan " + ipAddress)
-        # logging.debug("Starting QPS IP Address Lookup")
+        # logger.debug("Starting QPS IP Address Lookup")
         time.sleep(
             sleep)  # Time must be allowed for QPS to Scan. If another scan request is sent it will time out and throw an error.
 

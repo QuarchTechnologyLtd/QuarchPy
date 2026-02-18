@@ -8,6 +8,7 @@ power, streaming data, and managing synthetic channels.
 """
 
 import logging
+logger = logging.getLogger(__name__)
 import xml.etree.ElementTree as ET
 from io import StringIO
 from typing import IO, List, Optional
@@ -37,7 +38,8 @@ class quarchPPM(quarchDevice):
         self.connectionObj = originObj.connectionObj
         self.ConString = originObj.ConString
         self.ConType = originObj.ConType
-        self.fixture_definition = self.send_command("fix:chan:xml?")
+        if not skipDefaultSyntheticChannels:
+            self.fixture_definition = self.send_command("fix:chan:xml?")
         self.default_channels: Optional[List['SyntheticChannel']] = None
 
         # Standardise a connection string format
@@ -149,10 +151,10 @@ class quarchPPM(quarchDevice):
 
             retVal = self.connectionObj.qis.sendAndReceiveCmd(cmd=cmd, device=self.ConString)
             if "fail" in retVal.lower():
-                logging.error(retVal)
+                logger.error(retVal)
         else:
             retVal = "Invalid resampling argument. Valid options are: off, [x]ms or [x]us."
-            logging.error(retVal)
+            logger.error(retVal)
         return retVal
 
     def stop_stream(self) -> str:
@@ -185,7 +187,7 @@ class quarchPPM(quarchDevice):
                     raise ValueError("Invalid voltage selected.")
                 self.send_command(f"config:output:mode:{drive_voltage}")
             except ValueError as e:
-                logging.error(e)
+                logger.error(e)
 
         power_state = self.send_command("run power?")
         if "OFF" in power_state or "PULLED" in power_state:

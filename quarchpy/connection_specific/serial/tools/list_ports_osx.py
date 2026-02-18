@@ -137,7 +137,7 @@ def get_int_property(device_type, property, cf_number_type):
 
 
 def IORegistryEntryGetName(device):
-    pathname = ctypes.create_string_buffer(100)  # TODO: Is this ok?
+    pathname = ctypes.create_string_buffer(100)
     iokit.IOObjectGetClass(device, ctypes.byref(pathname))
     return pathname.value
 

@@ -6,7 +6,8 @@ import xml.etree.ElementTree as ET
 from io import StringIO
 
 import select
-from connection_specific.StreamChannels import StreamGroups
+#from .connection_specific.StreamChannels import StreamGroups
+from .StreamChannels import StreamGroups
 
 from quarchpy.user_interface import *
 
@@ -80,15 +81,15 @@ class QisInterface:
                 self.deviceDict['QIS'][0:3] = [False, 'Connected', welcome_string]
                 return welcome_string
             except Exception as e:
-                logging.error('No welcome received. Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(self.port) + ')')
-                logging.error('Is backend running and host accessible?')
+                logger.error('No welcome received. Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(self.port) + ')')
+                logger.error('Is backend running and host accessible?')
                 self.deviceDict['QIS'][0:3] = [True, 'Disconnected', 'Unable to connect to QIS']
                 raise e
         except Exception as e:
             self.device_dict_setup('QIS')
             if connection_message:
-                logging.error('Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(self.port) + ').')
-                logging.error('Is backend running and host accessible?')
+                logger.error('Unable to connect to Quarch backend on specified host and port (' + self.host + ':' + str(self.port) + ').')
+                logger.error('Is backend running and host accessible?')
             self.deviceDict['QIS'][0:3] = [True, 'Disconnected', 'Unable to connect to QIS']
             raise e
 
@@ -150,7 +151,7 @@ class QisInterface:
             response = self.sendAndReceiveText(sock, cmd)
             return response
         except ConnectionResetError:
-            logging.error('Unable to close connection to device(s), QIS may be already closed')
+            logger.error('Unable to close connection to device(s), QIS may be already closed')
             return "FAIL: Unable to close connection to device(s), QIS may be already closed"
 
     def start_stream(self, module: str, file_name: str, max_file_size: int, release_on_data: bool, separator: str,
@@ -312,7 +313,7 @@ class QisInterface:
             try:
                 max_mb_val = int(max_file_size)
             except (ValueError, TypeError):
-                logging.warning(f"Invalid max_file_size parameter: {max_file_size}. No limit will be applied")
+                logger.warning(f"Invalid max_file_size parameter: {max_file_size}. No limit will be applied")
                 max_file_size = None
 
         # Send stream command so the module starts streaming data into the backends buffer
@@ -331,7 +332,7 @@ class QisInterface:
                 try:
                     f.close()
                 except Exception as e_close:
-                    logging.error(f"Error closing file {file_name} on stream start failure: {e_close}")
+                    logger.error(f"Error closing file {file_name} on stream start failure: {e_close}")
             return
 
         # Poll for the stream header to become available. This is needed to configure the output file
@@ -348,7 +349,7 @@ class QisInterface:
                     try:
                         f.close()
                     except Exception as e_close:
-                        logging.error(f"Error closing file {file_name} on header failure: {e_close}")
+                        logger.error(f"Error closing file {file_name} on header failure: {e_close}")
                 return  # Changed from exit() for cleaner thread termination
 
         # Format the header and write it to the output file
@@ -380,7 +381,7 @@ class QisInterface:
                 try:
                     f.close()
                 except Exception as e_close:
-                    logging.error(f"Error closing file {file_name} due to ValueError: {e_close}")
+                    logger.error(f"Error closing file {file_name} due to ValueError: {e_close}")
             raise ValueError(f"couldn't decode samplePeriod: {base_sample_period}")
 
         base_sample_period_period_s = int(re.search(r'^\d*\.?\d*', base_sample_period).group()) * (10 ** base_sample_unit_exponent)
@@ -425,7 +426,7 @@ class QisInterface:
                                 except FileNotFoundError:
                                     current_file_mb = 0.0  # File might not exist yet or fileName is not locatable
                                 except Exception as e_stat:
-                                    logging.warning(f"Could not get file size for {file_name}: {e_stat}")
+                                    logger.warning(f"Could not get file size for {file_name}: {e_stat}")
                                     current_file_mb = 0.0  # Default to small size on error
                             else:
                                 # output_file_handle was given, but fileName was None. Cannot check disk size.
@@ -480,7 +481,7 @@ class QisInterface:
                 self.send_command('rec stop', device=module, qis_socket=self.streamSock)
                 stream_state = self.send_command('stream?', device=module, qis_socket=self.streamSock)
                 while "stopped" not in stream_state.lower():
-                    logging.debug("waiting for stream? to return stopped")
+                    logger.debug("waiting for stream? to return stopped")
                     time.sleep(0.1)
                     stream_state = self.send_command('stream?', device=module, qis_socket=self.streamSock)
 
@@ -491,13 +492,13 @@ class QisInterface:
 
                 is_run = False  # Exit main while loop
             except IOError as err:
-                logging.error(f"IOError in startStreamThread for module {module}: {err}")
+                logger.error(f"IOError in startStreamThread for module {module}: {err}")
 
                 # Check if this error might be related to GZIP performance
                 if use_gzip:
-                    logging.warning(f"An IOError occurred while writing GZIP data for {module}.")
-                    logging.warning("This can happen at high data rates if compression is too slow for the I/O buffer.")
-                    logging.warning(f"Current compression level is {gzip_compress_level}. "
+                    logger.warning(f"An IOError occurred while writing GZIP data for {module}.")
+                    logger.warning("This can happen at high data rates if compression is too slow for the I/O buffer.")
+                    logger.warning(f"Current compression level is {gzip_compress_level}. "
                                     f"Consider re-running with a lower 'gzip_compress_level' (e.g., 6 or 1) "
                                     "if this error persists.")
 
@@ -508,13 +509,13 @@ class QisInterface:
                         if not f.closed:
                             f.close()
                     except Exception as e_close:
-                        logging.error(f"Error closing file {file_name} during IOError handling: {e_close}")
+                        logger.error(f"Error closing file {file_name} during IOError handling: {e_close}")
                     f = None  # Avoid trying to close again in finally if error persists
 
                 time.sleep(0.5)
                 open_attempts += 1
                 if open_attempts > 4:
-                    logging.error(f"Too many IOErrors in QisInterface for module {module}. Raising error.")
+                    logger.error(f"Too many IOErrors in QisInterface for module {module}. Raising error.")
                     # Set device status before raising, if possible
                     self.deviceDict[module][0:3] = [True, 'Stopped', f'IOError limit exceeded: {err}']
                     raise  # Re-raise the last IOError
@@ -524,7 +525,7 @@ class QisInterface:
                         if not f.closed:  # Check if not already closed (e.g. in IOError block)
                             f.close()
                     except Exception as e_close:
-                        logging.error(f"Error closing file {file_name} in finally block: {e_close}")
+                        logger.error(f"Error closing file {file_name} in finally block: {e_close}")
                 # If output_file_handle was passed, the caller is responsible for closing.
                 # If inMemoryData was passed, it's managed by the caller.
 
@@ -586,7 +587,7 @@ class QisInterface:
             The IP address of the module you are looking for eg '192.168.123.123'
         """
 
-        logging.debug("Starting QIS IP Address Lookup at " + ip_address)
+        logger.debug("Starting QIS IP Address Lookup at " + ip_address)
         if not ip_address.lower().__contains__("tcp::"):
             ip_address = "TCP::" + ip_address
         response = "No response from QIS Scan"
@@ -594,17 +595,17 @@ class QisInterface:
             response = qis_connection.send_command("$scan " + ip_address)
             # The valid response is "Located device: 192.168.1.2"
             if "located" in response.lower():
-                logging.debug(response)
+                logger.debug(response)
                 # return the valid response
                 return True
             else:
-                logging.warning("No module found at " + ip_address)
-                logging.warning(response)
+                logger.warning("No module found at " + ip_address)
+                logger.warning(response)
                 return False
 
         except Exception as e:
-            logging.warning("No module found at " + ip_address)
-            logging.warning(e)
+            logger.warning("No module found at " + ip_address)
+            logger.warning(e)
             return False
 
 
@@ -860,7 +861,7 @@ class QisInterface:
                 avg = 2 ** int(avg)
                 return '{}'.format(avg)
         except Exception as e:
-            logging.error(device + ' Unable to get stream average.' + self.host + ':' + str(self.port))
+            logger.error(device + ' Unable to get stream average.' + self.host + ':' + str(self.port))
             raise e
 
     def stream_header_format(self, device, sock=None) -> str:
@@ -916,7 +917,7 @@ class QisInterface:
                 stream_status = stream_status.split('\r\n')
                 if 'Header Not Available' in stream_status[0]:
                     err_str = stream_status[0] + '. Check stream has been ran on device.'
-                    logging.error(err_str)
+                    logger.error(err_str)
                     return err_str
                 output_mode = self.sendAndReceiveText(sock,'Config Output Mode?', device)
                 power_mode = self.sendAndReceiveText(sock,'stream mode power?', device)
@@ -950,7 +951,7 @@ class QisInterface:
                         format_header = format_header + ' 12V_P'
                 return format_header
         except Exception as e:
-            logging.error(device + ' Unable to get stream  format.' + self.host + ':' + '{}'.format(self.port))
+            logger.error(device + ' Unable to get stream  format.' + self.host + ':' + '{}'.format(self.port))
             raise e
 
     def stream_get_stripes_text(self, sock, device: str) -> tuple[str, str]:
@@ -1096,12 +1097,12 @@ class QisInterface:
 
                 # Check for no header (no stream started)
                 if 'Header Not Available' in header_data:
-                    logging.error(device + ' Stream header not available.' + self.host + ':' + str(self.port))
+                    logger.error(device + ' Stream header not available.' + self.host + ':' + str(self.port))
                     continue
 
                 # Check for XML format
                 if '?xml version=' not in header_data:
-                    logging.error(device + ' Header not in XML form.' + self.host + ':' + str(self.port))
+                    logger.error(device + ' Header not in XML form.' + self.host + ':' + str(self.port))
                     continue
 
                 break
@@ -1111,14 +1112,14 @@ class QisInterface:
             # Check header format is supported by quarchpy
             version_str = xml_root.find('.//version').text
             if 'V3' not in version_str:
-                logging.error(device + ' Stream header version not compatible: ' + xml_root.find('version').text + '.' + self.host + ':' + str(self.port))
+                logger.error(device + ' Stream header version not compatible: ' + xml_root.find('version').text + '.' + self.host + ':' + str(self.port))
                 raise Exception ("Stream header version not supported")
 
             # Return the XML structure for the code to use
             return xml_root
 
         except Exception as e:
-            logging.error(device + ' Exception while parsing stream header XML.' + self.host + ':' + str(self.port))
+            logger.error(device + ' Exception while parsing stream header XML.' + self.host + ':' + str(self.port))
             raise e
 
     def send_command (self, command: str, device: str = '', qis_socket: socket.socket=None, no_cursor_expected: bool=False, no_response_expected: bool=False, command_delay: float=0.0) -> str:
@@ -1195,7 +1196,7 @@ class QisInterface:
             # If that works, we retry our command.  In fail cases we raise an exception and abort as
             # the connection is bad
             if len(res) == 0:
-                logging.error("Empty response from QIS for cmd: " + send_text + ". To device: " + device)
+                logger.error("Empty response from QIS for cmd: " + send_text + ". To device: " + device)
                 self.send_text(sock, "stream?", device)
                 res = self.receive_text(sock)
                 if len(res) != 0:
@@ -1207,13 +1208,13 @@ class QisInterface:
                     raise (Exception("Empty response from QIS. Sent: " + send_text))
 
             if res[0] == self.cursor:
-                logging.error('Only returned a cursor from QIS. Sent: ' + send_text)
+                logger.error('Only returned a cursor from QIS. Sent: ' + send_text)
                 raise (Exception("Only returned a cursor from QIS. Sent: " + send_text))
             if 'Create Socket Fail' == res[0]: # If create socked fail (between QIS and tcp/ip module)
-                logging.error(res[0])
+                logger.error(res[0])
                 raise (Exception("Failed to open QIS to module socked. Sent: " + send_text))
             if 'Connection Timeout' == res[0]:
-                logging.error(res[0])
+                logger.error(res[0])
                 raise (Exception("Connection timeout from QIS. Sent: " + send_text))
 
             # If reading until a cursor comes back, then keep reading until a cursor appears or max tries exceeded
@@ -1259,8 +1260,8 @@ class QisInterface:
 
         except Exception as e:
             # Something went wrong during send qis cmd
-            logging.error("Error! Unable to retrieve response from QIS. Command: " + send_text)
-            logging.error(e)
+            logger.error("Error! Unable to retrieve response from QIS. Command: " + send_text)
+            logger.error(e)
             raise e
         finally:
             self.sockSemaphore.release()
@@ -1336,8 +1337,8 @@ class QisInterface:
                     return ret
                 # If the socket is not ready for read, open a new one
                 else:
-                    logging.error("Timeout: No bytes were available to read from QIS")
-                    logging.debug("Opening new QIS socket")
+                    logger.error("Timeout: No bytes were available to read from QIS")
+                    logger.debug("Opening new QIS socket")
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     sock.connect((self.host, self.port))
                     sock.settimeout(5)
@@ -1345,9 +1346,9 @@ class QisInterface:
                     try:
                         welcome_string = self.sock.recv(self.maxRxBytes).rstrip()
                         welcome_string = 'Connected@' + self.host + ':' + str(self.port) + ' ' + '\n    ' + welcome_string
-                        logging.debug("Socket opened: " + welcome_string)
+                        logger.debug("Socket opened: " + welcome_string)
                     except Exception as e:
-                        logging.error('Timeout: Failed to open new QIS socket and get the welcome message')
+                        logger.error('Timeout: Failed to open new QIS socket and get the welcome message')
                         raise e
 
                     read_repeats=read_repeats+1
@@ -1358,7 +1359,7 @@ class QisInterface:
 
             # If we read no data, its probably an error, but there may be cases where an empty response is valid
             if read_repeats >= max_read_repeats:
-                logging.error('Max read repeats exceeded')
+                logger.error('Max read repeats exceeded')
                 return b''
 
     def closeConnection(self, sock=None, conString: str=None) -> str:

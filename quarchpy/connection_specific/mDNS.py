@@ -1,6 +1,7 @@
 import platform  # For getting the operating system name
 import subprocess  # For executing a shell command
 import logging
+logger = logging.getLogger(__name__)
 from zeroconf import Zeroconf
 
 
@@ -70,7 +71,7 @@ class MyListener:
         """
         Handle service addition event.
         """
-        logging.debug("Adding service: " + name)
+        logger.debug("Adding service: " + name)
         info = zc.get_service_info(type_, name)
         # Log the service name
         if "Quarch:" in str(info):
@@ -87,7 +88,7 @@ class MyListener:
         """
         Add a device to the found devices dictionary.
         """
-        logging.debug("Adding device: " +str(ip_address)+"\n"+str(properties_dict))
+        logger.debug("Adding device: " +str(ip_address)+"\n"+str(properties_dict))
         qtl_num = "QTL" + properties_dict['86'] if '86' in properties_dict else None
         # Check if module contains REST connection
         if '84' in properties_dict:
@@ -126,7 +127,7 @@ class MyListener:
                 remove_device = True # or if its of the wrong connection type.
             if remove_device:
                 del self.get_instance().found_devices[key]
-        logging.debug("Returning found devices "+str(self.get_instance().found_devices))
+        logger.debug("Returning found devices "+str(self.get_instance().found_devices))
         return self.get_instance().found_devices
 
     def get_zeroconf(self):

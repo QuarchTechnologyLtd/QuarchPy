@@ -11,6 +11,7 @@ import re
 import sys
 import ctypes
 import logging
+logger = logging.getLogger(__name__)
 import traceback
 import csv
 from abc import ABC, abstractmethod
@@ -271,7 +272,7 @@ class FioPerformance(AbstractPerformance):
         # Will return values or process dependant on async
         ret_value = {}
         cmd = ' '.join(line for line in self.command)
-        logging.debug(os.path.basename(__file__) + ": FIO command : " + cmd )
+        logger.debug(os.path.basename(__file__) + ": FIO command : " + cmd )
 
         # print(self.command)
 
@@ -307,7 +308,7 @@ class FioPerformance(AbstractPerformance):
 
                 if err:
                     ret_value["error"] = bytes.decode(err).replace("\r\n", "")
-                    logging.debug(os.path.basename(__file__) + ": FIO error : " + str(err) )
+                    logger.debug(os.path.basename(__file__) + ": FIO error : " + str(err) )
 
                 ret_value = self.__source_output_data(self.output_data)
 
@@ -803,8 +804,8 @@ class FioPerformance(AbstractPerformance):
 
                 except Exception as e:
                     print(traceback.format_exc())
-                    logging.warning("Caught exception during callbacks on FIO file : " + str(e))
-                    logging.warning("TempJson = " + TempJsonObject)
+                    logger.warning("Caught exception during callbacks on FIO file : " + str(e))
+                    logger.warning("TempJson = " + TempJsonObject)
                     while process.poll() is None:
                         time.sleep(0.1)
                     logfile.close()

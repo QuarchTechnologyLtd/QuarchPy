@@ -1,0 +1,118 @@
+name: Release to PyPI
+
+on:
+  # This workflow runs when a tag like v1.0.0 is pushed
+  push:
+    tags:
+      - 'v[0-9].[0-9]*' # Regex for tag match, must start with "v" then any number of digits a dot and any number of digits.
+  workflow_dispatch:
+
+jobs:
+  release-pypi-stable:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine build requests packaging
+
+    # ---------------------------------------------------------
+    # 1. Version Safety Checks (Enforce Stable)
+    # ---------------------------------------------------------
+    - name: Verify Stable Version & Check PyPI
+      id: check_version
+      run: |
+        python - <<EOF
+        import sys
+        import requests
+        import re
+        from packaging.version import parse
+
+        VERSION_FILE = 'quarchpy/_version.py'
+        PACKAGE_NAME = 'quarchpy'
+
+        # 1. Extract local version
+        local_version = None
+        try:
+            with open(VERSION_FILE, 'r') as f:
+                content = f.read()
+                match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
+                if match:
+                    local_version = match.group(1)
+        except FileNotFoundError:
+            print(f"::error::Could not find version file: {VERSION_FILE}")
+            sys.exit(1)
+
+        if not local_version:
+            print(f"::error::Could not parse __version__ from {VERSION_FILE}")
+            sys.exit(1)
+
+        print(f"Detected local version: {local_version}")
+
+        # 2. VALIDATE STABLE (Not a Dev/Alpha/RC release)
+        parsed_v = parse(local_version)
+        if parsed_v.is_devrelease or parsed_v.is_prerelease:
+            print(f"::error::Version '{local_version}' is a DEV or PRE-RELEASE. This workflow is for STABLE releases only.")
+            print("Please remove the .dev suffix before running this.")
+            sys.exit(1)
+        
+        print("Version format is valid (Stable release).")
+
+        # 3. Check if exists on PyPI
+        print(f"Checking PyPI for {PACKAGE_NAME}=={local_version}...")
+        response = requests.get(f"https://pypi.org/pypi/{PACKAGE_NAME}/json")
+        
+        if response.status_code == 200:
+            data = response.json()
+            releases = data.get('releases', {}).keys()
+            if local_version in releases:
+                print(f"::error::Version '{local_version}' already exists on PyPI. You cannot overwrite a stable release.")
+                sys.exit(1)
+        EOF
+
+    # ---------------------------------------------------------
+    # 2. Download and Extract QPS Binaries
+    # ---------------------------------------------------------
+    - name: Download QPS Binaries (Linux)
+      env:
+        GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+      run: |
+        mkdir -p quarchpy/connection_specific/QPS
+        gh release download \
+          --repo QuarchTechnologyLtd/QPS \
+          --pattern "qps-release-debian.zip" \
+          --dir quarchpy/connection_specific/QPS
+
+    - name: Extract QPS
+      run: |
+        cd quarchpy/connection_specific/QPS
+        unzip -q "qps-release-debian.zip"
+        mv qps/* .
+        rmdir qps
+        rm "qps-release-debian.zip"
+
+    # ---------------------------------------------------------
+    # 3. Build and Publish
+    # ---------------------------------------------------------
+    - name: Build package
+      run: python -m build
+
+    - name: Upload to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      run: |
+        echo "Uploading STABLE Release to PyPI..."
+        twine upload dist/*

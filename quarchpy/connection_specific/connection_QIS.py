@@ -570,6 +570,8 @@ class QisInterface:
             sock = self.sock
 
         dev_string = self.sendAndReceiveText(sock, '$list details')
+        if 'No Devices Found' in dev_string:
+            return [] #Return an empty list if no devices are found.
         dev_string = dev_string.replace('>', '')
         dev_string = dev_string.replace(r'\d+\) ', '')
         dev_string = dev_string.split('\r\n')
@@ -635,9 +637,7 @@ class QisInterface:
         while True:
             printText("Scanning for modules...")
             found_devices = None
-            if scan and ip_address is None:
-                found_devices = self.qis_scan_devices(scan=scan, preferred_connection_only=favourite)
-            elif scan and ip_address is not None:
+            if scan is True or ip_address is not None:
                 found_devices = self.qis_scan_devices(scan=scan, preferred_connection_only=favourite, ip_address=ip_address)
 
             my_device_id = listSelection(title="Select a module",message="Select a module",
@@ -699,7 +699,7 @@ class QisInterface:
             found_devices = self.sendAndReceiveText(self.sock, '$list')
 
         # If we found devices, process them into a list to return
-        if not "no devices found" in found_devices.lower():
+        if not "no devices found" in found_devices.lower(): # Looks for string in QIS response.
             found_devices = found_devices.replace('>', '')
             found_devices = found_devices.split('\r\n')
             # Can't stream over REST. Removing all REST connections.
@@ -716,7 +716,7 @@ class QisInterface:
             if preferred_connection_only:
                 found_devices = self.sort_favourite(found_devices)
         else:
-            found_devices = ["***No Devices Found***"]
+            found_devices = [] # Return empty list if not devices are found.
 
         return found_devices
 

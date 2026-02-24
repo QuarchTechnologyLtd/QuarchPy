@@ -93,8 +93,6 @@ def startLocalQps(
     # 1. Prepare Arguments
     # We copy the list to avoid modifying the input in place
     launch_args = args.copy()
-    if not launch_args:
-        launch_args = ""
 
     # Sync 'port' arg to CLI flags if non-default
     if port != 9822:
@@ -111,6 +109,9 @@ def startLocalQps(
     if qis_rest_port != 9780:
         if not any("-qisrestport=" in arg for arg in launch_args):
             launch_args.append(f"-qisrestport={qis_port}")
+
+    if not launch_args:
+        launch_args = ""
 
     # 2. Check if already running on the specific target port
     if _check_port_open(host, port):

@@ -13,6 +13,11 @@ Quarchpy
 Change Log
 ----------
 
+2.2.18
+------
+- Contains patch release for QPS 1.51.2
+- Critical bug fix for opening separate QPS instance by passing ports to `startLocalQPS`
+
 2.2.17
 ------
 - New QPS 1.51 and QIS 1.53

@@ -24,7 +24,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def isQisRunning():
+def isQisRunning(port: int = 9722):
     """
     Checks if a local instance of QIS is running and responding
     Returns
@@ -37,7 +37,7 @@ def isQisRunning():
     myQis = None
     #attempt to connect to Qis
     try:
-        myQis = QisInterface(connectionMessage=False)
+        myQis = QisInterface(connectionMessage=False, port=port)
         if (myQis is not None):
             #if we can connect to qis, it's running
             qisRunning = True
@@ -52,17 +52,17 @@ def isQisRunning():
         return True
 
 
-def isQisRunningAndResponding(timeout=2):
+def isQisRunningAndResponding(timeout=2, port: int = 9722):
     """
     checks if qis is running and responding to a $version
     """
-    qisRunning = isQisRunning()
+    qisRunning = isQisRunning(port=port)
     if qisRunning == False:
         logger.debug("QIS is not running")
         return False
 
     logger.debug("Qis is running")
-    myQis = QisInterface(connectionMessage=False)
+    myQis = QisInterface(connectionMessage=False, port=port)
     counter = 0
     maxCounter = 20
     while counter <= maxCounter:

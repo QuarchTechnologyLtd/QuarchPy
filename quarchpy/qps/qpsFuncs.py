@@ -108,24 +108,25 @@ def startLocalQps(
     # Sync 'qisrestport' arg to CLI flags if non-default
     if qis_rest_port != 9780:
         if not any("-qisrestport=" in arg for arg in launch_args):
-            launch_args.append(f"-qisrestport={qis_port}")
+            launch_args.append(f"-qisrestport={qis_rest_port}")
 
     if not launch_args:
         launch_args = ""
 
     # 2. Check if already running on the specific target port
-    if _check_port_open(host, port):
+    if isQpsRunning(host, port):
         logger.debug(f"QPS instance on port {port} is already running. Connecting...")
         return QpsInterface(host=host, port=port)
 
-    # 3. Check for QPS installation
+    # 3. Ensure QPS is Available
     if not find_qps():
         logger.error("Unable to find or install QPS... Aborting...")
         return None
 
     # 4. Handle QIS Backend (if required)
-    if keepQisRunning:
-        if not _ensure_qis_running(host, qis_port, qis_rest_port, timeout):
+    if keepQisRunning or qis_port != 9722:
+        logger.debug("QIS is not running. Starting QIS...")
+        if not _ensure_qis_running(qis_port, qis_rest_port, timeout):
             return None
 
     # 5. Prepare Command and Environment
@@ -260,24 +261,26 @@ def _parse_ports(args: List[str]) -> Tuple[int, int, int]:
     return qps_port, qis_port, qis_rest_port
 
 
-def _ensure_qis_running(host: str, qis_port: int, qis_rest_port: int, timeout: int) -> bool:
+def _ensure_qis_running(qis_port: int, qis_rest_port: int, timeout: int) -> bool:
     """Checks if QIS is running on the target port, starts it if not."""
-    if _check_port_open(host, qis_port):
+    if isQisRunning(qis_port):
         return True
 
     logger.debug(f"Starting QIS on ports {qis_port}/{qis_rest_port}...")
-    qis_args = [f'-port={qis_port}', f'-restport={qis_rest_port}']
-    startLocalQis(args=qis_args)
+    startLocalQis(port=qis_port, rest_port=qis_rest_port)
 
     # Wait for QIS
     start_time = time.time()
-    while not _check_port_open(host, qis_port):
+    while not isQisRunning(qis_port):
         if time.time() - start_time > timeout:
             logger.error(f"QIS failed to start on port {qis_port} within timeout.")
             return False
         time.sleep(0.5)
 
-    while isQisRunningAndResponding():
+    while not isQisRunningAndResponding(port=qis_port):
+        if time.time() - start_time > timeout:
+            logger.error(f"QIS failed to respond on port {qis_port} within timeout.")
+            return False
         time.sleep(0.5)
 
     return True
@@ -374,7 +377,7 @@ def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subp
     logging_on = "-logconsole=ON" in args_str
 
     while True:
-        if _check_port_open(host, port):
+        if isQpsRunning(host, port):
             logger.debug(f"QPS detected on port {port} after {time.time() - start_time:.2f}s")
             return True
 
@@ -387,15 +390,3 @@ def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subp
             return False
 
         time.sleep(0.2)
-
-
-def _check_port_open(host: str, port: int) -> bool:
-    """Simple TCP connect check."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(1)
-    try:
-        s.connect((host, int(port)))
-        s.close()
-        return True
-    except (socket.timeout, ConnectionRefusedError, OSError):
-        return False

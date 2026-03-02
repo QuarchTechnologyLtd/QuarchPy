@@ -8,9 +8,9 @@ import os, sys
 import socket
 import time, platform
 from subprocess import CompletedProcess, Popen
-from threading import Thread, Lock, Event, active_count
+from threading import Thread, Lock, Event
 from queue import Queue, Empty
-from typing import Optional, List, Any, Tuple, Union
+from typing import Optional, List, Tuple, Union
 
 import quarchpy_binaries
 
@@ -18,7 +18,7 @@ from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
 from quarchpy.install_qps import find_qps
 from quarchpy.user_interface import requestDialog
-from quarchpy.user_interface.user_interface import printText, logDebug
+from quarchpy.user_interface.user_interface import printText
 import subprocess
 import logging
 logger = logging.getLogger(__name__)
@@ -26,16 +26,20 @@ logger = logging.getLogger(__name__)
 
 def isQisRunning(port: int = 9722):
     """
-    Checks if a local instance of QIS is running and responding
-    Returns
-    -------
-    is_running : bool\
-        True if QIS is running and responding
+    Checks if an instance of QIS is running and responding.
+
+    Args:
+        port (int): The TCP port number used to attempt a connection
+            with the QIS interface. QIS defaults to 9722.
+
+    Returns:
+        bool: True if a connection to the QIS interface was successfully
+            established; False otherwise.
     """
 
     qisRunning = False
     myQis = None
-    #attempt to connect to Qis
+    # Attempt to connect to QIS
     try:
         myQis = QisInterface(connectionMessage=False, port=port)
         if (myQis is not None):
@@ -54,10 +58,24 @@ def isQisRunning(port: int = 9722):
 
 def isQisRunningAndResponding(timeout=2, port: int = 9722):
     """
-    checks if qis is running and responding to a $version
-    """
+    Checks if QIS is running and responding to a version command.
+
+    This function first verifies if the QIS service is reachable on the
+    specified port, then attempts to validate the connection by sending
+    a `$version` command and checking for a valid response string.
+
+    Args:
+        timeout (int, optional): The total time in seconds to wait for a
+            valid response from the service. Defaults to 2.
+        port (int, optional): The TCP port number to connect to.
+            Defaults to 9722.
+
+    Returns:
+        bool: True if QIS is running and returns a version string containing
+            'v' within the timeout period; False otherwise.
+        """
     qisRunning = isQisRunning(port=port)
-    if qisRunning == False:
+    if not qisRunning:
         logger.debug("QIS is not running")
         return False
 
@@ -66,7 +84,7 @@ def isQisRunningAndResponding(timeout=2, port: int = 9722):
     counter = 0
     maxCounter = 20
     while counter <= maxCounter:
-        versionResponse = myQis.sendAndReceiveCmd(cmd="$version")
+        versionResponse: str = myQis.sendAndReceiveCmd(cmd="$version")
         if "v" in versionResponse.lower():
             qisResponding = True
             break
@@ -75,7 +93,7 @@ def isQisRunningAndResponding(timeout=2, port: int = 9722):
             time.sleep(timeout / maxCounter)  # We attempt to get QIS
             counter += 1
 
-    if (qisRunning is False):
+    if not qisRunning:
         logger.debug("QIS is not running")
         return False
     else:
@@ -428,11 +446,6 @@ def _wait_for_qis_service(host: str, port: int, timeout: int, process: Optional[
         if _check_port_open(host, port):
             # QIS accepts the connection
             logger.debug(f"QIS detected on port {port} after {time.time() - start_time:.2f}s")
-
-            # Optional: Extra check to ensure it's actually responding to commands
-            # (Replaces old 'isQisRunningAndResponding' logic efficiently)
-            # You could do a quick handshake here if strict validation is required,
-            # but usually TCP open is sufficient for startup success.
             return True
 
         # 2. Monitor Process Health

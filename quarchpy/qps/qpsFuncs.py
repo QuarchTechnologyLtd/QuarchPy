@@ -1,9 +1,8 @@
-import socket
 from subprocess import CompletedProcess, Popen
 from threading import Thread, Lock, Event
 from queue import Queue, Empty
 import platform
-from typing import Optional, List, Any, Tuple, Union
+from typing import Optional, List, Tuple, Union
 
 import quarchpy_binaries
 
@@ -118,15 +117,19 @@ def startLocalQps(
         logger.debug(f"QPS instance on port {port} is already running. Connecting...")
         return QpsInterface(host=host, port=port)
 
-    # 3. Ensure QPS is Available
+    # 3. Check QPS is installed in the expected location for QuarchPy
     if not find_qps():
         logger.error("Unable to find or install QPS... Aborting...")
         return None
 
     # 4. Handle QIS Backend (if required)
+    # 4. QIS Infrastructure Setup & Port Synchronization
+    # Ensures QIS is running as a standalone process if keepQisRunning is True (so it survives QPS closing).
+    # Also manually starts QIS if non-standard ports are requested, bypassing a known QPS bug where
+    # it fails to propagate custom -qisport/-qisrestport flags to its own internal QIS launcher.
     if keepQisRunning or qis_port != 9722:
         logger.debug("QIS is not running. Starting QIS...")
-        if not _ensure_qis_running(qis_port, qis_rest_port, timeout):
+        if not _prepare_qis_backend(qis_port, qis_rest_port, timeout):
             return None
 
     # 5. Prepare Command and Environment
@@ -261,7 +264,7 @@ def _parse_ports(args: List[str]) -> Tuple[int, int, int]:
     return qps_port, qis_port, qis_rest_port
 
 
-def _ensure_qis_running(qis_port: int, qis_rest_port: int, timeout: int) -> bool:
+def _prepare_qis_backend(qis_port: int, qis_rest_port: int, timeout: int) -> bool:
     """Checks if QIS is running on the target port, starts it if not."""
     if isQisRunning(qis_port):
         return True
@@ -273,13 +276,13 @@ def _ensure_qis_running(qis_port: int, qis_rest_port: int, timeout: int) -> bool
     start_time = time.time()
     while not isQisRunning(qis_port):
         if time.time() - start_time > timeout:
-            logger.error(f"QIS failed to start on port {qis_port} within timeout.")
+            logger.error(f"QIS failed to start on port {qis_port} within {timeout} seconds.")
             return False
         time.sleep(0.5)
 
     while not isQisRunningAndResponding(port=qis_port):
         if time.time() - start_time > timeout:
-            logger.error(f"QIS failed to respond on port {qis_port} within timeout.")
+            logger.error(f"QIS failed to respond on port {qis_port} within {timeout} seconds.")
             return False
         time.sleep(0.5)
 

@@ -102,58 +102,80 @@ def isQisRunningAndResponding(timeout=2, port: int = 9722):
 
 
 def startLocalQis(
-    terminal: bool = False,
-    headless: bool = False,
-    args: List[str] = [],
-    timeout: int = 20,
-    host: str = '127.0.0.1',
-    port: int = 9722,
-    rest_port: int = 9780
+        terminal: bool = False,
+        headless: bool = False,
+        args: Optional[List[str]] = None,
+        timeout: int = 20,
+        host: str = '127.0.0.1',
+        **kwargs
 ) -> Optional['QisInterface']:
     """
     Executes QIS on the local system and returns a connected interface.
 
     Args:
-        terminal: True if QIS terminal should be shown on startup.
-        headless: True if app should be run in headless mode.
-        args: List of additional parameters.
-        timeout: Time in seconds to wait for launch.
-        host: Host address (default localhost).
-        port: The Telnet port to use (Default: 9722).
-        rest_port: The REST port to use (Default: 9780).
+        terminal (bool): True if QIS terminal should be shown on startup (-terminal).
+        headless (bool): True if app should be run in headless mode.
+        args (List[str], optional): List of additional raw parameters.
+        timeout (int): Time in seconds to wait for launch.
+        host (str): Host address (default localhost).
+        **kwargs: Configuration for ports and QIS behavior.
+
+            * **port** (int): The Telnet port to use. Defaults to 9722.
+            * **rest_port** (int): The REST port to use. Defaults to 9780.
+            * **loglevel** (str): Sets logging level [OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL].
+            * **logconsole** (str): If 'ON', logs to the console as well as to file.
+            * **devdebug** (str): If 'ON', enables development debug output.
+            * **devdebug2** (bool): If 'ON', enables extra costly debug output.
+
+    Returns:
+        Optional[QisInterface]: A connected interface object, or None if launch fails.
     """
-    # 0. Prepare Arguments
-    # We copy the list to avoid modifying the input in place
-    launch_args = args.copy()
+    # 1. Extract values from kwargs with appropriate defaults
+    port = kwargs.get('port', 9722)
+    rest_port = kwargs.get('rest_port', 9780)
 
-    # Sync 'port' arg to CLI flags if non-default
-    if port != 9722:
-        # Only add if not already manually present in args
-        if not any("-port=" in arg for arg in launch_args):
-            launch_args.append(f"-port={port}")
+    # 2. Prepare Arguments
+    launch_args = args.copy() if args else []
 
-    # Sync 'restport' arg to CLI flags if non-default
-    if rest_port != 9780:
-        if not any("-restport=" in arg for arg in launch_args):
-            launch_args.append(f"-restport={rest_port}")
+    # Map kwargs to their CLI flag equivalents
+    kwarg_map = {
+        'loglevel': '-loglevel=',
+        'logconsole': '-logconsole',
+        'devdebug': '-devdebug',
+        'devdebug2': '-devdebug2',
+        'port': '-port=',
+        'rest_port': '-restport='
+    }
 
-    # 1. Check if already running (Use the explicit 'port' integer)
+    for key, flag in kwarg_map.items():
+        if key in kwargs:
+            val = kwargs[key]
+            # Handle boolean flags (no value needed) vs value flags (suffix needed)
+            if isinstance(val, bool):
+                arg_str = flag if val else None
+            else:
+                arg_str = f"{flag}{val}"
+
+            # Add to launch_args if flag generated and not already manually present
+            if arg_str and not any(flag in a for a in launch_args):
+                launch_args.append(arg_str)
+
+    # 3. Check if already running on the specific target port
     if _check_port_open(host, port):
         logger.debug(f"QIS instance on port {port} is already running. Connecting...")
         return QisInterface(host=host, port=port)
 
-    # 2. Check for installation
+    # 4. Check for installation
     if not find_qps():
         logger.error("Unable to find or install QPS... Aborting...")
         return None
 
-    # 3. Prepare Command and Environment
-    # Note: We pass 'launch_args' which now includes our port flags
+    # 5. Prepare Command and Environment
     command, qis_dir = _prepare_qis_launch_env(terminal, headless, launch_args)
     if not command:
         return None
 
-    # 4. Launch QIS Process
+    # 6. Launch QIS Process
     current_dir = os.getcwd()
     try:
         os.chdir(qis_dir)
@@ -161,11 +183,11 @@ def startLocalQis(
     finally:
         os.chdir(current_dir)
 
-    # 5. Wait for QIS to be ready
+    # 7. Wait for QIS to be ready
     if not _wait_for_qis_service(host, port, timeout, process, launch_args):
         return None
 
-    # 6. Return Connected Interface
+    # 8. Return Connected Interface
     try:
         return QisInterface(host=host, port=port)
     except Exception as e:

@@ -15,7 +15,7 @@ Change Log
 
 2.2.18
 ------
-- Contains patch release for QPS 1.51.2
+- Contains patch release for QPS 1.51.2 and QIS 1.53.1
 - Critical bug fix for opening separate QPS instance by passing ports to startLocalQPS
 
 2.2.17

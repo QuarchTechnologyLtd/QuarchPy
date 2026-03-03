@@ -47,7 +47,7 @@ class quarchQPS(quarchDevice):
         Raises:
             AttributeError: If the provided quarchDevice is not a valid QPS connection.
         """
-        super().__init__(quarchDevice.ConString, ConType=quarchDevice.ConType)
+        super().__init__(quarchDevice.ConString, ConType=quarchDevice.ConType, qps_instance=quarchDevice.instance)
         self.quarchDevice = quarchDevice
         self.connectionObj = quarchDevice.connectionObj
 

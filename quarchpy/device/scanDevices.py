@@ -551,59 +551,86 @@ Scans for Quarch modules across the given interface(s). Returns a dictionary of 
 '''
 
 
-def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly=True, filterStr=None, module_type_filter=None, ipAddressLookup=None, discovered_devices=None):
+def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly=True, filterStr=None,
+                module_type_filter=None, ipAddressLookup=None, discovered_devices=None):
+    logger.info(f"Starting scanDevices (target_conn={target_conn}, lanTimeout={lanTimeout})")
     foundDevices = dict()
     scannedArrays = list()
 
-    # Setup mdns with zeroconf
-    # Ensure listener/zeroconf instance stay persistent (ensures only one thread is used for each scan cycle)
-    mdns_listener = MyListener().get_instance()
-    zeroconf = mdns_listener.get_zeroconf()
-    # Setup new mdns discovery service for every scan cycle
-    browser = scan_mDNS(mdns_listener, zeroconf)
-    # Set target_conn
-    mdns_listener.target_conn = target_conn.lower()
+    # --- mDNS SETUP ---
+    logger.info("Initializing mDNS/Zeroconf listener...")
+    try:
+        mdns_listener = MyListener().get_instance()
+        zeroconf = mdns_listener.get_zeroconf()
 
+        logger.info("Starting mDNS ServiceBrowser (scan_mDNS)...")
+        browser = scan_mDNS(mdns_listener, zeroconf)
+
+        mdns_listener.target_conn = target_conn.lower()
+        logger.info("mDNS initialization complete.")
+    except Exception as e:
+        logger.error(f"FAILED to initialize mDNS: {e}", exc_info=True)
+
+    # --- SCANNING LOGIC ---
     if target_conn.lower() == "all":
+        logger.info("Commencing 'ALL' connection type scan...")
+
+        logger.info("Starting USB Scan (list_USB)...")
         foundDevices = list_USB(discovered_devices=discovered_devices)
+        logger.info(f"USB Scan complete. Found {len(foundDevices)} potential devices.")
+
+        logger.info("Starting Serial Scan (list_serial)...")
         foundDevices = mergeDict(foundDevices, list_serial())
+        logger.info("Serial Scan complete.")
+
         try:
-            # This will fail if the test machine is not connected to a network
-            foundDevices = mergeDict(foundDevices, list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout, discovered_devices=discovered_devices))
+            logger.info("Starting Network UDP Scan (list_network)...")
+            foundDevices = mergeDict(foundDevices,
+                                     list_network("all", ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout,
+                                                  discovered_devices=discovered_devices))
+
+            logger.info("Retrieving discovered devices from mDNS listener...")
             foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
         except Exception as e:
-            logger.error(e)
+            logger.error(f"Network scan sequence failed: {e}", exc_info=True)
             logger.warning("Network scan failed, check network connection")
 
-    if target_conn.lower() == "serial":
+    elif target_conn.lower() == "serial":
+        logger.info("Commencing Serial-only scan...")
         foundDevices = list_serial()
 
-    if target_conn.lower() == "usb":
+    elif target_conn.lower() == "usb":
+        logger.info("Commencing USB-only scan...")
         foundDevices = list_USB()
 
-    if target_conn.lower() == "tcp" or target_conn.lower() == "rest" or target_conn.lower() == "telnet":
+    elif target_conn.lower() in ["tcp", "rest", "telnet"]:
+        logger.info(f"Commencing {target_conn} specific scan...")
         foundDevices = list_network(target_conn, ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout)
         foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
 
+    # --- ARRAY SCANNING ---
     if scanInArray:
-        for k, v in foundDevices.items():  # k=Connection target, v=serial number
+        logger.info("Checking discovered devices for Array Controllers...")
+        for k, v in foundDevices.items():
             if k not in scannedArrays:
                 scannedArrays.append(k)
                 if isThisAnArrayController(v):
+                    logger.info(f"Device {v} at {k} is an Array Controller. Scanning sub-modules...")
                     try:
                         myQuarchDevice = quarchDevice(k)
                         myArrayController = quarchArray(myQuarchDevice)
                         scannedDevices = myArrayController.scanSubModules()
                         foundDevices = mergeDict(foundDevices, scannedDevices)
                         myArrayController.close_connection()
+                        logger.info(f"Finished sub-module scan for {v}.")
                     except Exception as e:
-                        logger.debug(e, exc_info=True)
-                        logger.debug("Cannot get serial number. Quarch device may be in use by another program.")
+                        logger.debug(f"Array sub-scan error for {k}: {e}", exc_info=True)
                         foundDevices[k] = "DEVICE IN USE"
 
+    # --- FILTERING & SORTING ---
     if favouriteOnly:
-
-        # Sort list in order of connection type preference. Can be changed by changing position in conPref list. This must be done so that it is in the correct format for picking the favourite connections.
+        logger.info("Applying connection favorites filter...")
+        # (Internal sorting logic kept the same)
         index = 0
         sortedFoundDevices = {}
         conPref = ["USB", "TCP", "SERIAL", "REST", "TELNET"]
@@ -614,32 +641,38 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
             index += 1
         foundDevices = sortedFoundDevices
 
-        # new dictionary only containing one favourite connection to each device.
         favConFoundDevices = {}
-        index = 0
         for k, v in sortedFoundDevices.items():
             if favConFoundDevices == {} or not v in favConFoundDevices.values():
                 favConFoundDevices[k] = v
         foundDevices = favConFoundDevices
 
-    # Sort by alphabetic order of key
-    sortedFoundDevices = {}
+    logger.info("Sorting found devices alphabetically...")
     sortedFoundDevices = sorted(foundDevices.items(), key=operator.itemgetter(1))
     foundDevices = dict(sortedFoundDevices)
+
     if filterStr is not None:
+        logger.info(f"Applying string filters: {filterStr}")
         filteredDevices = {}
         for k, v in foundDevices.items():
             for j in filterStr:
-                if (
-                        j in v or "LOCKED MODULE" in v):  #show locked modules too incase the module you are looking for is on the system but is locked
+                if j in v or "LOCKED MODULE" in v:
                     filteredDevices[k] = v
         foundDevices = filteredDevices
 
-    # used to filter module via type ( Power / Drive / ...)
     if module_type_filter:
+        logger.info(f"Applying module type filter: {module_type_filter}")
         foundDevices = filter_module_type(module_type_filter, foundDevices)
-    # Cancels the mdns discovery service (required to close active thread)
-    browser.cancel()
+
+    # --- CLEANUP ---
+    logger.info("Canceling mDNS ServiceBrowser and closing threads...")
+    try:
+        browser.cancel()
+        logger.info("mDNS browser canceled successfully.")
+    except Exception as e:
+        logger.error(f"Error during mDNS browser cancellation: {e}")
+
+    logger.info(f"scanDevices complete. Returning {len(foundDevices)} devices.")
     return foundDevices
 
 

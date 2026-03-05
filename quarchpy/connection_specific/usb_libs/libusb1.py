@@ -46,9 +46,12 @@ except ImportError:
             sizeof(c_size_t), ))
 import ctypes.util
 import platform
-import os.path
+import os
 import sys
 import libusb_package
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Enum(object):
     def __init__(self, member_dict, scope_dict=None):
@@ -172,23 +175,30 @@ def _loadLibrary():
         loader_kw['use_errno'] = True
         loader_kw['use_last_error'] = True
 
+    # Try System Library FIRST on Linux/Unix to avoid deadlocks with bundled library
+    if system not in ['Windows', 'Darwin']:
+        try:
+            return dll_loader('libusb-1.0' + suffix, **loader_kw)
+        except OSError:
+            pass
+
+    # BUNDLED SEARCH (Now acts as a fallback for Linux/Unix if system search fails, and primary search for Windows/macOS)
     try:
+        # First try using find_library to get the path to the bundled library (Windows/macOS)
         bundled_path = libusb_package.find_library("usb-1.0")
-
-        # If that failed (macOS/Linux), find the file manually
-        import os
-        # Get the folder where libus_package is located
-        wrapper_dir = os.path.dirname(libusb_package.__file__)
-
-        # Look for the dylib/so in that folder
-        potential_path = os.path.join(wrapper_dir, "libusb-1.0" + suffix)
-
-        if os.path.exists(potential_path):
-            bundled_path = potential_path
-
         if bundled_path:
             return dll_loader(bundled_path, **loader_kw)
-    except Exception:
+        # If that failed (macOS/Linux), find the file manually
+        # Get the folder where libus_package is located
+        wrapper_dir = os.path.dirname(libusb_package.__file__)
+        # Look for the dylib/so in that folder
+        potential_path = os.path.join(wrapper_dir, "libusb-1.0" + suffix)
+        if os.path.exists(potential_path):
+            bundled_path = potential_path
+        if bundled_path:
+            return dll_loader(bundled_path, **loader_kw)
+    except Exception as e:
+        logger.debug("Bundled library failed to load: %s", e)
         pass  # If bundled fails, proceed to system search below
 
     try:

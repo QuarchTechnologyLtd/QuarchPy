@@ -1,9 +1,8 @@
-import socket
 from subprocess import CompletedProcess, Popen
 from threading import Thread, Lock, Event
 from queue import Queue, Empty
 import platform
-from typing import Optional, List, Any, Tuple, Union
+from typing import Optional, List, Tuple, Union
 
 import quarchpy_binaries
 
@@ -79,67 +78,102 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
 
 def startLocalQps(
         keepQisRunning: bool = False,
-        args: Optional[List[str]] = [],
+        args: Optional[List[str]] = None,
         timeout: int = 30,
         startQPSMinimised: bool = True,
         host: str = '127.0.0.1',
-        port: int = 9822,
-        qis_port: int = 9722,
-        qis_rest_port: int = 9780
+        **kwargs
 ) -> Optional['QpsInterface']:
     """
     Main entry point to start a local QPS instance.
-    """
-    # 1. Prepare Arguments
-    # We copy the list to avoid modifying the input in place
-    launch_args = args.copy()
 
-    # Sync 'port' arg to CLI flags if non-default
-    if port != 9822:
-        # Only add if not already manually present in args
-        if not any("-port=" in arg for arg in launch_args):
-            launch_args.append(f"-port={port}")
+    Args:
+        keepQisRunning (bool): If True, ensures QIS remains active after QPS closes.
+        args (List[str], optional): Additional CLI arguments for QPS launch.
+        timeout (int): Seconds to wait for services to initialize.
+        startQPSMinimised (bool): If True, appends '-ccs=MIN' to launch arguments.
+        host (str): The target host address. Defaults to '127.0.0.1'.
+        **kwargs: Configuration for ports and QPS behavior.
 
-    # Sync 'qisport' arg to CLI flags if non-default
-    if qis_port != 9722:
-        if not any("-qisport=" in arg for arg in launch_args):
-            launch_args.append(f"-qisport={qis_port}")
+            * **port** (int): Specify port for QPS to use. Defaults to 9822.
+            * **qis_port** (int): Specify QIS port to use and listen to. Defaults to 9722.
+            * **qis_rest_port** (int): Specify QIS rest port to use. Defaults to 9780.
+            * **connect** (str): Connects to a device (e.g., 'USB::QTL1999-04-013').
+            * **ccs** (str): Set to 'HIDE' to disable initial display of CCS.
+            * **devdebug** (str): Set to 'ON' to enable development debug.
+            * **logconsole** (str): If 'ON', logs to the console as well as to file.
+            * **loglevel** (str): Logging level [OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL].
+            * **qissamelogging** (str): If 'ON', QIS inherits QPS logging levels.
+            * **logviewer** (str): Specifies the log viewer file directory.
+            * **open_file** (str): Opens an archived file.
+            * **perfcontrols** (str): Set to 'ON' to enable performance controls.
+            * **shownotifications** (str): Set to 'OFF' to disable notifications.
 
-    # Sync 'qisrestport' arg to CLI flags if non-default
-    if qis_rest_port != 9780:
-        if not any("-qisrestport=" in arg for arg in launch_args):
-            launch_args.append(f"-qisrestport={qis_port}")
+    Returns:
+        Optional[QpsInterface]: A connected interface object, or None if launch fails.
+        """
+    # 1. Extract values from kwargs with appropriate defaults
+    port = kwargs.get('port', 9822)
+    qis_port = kwargs.get('qis_port', 9722)
+    qis_rest_port = kwargs.get('qis_rest_port', 9780)
 
-    if not launch_args:
-        launch_args = ""
+    # 2. Prepare Arguments
+    launch_args = args.copy() if args else []
 
-    # 2. Check if already running on the specific target port
-    if _check_port_open(host, port):
+    # Map kwargs to their CLI flag equivalents
+    # This automatically builds the command line based on your provided list
+    kwarg_map = {
+        'ccs': '-ccs=',
+        'connect': '-connect=',
+        'devdebug': '-devdebug=',
+        'logconsole': '-logconsole',
+        'loglevel': '-loglevel=',
+        'qissamelogging': '-qissamelogging=',
+        'logviewer': '-logviewer=',
+        'open_file': '-open=',
+        'perfcontrols': '-perfcontrols=',
+        'shownotifications': '-shownotifications=',
+        'port': '-port=',
+        'qis_port': '-qisport=',
+        'qis_rest_port': '-qisrestport='
+    }
+
+    for key, flag in kwarg_map.items():
+        if key in kwargs:
+            val = kwargs[key]
+            # Handle boolean flags (like logconsole) vs value flags (like port)
+            arg_str = flag if isinstance(val, bool) and val else f"{flag}{val}"
+
+            # Add to launch_args if not already manually specified in the 'args' list
+            if not any(flag in a for a in launch_args):
+                launch_args.append(arg_str)
+
+    # 3. Check if already running on the specific target port
+    if isQpsRunning(host=host, port=port):
         logger.debug(f"QPS instance on port {port} is already running. Connecting...")
         return QpsInterface(host=host, port=port)
 
-    # 3. Check for QPS installation
+    # 4. Check QPS is installed in the expected location for QuarchPy
     if not find_qps():
         logger.error("Unable to find or install QPS... Aborting...")
         return None
 
-    # 4. Handle QIS Backend (if required)
+    # 5. QIS Infrastructure Setup & Port Synchronization
+    # Ensures QIS is running as a standalone process if keepQisRunning is True (so it survives QPS closing).
+    # Also manually starts QIS if non-standard ports are requested, bypassing a known QPS bug where
+    # it fails to propagate custom -qisport/-qisrestport flags to its own internal QIS launcher.
     if keepQisRunning:
-        if not _ensure_qis_running(host, qis_port, qis_rest_port, timeout):
+        logger.debug("QIS is not running. Starting QIS...")
+        if not _prepare_qis_backend(qis_port, qis_rest_port, timeout):
             return None
 
-    # 5. Prepare Command and Environment
+    # 6. Prepare Command and Environment
     command, qps_dir = _prepare_qps_launch_env(launch_args, startQPSMinimised)
     if not command:
         return None
 
-    # 6. Launch QPS Process
+    # 7. Launch QPS Process
     current_dir = os.getcwd()
-
-    if isQpsRunning():
-        logger.debug("QPS is already running. Not starting another instance.")
-        os.chdir(current_dir)
-        return None
 
     try:
         os.chdir(qps_dir)  # Switch to QPS dir for launch dependencies
@@ -147,11 +181,11 @@ def startLocalQps(
     finally:
         os.chdir(current_dir)  # Always return to original dir
 
-    # 7. Wait for QPS to be ready
+    # 8. Wait for QPS to be ready
     if not _wait_for_service(host, port, timeout, process, args):
         return None
 
-    # 8. Return Connected Interface
+    # 9. Return Connected Interface
     try:
         return QpsInterface(host=host, port=port)
     except Exception as e:
@@ -260,24 +294,26 @@ def _parse_ports(args: List[str]) -> Tuple[int, int, int]:
     return qps_port, qis_port, qis_rest_port
 
 
-def _ensure_qis_running(host: str, qis_port: int, qis_rest_port: int, timeout: int) -> bool:
+def _prepare_qis_backend(qis_port: int, qis_rest_port: int, timeout: int) -> bool:
     """Checks if QIS is running on the target port, starts it if not."""
-    if _check_port_open(host, qis_port):
+    if isQisRunning(qis_port):
         return True
 
     logger.debug(f"Starting QIS on ports {qis_port}/{qis_rest_port}...")
-    qis_args = [f'-port={qis_port}', f'-restport={qis_rest_port}']
-    startLocalQis(args=qis_args)
+    startLocalQis(port=qis_port, rest_port=qis_rest_port)
 
     # Wait for QIS
     start_time = time.time()
-    while not _check_port_open(host, qis_port):
+    while not isQisRunning(qis_port):
         if time.time() - start_time > timeout:
-            logger.error(f"QIS failed to start on port {qis_port} within timeout.")
+            logger.error(f"QIS failed to start on port {qis_port} within {timeout} seconds.")
             return False
         time.sleep(0.5)
 
-    while isQisRunningAndResponding():
+    while not isQisRunningAndResponding(port=qis_port):
+        if time.time() - start_time > timeout:
+            logger.error(f"QIS failed to respond on port {qis_port} within {timeout} seconds.")
+            return False
         time.sleep(0.5)
 
     return True
@@ -374,7 +410,7 @@ def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subp
     logging_on = "-logconsole=ON" in args_str
 
     while True:
-        if _check_port_open(host, port):
+        if isQpsRunning(host, port):
             logger.debug(f"QPS detected on port {port} after {time.time() - start_time:.2f}s")
             return True
 
@@ -387,15 +423,3 @@ def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subp
             return False
 
         time.sleep(0.2)
-
-
-def _check_port_open(host: str, port: int) -> bool:
-    """Simple TCP connect check."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(1)
-    try:
-        s.connect((host, int(port)))
-        s.close()
-        return True
-    except (socket.timeout, ConnectionRefusedError, OSError):
-        return False

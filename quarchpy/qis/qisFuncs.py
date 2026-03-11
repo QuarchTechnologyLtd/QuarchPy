@@ -8,9 +8,9 @@ import os, sys
 import socket
 import time, platform
 from subprocess import CompletedProcess, Popen
-from threading import Thread, Lock, Event, active_count
+from threading import Thread, Lock, Event
 from queue import Queue, Empty
-from typing import Optional, List, Any, Tuple, Union
+from typing import Optional, List, Tuple, Union
 
 import quarchpy_binaries
 
@@ -18,26 +18,30 @@ from quarchpy.connection_specific.connection_QIS import QisInterface
 from quarchpy.connection_specific.jdk_jres.fix_permissions import main as fix_permissions, find_java_permissions
 from quarchpy.install_qps import find_qps
 from quarchpy.user_interface import requestDialog
-from quarchpy.user_interface.user_interface import printText, logDebug
+from quarchpy.user_interface.user_interface import printText
 import subprocess
 import logging
 logger = logging.getLogger(__name__)
 
 
-def isQisRunning():
+def isQisRunning(port: int = 9722):
     """
-    Checks if a local instance of QIS is running and responding
-    Returns
-    -------
-    is_running : bool\
-        True if QIS is running and responding
+    Checks if an instance of QIS is running and responding.
+
+    Args:
+        port (int): The TCP port number used to attempt a connection
+            with the QIS interface. QIS defaults to 9722.
+
+    Returns:
+        bool: True if a connection to the QIS interface was successfully
+            established; False otherwise.
     """
 
     qisRunning = False
     myQis = None
-    #attempt to connect to Qis
+    # Attempt to connect to QIS
     try:
-        myQis = QisInterface(connectionMessage=False)
+        myQis = QisInterface(connectionMessage=False, port=port)
         if (myQis is not None):
             #if we can connect to qis, it's running
             qisRunning = True
@@ -52,21 +56,35 @@ def isQisRunning():
         return True
 
 
-def isQisRunningAndResponding(timeout=2):
+def isQisRunningAndResponding(timeout=2, port: int = 9722):
     """
-    checks if qis is running and responding to a $version
-    """
-    qisRunning = isQisRunning()
-    if qisRunning == False:
+    Checks if QIS is running and responding to a version command.
+
+    This function first verifies if the QIS service is reachable on the
+    specified port, then attempts to validate the connection by sending
+    a `$version` command and checking for a valid response string.
+
+    Args:
+        timeout (int, optional): The total time in seconds to wait for a
+            valid response from the service. Defaults to 2.
+        port (int, optional): The TCP port number to connect to.
+            Defaults to 9722.
+
+    Returns:
+        bool: True if QIS is running and returns a version string containing
+            'v' within the timeout period; False otherwise.
+        """
+    qisRunning = isQisRunning(port=port)
+    if not qisRunning:
         logger.debug("QIS is not running")
         return False
 
     logger.debug("Qis is running")
-    myQis = QisInterface(connectionMessage=False)
+    myQis = QisInterface(connectionMessage=False, port=port)
     counter = 0
     maxCounter = 20
     while counter <= maxCounter:
-        versionResponse = myQis.sendAndReceiveCmd(cmd="$version")
+        versionResponse: str = myQis.sendAndReceiveCmd(cmd="$version")
         if "v" in versionResponse.lower():
             qisResponding = True
             break
@@ -75,7 +93,7 @@ def isQisRunningAndResponding(timeout=2):
             time.sleep(timeout / maxCounter)  # We attempt to get QIS
             counter += 1
 
-    if (qisRunning is False):
+    if not qisRunning:
         logger.debug("QIS is not running")
         return False
     else:
@@ -84,58 +102,80 @@ def isQisRunningAndResponding(timeout=2):
 
 
 def startLocalQis(
-    terminal: bool = False,
-    headless: bool = False,
-    args: List[str] = [],
-    timeout: int = 20,
-    host: str = '127.0.0.1',
-    port: int = 9722,
-    rest_port: int = 9780
+        terminal: bool = False,
+        headless: bool = False,
+        args: Optional[List[str]] = None,
+        timeout: int = 20,
+        host: str = '127.0.0.1',
+        **kwargs
 ) -> Optional['QisInterface']:
     """
     Executes QIS on the local system and returns a connected interface.
 
     Args:
-        terminal: True if QIS terminal should be shown on startup.
-        headless: True if app should be run in headless mode.
-        args: List of additional parameters.
-        timeout: Time in seconds to wait for launch.
-        host: Host address (default localhost).
-        port: The Telnet port to use (Default: 9722).
-        rest_port: The REST port to use (Default: 9780).
+        terminal (bool): True if QIS terminal should be shown on startup (-terminal).
+        headless (bool): True if app should be run in headless mode.
+        args (List[str], optional): List of additional raw parameters.
+        timeout (int): Time in seconds to wait for launch.
+        host (str): Host address (default localhost).
+        **kwargs: Configuration for ports and QIS behavior.
+
+            * **port** (int): The Telnet port to use. Defaults to 9722.
+            * **rest_port** (int): The REST port to use. Defaults to 9780.
+            * **loglevel** (str): Sets logging level [OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL].
+            * **logconsole** (str): If 'ON', logs to the console as well as to file.
+            * **devdebug** (str): If 'ON', enables development debug output.
+            * **devdebug2** (bool): If 'ON', enables extra costly debug output.
+
+    Returns:
+        Optional[QisInterface]: A connected interface object, or None if launch fails.
     """
-    # 0. Prepare Arguments
-    # We copy the list to avoid modifying the input in place
-    launch_args = args.copy()
+    # 1. Extract values from kwargs with appropriate defaults
+    port = kwargs.get('port', 9722)
+    rest_port = kwargs.get('rest_port', 9780)
 
-    # Sync 'port' arg to CLI flags if non-default
-    if port != 9722:
-        # Only add if not already manually present in args
-        if not any("-port=" in arg for arg in launch_args):
-            launch_args.append(f"-port={port}")
+    # 2. Prepare Arguments
+    launch_args = args.copy() if args else []
 
-    # Sync 'restport' arg to CLI flags if non-default
-    if rest_port != 9780:
-        if not any("-restport=" in arg for arg in launch_args):
-            launch_args.append(f"-restport={rest_port}")
+    # Map kwargs to their CLI flag equivalents
+    kwarg_map = {
+        'loglevel': '-loglevel=',
+        'logconsole': '-logconsole',
+        'devdebug': '-devdebug',
+        'devdebug2': '-devdebug2',
+        'port': '-port=',
+        'rest_port': '-restport='
+    }
 
-    # 1. Check if already running (Use the explicit 'port' integer)
+    for key, flag in kwarg_map.items():
+        if key in kwargs:
+            val = kwargs[key]
+            # Handle boolean flags (no value needed) vs value flags (suffix needed)
+            if isinstance(val, bool):
+                arg_str = flag if val else None
+            else:
+                arg_str = f"{flag}{val}"
+
+            # Add to launch_args if flag generated and not already manually present
+            if arg_str and not any(flag in a for a in launch_args):
+                launch_args.append(arg_str)
+
+    # 3. Check if already running on the specific target port
     if _check_port_open(host, port):
         logger.debug(f"QIS instance on port {port} is already running. Connecting...")
         return QisInterface(host=host, port=port)
 
-    # 2. Check for installation
+    # 4. Check for installation
     if not find_qps():
         logger.error("Unable to find or install QPS... Aborting...")
         return None
 
-    # 3. Prepare Command and Environment
-    # Note: We pass 'launch_args' which now includes our port flags
+    # 5. Prepare Command and Environment
     command, qis_dir = _prepare_qis_launch_env(terminal, headless, launch_args)
     if not command:
         return None
 
-    # 4. Launch QIS Process
+    # 6. Launch QIS Process
     current_dir = os.getcwd()
     try:
         os.chdir(qis_dir)
@@ -143,11 +183,11 @@ def startLocalQis(
     finally:
         os.chdir(current_dir)
 
-    # 5. Wait for QIS to be ready
+    # 7. Wait for QIS to be ready
     if not _wait_for_qis_service(host, port, timeout, process, launch_args):
         return None
 
-    # 6. Return Connected Interface
+    # 8. Return Connected Interface
     try:
         return QisInterface(host=host, port=port)
     except Exception as e:
@@ -428,11 +468,6 @@ def _wait_for_qis_service(host: str, port: int, timeout: int, process: Optional[
         if _check_port_open(host, port):
             # QIS accepts the connection
             logger.debug(f"QIS detected on port {port} after {time.time() - start_time:.2f}s")
-
-            # Optional: Extra check to ensure it's actually responding to commands
-            # (Replaces old 'isQisRunningAndResponding' logic efficiently)
-            # You could do a quick handshake here if strict validation is required,
-            # but usually TCP open is sufficient for startup success.
             return True
 
         # 2. Monitor Process Health

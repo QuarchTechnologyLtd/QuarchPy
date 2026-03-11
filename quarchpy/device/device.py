@@ -88,12 +88,15 @@ class quarchDevice:
         self.connectionObj = None
         self.timeout = 5  # Default int timeout
         self.is_module_resetting = False
+        self.instance = None
 
         # Determine ConType based on provided instances
         if qps_instance:
             self.ConType = "QPS"
+            self.instance = qps_instance
         if qis_instance:
             self.ConType = "QIS"
+            self.instance = qis_instance
 
         # Call helper to store and validate parameters
         self._store_and_validate_params(ConString, ConType, timeout)

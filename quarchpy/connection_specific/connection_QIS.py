@@ -120,7 +120,7 @@ class QisInterface:
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             message = 'Unable to end connection. ' + self.host + ':' + str(self.port) + ' \r\n' + str(exc_type) + ' ' + str(fname) + ' ' + str(exc_tb.tb_lineno)
             self.deviceDict['QIS'][0:3] = [True, "Connected", message]
-            raise e
+            return message
         return res
 
     def close_connection(self, sock=None, con_string: str=None) -> str:

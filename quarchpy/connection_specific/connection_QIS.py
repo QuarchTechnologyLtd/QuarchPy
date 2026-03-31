@@ -2,6 +2,7 @@ import gzip
 import re
 import socket
 import threading
+import time
 import xml.etree.ElementTree as ET
 from io import StringIO
 from typing import Tuple
@@ -15,7 +16,7 @@ from quarchpy.user_interface import *
 
 # QisInterface provides a way of connecting to a Quarch backend running at the specified ip address and port, defaults to localhost and 9722
 class QisInterface:
-    def __init__(self, host='127.0.0.1', port=9722, connectionMessage=True):
+    def __init__(self, host='127.0.0.1', port=9722, connectionMessage=True, timeout: int = 5):
         self.host = host
         self.port = port
         self.maxRxBytes = 4096
@@ -45,6 +46,7 @@ class QisInterface:
         self.streamSock.connect((self.host, self.port))
         self.pythonVersion = sys.version[0]
         self.cursor = '>'
+        self.timeout = timeout
         #clear packets
         welcome_string = self.streamSock.recv(self.maxRxBytes).rstrip()
 
@@ -72,7 +74,7 @@ class QisInterface:
         try:
             self.device_dict_setup('QIS')
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.settimeout(5)
+            self.sock.settimeout(10)
             self.sock.connect((self.host, self.port))
 
             #clear packets
@@ -319,6 +321,7 @@ class QisInterface:
 
         # Send stream command so the module starts streaming data into the backends buffer
         stream_res = self.send_command('rec stream', device=module, qis_socket=self.streamSock)
+        logger.debug(f"Stream command response for module {module}: {stream_res}")
         # Check the stream started
         if 'OK' in stream_res:
             if not release_on_data:
@@ -823,8 +826,12 @@ class QisInterface:
             if sock is None:
                 sock = self.sock
 
+            # Add delay here to ensure the header is available.  This is needed as the stream command needs to be sent before the header is populated by QIS.
+            # This is a bit hacky, but it is needed to ensure the function works when called
+            time.sleep(0.1)
+
             index = 2 # index of relevant line in split string
-            stream_status = self.send_and_receive_text(sock, send_text='stream text header', device=device)
+            stream_status = self.send_command(command='stream text header', device=device, qis_socket=sock)
 
             self.qps_stream_header = stream_status
 
@@ -1085,7 +1092,7 @@ class QisInterface:
                     break
                 count += 1
                 # Get the raw data
-                header_data = self.send_and_receive_text(sock, send_text='stream text header', device=device)
+                header_data = self.send_command(command='stream text header', device=device, qis_socket=sock)
 
                 # Check for no header (no stream started)
                 if 'Header Not Available' in header_data:
@@ -1134,12 +1141,15 @@ class QisInterface:
                 Optional Flag true if the command returns a response, so we should wait for it.
             command_delay:
                 Optional delay to prevent commands running in close succession.  Timed in seconds.
+            timeout:
+                Timeout in seconds to wait for a response before giving up.  Default is 5 seconds.
         Returns:
             Command response string or None if no response expected
         """
         if qis_socket is None:
             qis_socket = self.sock
 
+        logger.debug(f"Sending command: '{command}' to device: '{device}' with cursor_expected={cursor_expected} and response_expected={response_expected}")
         if not response_expected:
             self._send(qis_socket, command, device)
             return ""

@@ -35,7 +35,7 @@ logger.propagate = False
 if not logger.handlers:
     # 1. File handler (Always capture DEBUG for the 'permanent record')
     log_dir = Path.home() / ".quarch" / "QuarchPy" / "Logs"
-    log_dir.mkdir(exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
     logfile = log_dir / "quarchpy.log"
 
     file_handler = RotatingFileHandler(logfile, maxBytes=5_000_000, backupCount=5)

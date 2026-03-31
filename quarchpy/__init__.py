@@ -34,7 +34,7 @@ logger.propagate = False
 # Only add handlers once
 if not logger.handlers:
     # 1. File handler (Always capture DEBUG for the 'permanent record')
-    log_dir = Path.home() / ".quarchpy"
+    log_dir = Path.home() / ".quarch" / "QuarchPy" / "Logs"
     log_dir.mkdir(exist_ok=True)
     logfile = log_dir / "quarchpy.log"
 

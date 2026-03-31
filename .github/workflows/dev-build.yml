@@ -50,83 +50,83 @@ jobs:
           rm -r temp_qps_unzip
           echo "QPS files are now in $TARGET_DIR"
 
-      - name: Download and Unzip JDK Binaries
-        shell: bash
-        run: |
-          BASE_PATH="quarchpy/connection_specific/jdk_jres"
-          echo "Downloading and extracting JDKs version ${{ env.JDK_VERSION }}..."
-
-          # --- Clean old directories ---
-          rm -rf ${BASE_PATH}/lin_amd64_jdk_jre
-          rm -rf ${BASE_PATH}/win_amd64_jdk_jre
-          rm -rf ${BASE_PATH}/mac_amd64_jdk_jre
-          rm -rf ${BASE_PATH}/mac_arm64_jdk_jre
-          mkdir -p $BASE_PATH
-          
-          # --- 1. Linux (amd64) ---
-          TARGET_DIR="${BASE_PATH}/lin_amd64_jdk_jre"
-          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-linux-amd64-full.tar.gz"
-          echo "Creating $TARGET_DIR"
-          mkdir -p $TARGET_DIR
-          echo "Downloading and extracting from $URL"
-          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
-
-          # --- 2. Windows (amd64) ---
-          TARGET_DIR="${BASE_PATH}/win_amd64_jdk_jre"
-          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-windows-amd64-full.zip"
-          echo "Creating $TARGET_DIR"
-          mkdir -p $TARGET_DIR
-          echo "Downloading $URL"
-          curl -L -o download.zip $URL
-          echo "Extracting to temp folder..."
-          unzip -q download.zip -d temp_unzip_dir
-          
-          # --- NEW ROBUST MV LOGIC ---
-          echo "Listing extracted contents for debug:"
-          ls -lR temp_unzip_dir
-
-          # Find the single directory inside temp_unzip_dir
-          EXTRACTED_DIR=$(find temp_unzip_dir -mindepth 1 -maxdepth 1 -type d)
-          
-          echo "Found extracted directory: $EXTRACTED_DIR"
-          echo "Moving contents to $TARGET_DIR"
-
-          # Enable dotglob to move hidden files
-          shopt -s dotglob
-          
-          # Move the *contents* of that directory to the target
-          mv $EXTRACTED_DIR/* $TARGET_DIR/
-          # --- END OF FIX ---
-          
-          echo "Cleaning up..."
-          rm download.zip
-          rm -r temp_unzip_dir
-
-          # --- 3. macOS (amd64) ---
-          TARGET_DIR="${BASE_PATH}/mac_amd64_jdk_jre"
-          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-macos-amd64-full.tar.gz"
-          echo "Creating $TARGET_DIR"
-          mkdir -p $TARGET_DIR
-          echo "Downloading and extracting from $URL"
-          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
-
-          # --- 4. macOS (arm64/aarch64) ---
-          TARGET_DIR="${BASE_PATH}/mac_arm64_jdk_jre"
-          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-macos-aarch64-full.tar.gz"
-          echo "Creating $TARGET_DIR"
-          mkdir -p $TARGET_DIR
-          echo "Downloading and extracting from $URL"
-          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
-          
-          echo "All JDKs extracted."
+#      - name: Download and Unzip JDK Binaries
+#        shell: bash
+#        run: |
+#          BASE_PATH="quarchpy/connection_specific/jdk_jres"
+#          echo "Downloading and extracting JDKs version ${{ env.JDK_VERSION }}..."
+#
+#          # --- Clean old directories ---
+#          rm -rf ${BASE_PATH}/lin_amd64_jdk_jre
+#          rm -rf ${BASE_PATH}/win_amd64_jdk_jre
+#          rm -rf ${BASE_PATH}/mac_amd64_jdk_jre
+#          rm -rf ${BASE_PATH}/mac_arm64_jdk_jre
+#          mkdir -p $BASE_PATH
+#
+#          # --- 1. Linux (amd64) ---
+#          TARGET_DIR="${BASE_PATH}/lin_amd64_jdk_jre"
+#          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-linux-amd64-full.tar.gz"
+#          echo "Creating $TARGET_DIR"
+#          mkdir -p $TARGET_DIR
+#          echo "Downloading and extracting from $URL"
+#          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
+#
+#          # --- 2. Windows (amd64) ---
+#          TARGET_DIR="${BASE_PATH}/win_amd64_jdk_jre"
+#          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-windows-amd64-full.zip"
+#          echo "Creating $TARGET_DIR"
+#          mkdir -p $TARGET_DIR
+#          echo "Downloading $URL"
+#          curl -L -o download.zip $URL
+#          echo "Extracting to temp folder..."
+#          unzip -q download.zip -d temp_unzip_dir
+#
+#          # --- NEW ROBUST MV LOGIC ---
+#          echo "Listing extracted contents for debug:"
+#          ls -lR temp_unzip_dir
+#
+#          # Find the single directory inside temp_unzip_dir
+#          EXTRACTED_DIR=$(find temp_unzip_dir -mindepth 1 -maxdepth 1 -type d)
+#
+#          echo "Found extracted directory: $EXTRACTED_DIR"
+#          echo "Moving contents to $TARGET_DIR"
+#
+#          # Enable dotglob to move hidden files
+#          shopt -s dotglob
+#
+#          # Move the *contents* of that directory to the target
+#          mv $EXTRACTED_DIR/* $TARGET_DIR/
+#          # --- END OF FIX ---
+#
+#          echo "Cleaning up..."
+#          rm download.zip
+#          rm -r temp_unzip_dir
+#
+#          # --- 3. macOS (amd64) ---
+#          TARGET_DIR="${BASE_PATH}/mac_amd64_jdk_jre"
+#          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-macos-amd64-full.tar.gz"
+#          echo "Creating $TARGET_DIR"
+#          mkdir -p $TARGET_DIR
+#          echo "Downloading and extracting from $URL"
+#          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
+#
+#          # --- 4. macOS (arm64/aarch64) ---
+#          TARGET_DIR="${BASE_PATH}/mac_arm64_jdk_jre"
+#          URL="https://download.bell-sw.com/java/${{ env.JDK_VERSION }}/bellsoft-jdk${{ env.JDK_VERSION }}-macos-aarch64-full.tar.gz"
+#          echo "Creating $TARGET_DIR"
+#          mkdir -p $TARGET_DIR
+#          echo "Downloading and extracting from $URL"
+#          curl -L $URL | tar -xz -C $TARGET_DIR --strip-components=1
+#
+#          echo "All JDKs extracted."
 
       - name: Verify Dependencies Download
         run: |
           echo "Verifying contents of 'quarchpy/connection_specific/QPS':"
           ls -lR quarchpy/connection_specific/QPS
           
-          echo "Verifying contents of 'quarchpy/connection_specific/jdk_jres':"
-          ls -lR quarchpy/connection_specific/jdk_jres
+#          echo "Verifying contents of 'quarchpy/connection_specific/jdk_jres':"
+#          ls -lR quarchpy/connection_specific/jdk_jres
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v5

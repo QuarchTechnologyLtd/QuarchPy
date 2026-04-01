@@ -54,8 +54,17 @@ def _test_system_info():
     if "nt" in os.name:
         print("Platform Architecture: " + platform.architecture()[0])
     else:
-        print(str(bytes(subprocess.check_output(['cat', '/etc/os-release'], stderr=subprocess.STDOUT)).decode()))
-    print("Platform Release:  " + platform.release())
+        # MAC (Darwin) vs LINUX fix
+        if platform.system() == "Darwin":
+            try:
+                print(subprocess.check_output(['sw_vers'], stderr=subprocess.STDOUT).decode())
+            except Exception:
+                print("Unable to read macOS version info (sw_vers failed)")
+        else:
+            try:
+                print(subprocess.check_output(['cat', '/etc/os-release'], stderr=subprocess.STDOUT).decode())
+            except Exception:
+                print("Unable to read Linux version info (/etc/os-release failed)")
 
     print("\nPYTHON\n------")
     try:

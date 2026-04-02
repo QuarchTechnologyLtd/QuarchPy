@@ -828,10 +828,15 @@ class QisInterface:
 
             # Add delay here to ensure the header is available.  This is needed as the stream command needs to be sent before the header is populated by QIS.
             # This is a bit hacky, but it is needed to ensure the function works when called
-            time.sleep(0.1)
+            time.sleep(0.5)
 
             index = 2 # index of relevant line in split string
-            stream_status = self.send_command(command='stream text header', device=device, qis_socket=sock)
+            try:
+                stream_status = self.send_command(command='stream text header', device=device, qis_socket=sock)
+            except Exception as e:
+                logger.warning('Stream header not available yet. This can be normal if called immediately after starting the stream. Retrying after a short delay.')
+                logger.error(f'Error details: {e}')
+                return 'Header Not Available'
 
             self.qps_stream_header = stream_status
 

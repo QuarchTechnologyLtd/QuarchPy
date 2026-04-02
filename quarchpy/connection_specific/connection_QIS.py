@@ -340,21 +340,47 @@ class QisInterface:
             return
 
         # Poll for the stream header to become available. This is needed to configure the output file
-        base_sample_period = self.stream_header_average(device=module, sock=self.streamSock)
-        count = 0
-        max_tries = 10
-        while 'Header Not Available' in base_sample_period:
-            base_sample_period = self.stream_header_average(device=module, sock=self.streamSock)
-            time.sleep(0.1)
-            count += 1
-            if count > max_tries:
-                self.deviceDict[module][0:3] = [True, 'Stopped', 'Header not available']
-                if file_opened_by_function and f:
-                    try:
-                        f.close()
-                    except Exception as e_close:
-                        logger.error(f"Error closing file {file_name} on header failure: {e_close}")
-                return  # Changed from exit() for cleaner thread termination
+        # Ensure variables exist before the loop
+        base_sample_period = 'Header Not Available'
+        max_retries = 3
+
+        for attempt in range(max_retries):
+            try:
+                # Safely ask for the header on the control socket
+                base_sample_period = self.stream_header_average(device=module, sock=self.sock)
+
+                # Start our polling loop if it tells us to wait
+                count = 0
+                max_tries = 10
+                while 'Header Not Available' in base_sample_period:
+                    base_sample_period = self.stream_header_average(device=module, sock=self.sock)
+                    time.sleep(0.1)
+                    count += 1
+
+                    if count > max_tries:
+                        logger.error("Header not available after max polling retries.")
+                        self.deviceDict[module][0:3] = [True, 'Stopped', 'Header not available']
+                        self.send_command('rec stop', device=module, qis_socket=self.sock)
+                        if file_opened_by_function and f:
+                            try:
+                                f.close()
+                            except Exception as e_close:
+                                logger.error(f"Error closing file: {e_close}")
+                        return
+
+                        # If we get here, we successfully got the real header! Break the retry loop.
+                break
+
+            except (ConnectionAbortedError, BrokenPipeError, Exception) as e:
+                logger.error(f"Control socket died asking for header! (Attempt {attempt + 1}/{max_retries}). Error: {e}")
+
+                if attempt < max_retries - 1:
+                    self._reconnect_control_socket()
+                    time.sleep(0.1)
+                else:
+                    logger.error("Max retries hit. The module is completely unresponsive.")
+                    self.deviceDict[module][0:3] = [True, 'Stopped', 'Fatal Socket Error']
+                    return
 
         # Format the header and write it to the output file
         format_header = self.stream_header_format(device=module, sock=self.streamSock)
@@ -828,15 +854,10 @@ class QisInterface:
 
             # Add delay here to ensure the header is available.  This is needed as the stream command needs to be sent before the header is populated by QIS.
             # This is a bit hacky, but it is needed to ensure the function works when called
-            time.sleep(0.5)
+            time.sleep(1)
 
             index = 2 # index of relevant line in split string
-            try:
-                stream_status = self.send_command(command='stream text header', device=device, qis_socket=sock)
-            except Exception as e:
-                logger.warning('Stream header not available yet. This can be normal if called immediately after starting the stream. Retrying after a short delay.')
-                logger.error(f'Error details: {e}')
-                return 'Header Not Available'
+            stream_status = self.send_command(command='stream text header', device=device, qis_socket=sock)
 
             self.qps_stream_header = stream_status
 
@@ -1495,3 +1516,50 @@ class QisInterface:
             returnValue = streamAveraging
 
         return returnValue
+
+    def _reconnect_stream_socket(self):
+        """
+        Restarts the stream socket
+        """
+        logger.warning("Stream socket is dead!  Restarting...")
+
+        # 1. Kill the old one (wrap in try/except because it might already be dead at the OS level)
+        try:
+            self.streamSock.close()
+        except Exception:
+            pass
+
+            # 2. Build a fresh socket object
+        self.streamSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # 3. Reconnect and reapply timeouts
+        try:
+            self.streamSock.connect((self.host, self.port))
+            self.streamSock.settimeout(10.0)
+            logger.info("Stream socket successfully restarted!")
+        except Exception as e:
+            logger.error(f"Failed to restart the socket: {e}")
+
+    def _reconnect_control_socket(self):
+        """
+        Restarts the main control socket.
+        """
+        logger.warning("Control socket is dead! Restarting...")
+
+        # 1. Kill the old one
+        try:
+            self.sock.close()
+        except Exception:
+            pass
+
+            # 2. Build a fresh socket object
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # 3. Reconnect to the main QIS port
+        try:
+            # Assuming self.ip_address and self.port are stored in your class init!
+            self.sock.connect((self.host, self.port))
+            self.sock.settimeout(10.0)
+            logger.info("Control socket successfully restarted!")
+        except Exception as e:
+            logger.error(f"Failed to restart the control socket: {e}")

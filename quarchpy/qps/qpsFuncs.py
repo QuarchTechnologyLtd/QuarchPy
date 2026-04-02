@@ -366,7 +366,7 @@ def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> Tuple[O
         args_str += " -ccs=MIN"
 
     # Build Final Command
-    command = f'{java_exe_quoted} -jar qps.jar {args_str}'
+    command = f'{java_exe_quoted} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false --enable-native-access=ALL-UNNAMED -jar qps.jar {args_str}'
 
     return command, qps_dir
 

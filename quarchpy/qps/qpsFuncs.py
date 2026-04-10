@@ -250,16 +250,14 @@ def closeQps(host='127.0.0.1', port=9822):
         1)  #needed as calling "isQpsRunning()" will throw an error if it ties to connect while shutdown is in progress.
 
 
-def GetQpsModuleSelection(QpsConnection: 'QpsInterface', favouriteOnly=True,
-                          additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
+def GetQpsModuleSelection(QpsConnection: 'QpsInterface', favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
     """
     Deprecated: use QpsInterface.get_module_selection instead.
     This function will return a module selection list from QPS.
 
     """
     return (
-        QpsConnection.get_qps_module_selection(preferred_connection_only=favouriteOnly,
-                                               additional_options=additionalOptions, scan=scan)
+        QpsConnection.get_qps_module_selection(preferred_connection_only=favouriteOnly, additional_options=additionalOptions, scan=scan)
     )
 
 
@@ -319,7 +317,7 @@ def _prepare_qis_backend(qis_port: int, qis_rest_port: int, timeout: int) -> boo
     return True
 
 
-def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> Tuple[Optional[str], Optional[str]]:
+def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> tuple[None, None] | tuple[list[str], str]:
     """Resolves paths using quarchpy_binaries, checks permissions, and builds command."""
 
     # 1. Check OS Support
@@ -360,13 +358,22 @@ def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> Tuple[O
     # Wrap java path in quotes for safety
     java_exe_quoted = f'"{java_exe}"'
 
-    # Prepare Args String
-    args_str = " ".join(args) if args else " "
-    if startQPSMinimised and "-ccs" not in args_str.lower():
-        args_str += " -ccs=MIN"
+    # Build command as a list
+    command = [
+        java_exe,  # Path to java (DO NOT manual quote here if using a list)
+        "--enable-native-access=ALL-UNNAMED",
+        "-Djava.net.preferIPv4Stack=true",
+        "-Djava.net.preferIPv6Addresses=false",
+        "-jar",
+        "qps.jar"
+    ]
+
+    # Add remaining args
+    if startQPSMinimised and not any("-ccs" in a.lower() for a in args):
+        command.append("-ccs=MIN")
 
     # Build Final Command
-    command = f'{java_exe_quoted} --enable-native-access=ALL-UNNAMED -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -jar qps.jar {args_str}'
+    command.extend(args)
 
     return command, qps_dir
 
@@ -387,20 +394,23 @@ def _handle_java_permissions() -> None:
             fix_permissions()
 
 
-def _launch_process(command: str, args: List[str]) -> Union[Popen, CompletedProcess]:
-    """Launches the subprocess, handling logging flags."""
+def _launch_process(command: Union[str, List[str]], args: List[str]) -> Union[Popen, CompletedProcess]:
+    # Ensure command is a list for consistency
+    if isinstance(command, str):
+        import shlex
+        command = shlex.split(command)
+
     args_str = " ".join(args) if args else ""
 
     if "-logconsole=ON" in args_str:
-        if platform.system() == "Windows":
-            return subprocess.Popen(command, shell=True)
-        else:
-            return subprocess.run(command + "; exec bash", shell=True)
+        return subprocess.Popen(command)
     else:
-        # Use text=True for Python 3.7+
-        text_mode = True if sys.version_info >= (3, 7) else False
-        # Fallback for 3.6 if needed (universal_newlines=True)
-        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=text_mode, shell=True)
+        return subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
 
 
 def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subprocess.Popen], args: List[str]) -> bool:

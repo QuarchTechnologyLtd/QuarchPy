@@ -207,9 +207,12 @@ class quarchPPM(quarchDevice):
                 from the XML.
         """
         root = ET.fromstring(self.fixture_definition)
+        logger.debug('Parsing fixture XML. Content: %s', self.fixture_definition)
         synthetic_channels = []
+        xml_channels = root.findall(".//SyntheticChannels/Channel")
+        logger.debug('Found %d synthetic channels: %r', len(xml_channels), xml_channels)
 
-        for channel in root.findall(".//SyntheticChannels/Channel"):
+        for channel in xml_channels:
             number_elem = channel.find(".//Param[Name='Number']/Value")
             function_elem = channel.find(".//Param[Name='Function']/Value")
             enable_elem = channel.find(".//Param[Name='Enable']/Value")

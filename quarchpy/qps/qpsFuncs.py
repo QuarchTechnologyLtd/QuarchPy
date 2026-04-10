@@ -250,12 +250,25 @@ def closeQps(host='127.0.0.1', port=9822):
         1)  #needed as calling "isQpsRunning()" will throw an error if it ties to connect while shutdown is in progress.
 
 
-def GetQpsModuleSelection(QpsConnection: 'QpsInterface', favouriteOnly=True, additionalOptions=['rescan', 'all con types', 'ip scan'], scan=True):
+def GetQpsModuleSelection(QpsConnection: 'QpsInterface', favouriteOnly=True, additionalOptions=None, scan=True):
     """
-    Deprecated: use QpsInterface.get_module_selection instead.
-    This function will return a module selection list from QPS.
+        DEPRECATED: Use `QpsConnection.get_module_selection()` instead.
 
-    """
+        This is a legacy wrapper for retrieving the module selection list from QPS.
+        It is maintained for backward compatibility but may be removed in future versions.
+
+        Args:
+            QpsConnection: The active QPS interface instance.
+            favouriteOnly (bool): If True, filters for preferred connections only.
+            additionalOptions (list, optional): List of scan flags. Defaults to
+                ['rescan', 'all con types', 'ip scan'].
+            scan (bool): Whether to perform a fresh scan before returning results.
+
+        Returns:
+            The result of the QPS module selection call.
+        """
+    if additionalOptions is None:
+        additionalOptions = ['rescan', 'all con types', 'ip scan']
     return (
         QpsConnection.get_qps_module_selection(preferred_connection_only=favouriteOnly, additional_options=additionalOptions, scan=scan)
     )
@@ -317,7 +330,7 @@ def _prepare_qis_backend(qis_port: int, qis_rest_port: int, timeout: int) -> boo
     return True
 
 
-def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> tuple[None, None] | tuple[list[str], str]:
+def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> Union[Tuple[None, None], Tuple[List[str], str]]:
     """Resolves paths using quarchpy_binaries, checks permissions, and builds command."""
 
     # 1. Check OS Support

@@ -200,8 +200,28 @@ class QpsInterface:
             scan: bool = True
     ) -> Optional[Any]:
         """
-        Scans for QPS devices and prompts the user to select one.
-        """
+            Spawns a selection UI for QPS devices and handles the device discovery loop.
+
+            This method retrieves available devices from QPS, sanitizes the list (removing
+            unsupported REST devices), and presents a selection dialog to the user. It
+            supports interactive features like rescanning, toggling connection types,
+            and manual IP entry.
+
+            Args:
+                preferred_connection_only (bool): If True, filters the list to show only
+                    the best connection for each physical module (deduplication).
+                additional_options (List[str], optional): Custom UI button labels.
+                    Defaults to ['rescan', 'all con types', 'ip scan'].
+                scan (bool): Whether to trigger a hardware scan on the first execution.
+
+            Returns:
+                The selected device object/identifier, or None if the user cancels.
+
+            Notes:
+                - The internal loop persists until a device is selected or the UI is closed.
+                - 'favourite' mode is automatically disabled if no devices are found to
+                  broaden the search.
+            """
         if additional_options is None:
             additional_options = ['rescan', 'all con types', 'ip scan']
 

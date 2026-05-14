@@ -12,7 +12,7 @@ from quarchpy.user_interface import printText, requestDialog
 from quarchpy._version import __version__ as quarchpy_version
 
 # --- Configuration ---
-QPS_VERSION_FOR_DOWNLOAD = "1.51.2"
+QPS_VERSION_FOR_DOWNLOAD = "1.52"
 # URLs for the separate ZIP files.
 QPS_DOWNLOAD_URL = f"https://quarch.com/software_update/qps/QPS_{QPS_VERSION_FOR_DOWNLOAD}.zip"
 QPS_DOWNLOAD_URL_LATEST = "https://quarch.com/software_update/qps/QPS.zip"

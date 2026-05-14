@@ -13,6 +13,14 @@ Quarchpy
 Change Log
 ----------
 
+2.2.20
+------
+- New QPS 1.52 and QIS 1.54
+
+2.2.19
+------
+- Critical bug fix for deadlock caused by usb library changes (libusb)
+
 2.2.18
 ------
 - Contains patch release for QPS 1.51.2 and QIS 1.53.1

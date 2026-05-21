@@ -1,8 +1,8 @@
+from zeroconf import Zeroconf
 import platform  # For getting the operating system name
 import subprocess  # For executing a shell command
 import logging
 logger = logging.getLogger(__name__)
-from zeroconf import Zeroconf
 
 
 def ping(host):
@@ -56,10 +56,13 @@ class MyListener:
         """
         info = zc.get_service_info(type_, name)
         if "Quarch:" in str(info):
-            # decode the incoming properties from mdns
-            decoded_properties = {key.decode('utf-8'): value.decode('utf-8') for key, value in info.properties.items()}
-            decoded_ip = ".".join(str(byte) for byte in info.addresses[0])
-            self.get_instance().add_device(decoded_properties, decoded_ip)
+            try:
+                # decode the incoming properties from mdns
+                decoded_properties = {key.decode('utf-8'): value.decode('utf-8') for key, value in info.properties.items()}
+                decoded_ip = ".".join(str(byte) for byte in info.addresses[0])
+                self.get_instance().add_device(decoded_properties, decoded_ip)
+            except Exception as e:
+                logger.info('Could not decode properties: ' + str(e))
 
     def remove_service(self, zc, type_, name):
         """
@@ -78,7 +81,10 @@ class MyListener:
             # decode the incoming properties from mdns
             decoded_properties ={}
             for key, value in info.properties.items():
-                decoded_properties[ key.decode('utf-8')]=value.decode('utf-8')
+                try:
+                    decoded_properties[key.decode('utf-8')] = value.decode('utf-8')
+                except Exception as e:
+                    logger.info('Could not decode properties: ' + str(e))
                 pass
             #decoded_properties = {key.decode('utf-8'): value.decode('utf-8') for key, value in info.properties.items()}
             decoded_ip = ".".join(str(byte) for byte in info.addresses[0])
@@ -88,7 +94,7 @@ class MyListener:
         """
         Add a device to the found devices dictionary.
         """
-        logger.debug("Adding device: " +str(ip_address)+"\n"+str(properties_dict))
+        logger.debug("Adding device: " + str(ip_address)+"\n"+str(properties_dict))
         qtl_num = "QTL" + properties_dict['86'] if '86' in properties_dict else None
         # Check if module contains REST connection
         if '84' in properties_dict:

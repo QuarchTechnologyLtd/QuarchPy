@@ -18,6 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+
 def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
     '''
     This func will return true if QPS is running with a working QIS connection.
@@ -40,11 +41,20 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
 
     logger.debug(
         "Checking if QPS reports a QIS connection")  # "$qis status" returns connected if it has ever had a QIS connection.
-    answer = 0
+    answer = ""
     counter = 0
     while True:
-        answer = myQps.sendCmdVerbose(cmd="$qis status")
-        if answer.lower() == "connected":
+        try:
+            # Catching connection errors here prevents the WinError 10054 crash
+            # when QPS accepts the TCP connection but isn't ready to handle commands.
+            answer = myQps.sendCmdVerbose(cmd="$qis status")
+        except (ConnectionError, OSError) as e:
+            logger.debug(f"Connection reset/dropped during status check: {e}")
+            # The socket is now dead. Return False so the parent wait loop
+            # can re-instantiate QpsInterface cleanly on the next poll.
+            return False
+
+        if str(answer).lower() == "connected":
             logger.debug("QPS Running With QIS Connected")
             break
         else:
@@ -57,14 +67,22 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
 
     logger.debug("Checking if QPS/QIS comms are running")
     start = time.time()
+    answer = None
     while True:
         try:
             answer = myQps.sendCmdVerbose(cmd="$list")
             break
-        except:
+        except (ConnectionError, OSError) as e:
+            logger.debug(f"Connection reset/dropped during list check: {e}")
+            return False
+        except Exception:
             pass
         if (time.time() - start) > timeout:
             break
+
+    if not answer:
+        logger.debug("QPS did not return expected output from $list (no response)")
+        return False
 
     # check for a 1 showing the first module to be displayed, or a no module/device error message.
     if answer[0] == "1" or "no device" in str(answer).lower() or "no module" in str(answer).lower():
@@ -74,7 +92,6 @@ def isQpsRunning(host='127.0.0.1', port=9822, timeout=0):
         logger.debug("QPS did not return expected output from $list")
         logger.debug("$list: " + str(answer))
         return False
-
 
 def startLocalQps(
         keepQisRunning: bool = False,
@@ -423,3 +440,47 @@ def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subp
             return False
 
         time.sleep(0.2)
+
+        def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subprocess.Popen],
+                              args: List[str]) -> bool:
+            """Polls the port until open, checking process output for errors and premature crashes."""
+            start_time = time.time()
+            args_str = " ".join(args) if args else ""
+            logging_on = "-logconsole=ON" in args_str
+
+            while True:
+                # Check our robust isQpsRunning function from the Canvas
+                if isQpsRunning(host, port):
+                    logger.debug(f"QPS detected on port {port} after {time.time() - start_time:.2f}s")
+                    return True
+
+                # FAST FAIL: Check if the QPS process has crashed or terminated prematurely
+                if process:
+                    exit_code = process.poll()
+                    if exit_code is not None:
+                        logger.error(f"QPS process exited prematurely with exit code {exit_code}.")
+
+                        # If console logging was hidden, grab the final buffer to report the error
+                        if not logging_on:
+                            try:
+                                output = _get_std_msg_and_err_from_QPS_process(process)
+                                if output:
+                                    logger.error(f"Last recorded QPS output before crash:\n{output}")
+                            except Exception as e:
+                                logger.debug(f"Could not retrieve process std messages: {e}")
+
+                        return False  # Abort immediately rather than waiting out the timeout
+
+                # If hidden and still running, drain pipes to prevent buffer deadlock
+                if not logging_on and process:
+                    try:
+                        _get_std_msg_and_err_from_QPS_process(process)
+                    except Exception:
+                        pass
+
+                # Guard against infinite loops (guaranteed to exit after timeout)
+                if time.time() - start_time > timeout:
+                    logger.error(f"QPS failed to launch on port {port} within timelimit of {timeout} sec.")
+                    return False
+
+                time.sleep(0.2)

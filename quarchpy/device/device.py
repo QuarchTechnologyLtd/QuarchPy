@@ -425,7 +425,7 @@ class quarchDevice:
                 logger.warning(f"scanIP method not found on {server_type} connection object.")
                 return None  # Cannot scan
 
-            scan_response = scan_method(server_conn_obj, target_ip)  # Scan using the target IP
+            scan_response = scan_method(target_ip)  # Scan using the target IP
             if "located" not in str(scan_response).lower():
                 logger.debug(f"{server_type} scan for {target_ip} did not locate the device.")
                 return None  # Scan didn't find it

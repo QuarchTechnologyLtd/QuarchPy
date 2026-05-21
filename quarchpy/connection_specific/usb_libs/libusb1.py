@@ -179,7 +179,8 @@ def _loadLibrary():
     if system not in ['Windows', 'Darwin']:
         try:
             return dll_loader('libusb-1.0' + suffix, **loader_kw)
-        except OSError:
+        except Exception as e:
+            logger.debug("Bundled library failed to load: %s", e)
             pass
 
     # BUNDLED SEARCH (Now acts as a fallback for Linux/Unix if system search fails, and primary search for Windows/macOS)

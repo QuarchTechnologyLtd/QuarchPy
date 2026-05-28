@@ -382,6 +382,10 @@ def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> Tuple[O
     if startQPSMinimised and "-ccs" not in args_str.lower():
         args_str += " -ccs=MIN"
 
+    # Add emit token argument if not already present to ensure we can detect when QPS is ready
+    if "-emitreadytoken=ON" not in args_str.lower():
+        args_str += " -emitreadytoken=ON"
+
     # Build Final Command
     command = f'{java_exe_quoted} -jar qps.jar {args_str}'
 
@@ -403,10 +407,12 @@ def _handle_java_permissions() -> None:
         if user_input.strip().lower() in ['y', 'yes']:
             fix_permissions()
 
-
-def _launch_process(command: str, args: List[str]) -> Union[Popen, CompletedProcess]:
-    """Launches the subprocess, handling logging flags."""
+def _launch_process(command: str, args: List[str]) -> Union[subprocess.Popen, subprocess.CompletedProcess]:
+    """Launches the subprocess, handling logging flags and waits for Telnet Server to be ready."""
     args_str = " ".join(args) if args else ""
+
+    # Determine text/universal_newlines mode based on Python version
+    text_mode = True if sys.version_info >= (3, 7) else False
 
     if "-logconsole=ON" in args_str:
         if platform.system() == "Windows":
@@ -414,10 +420,26 @@ def _launch_process(command: str, args: List[str]) -> Union[Popen, CompletedProc
         else:
             return subprocess.run(command + "; exec bash", shell=True)
     else:
-        # Use text=True for Python 3.7+
-        text_mode = True if sys.version_info >= (3, 7) else False
-        # Fallback for 3.6 if needed (universal_newlines=True)
-        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=text_mode, shell=True)
+        popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "shell": True, "text": True}
+        target_message = "QPS Telnet Server is ready"
+        timeout_seconds = 30
+
+        process = subprocess.Popen(command, **popen_kwargs)
+        start_time = time.time()
+
+        while True:
+            # 1. Check if we've exceeded our time limit
+            if time.time() - start_time > timeout_seconds:
+                process.terminate()
+                raise TimeoutError("Application failed to start within the given timeout.")
+
+            # 2. Read the line (Will block until a newline character '\n' arrives)
+            line = process.stdout.readline()
+
+            if target_message in line:
+                break  # Success!
+
+        return process
 
 
 def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subprocess.Popen], args: List[str]) -> bool:
@@ -440,47 +462,3 @@ def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subp
             return False
 
         time.sleep(0.2)
-
-        def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subprocess.Popen],
-                              args: List[str]) -> bool:
-            """Polls the port until open, checking process output for errors and premature crashes."""
-            start_time = time.time()
-            args_str = " ".join(args) if args else ""
-            logging_on = "-logconsole=ON" in args_str
-
-            while True:
-                # Check our robust isQpsRunning function from the Canvas
-                if isQpsRunning(host, port):
-                    logger.debug(f"QPS detected on port {port} after {time.time() - start_time:.2f}s")
-                    return True
-
-                # FAST FAIL: Check if the QPS process has crashed or terminated prematurely
-                if process:
-                    exit_code = process.poll()
-                    if exit_code is not None:
-                        logger.error(f"QPS process exited prematurely with exit code {exit_code}.")
-
-                        # If console logging was hidden, grab the final buffer to report the error
-                        if not logging_on:
-                            try:
-                                output = _get_std_msg_and_err_from_QPS_process(process)
-                                if output:
-                                    logger.error(f"Last recorded QPS output before crash:\n{output}")
-                            except Exception as e:
-                                logger.debug(f"Could not retrieve process std messages: {e}")
-
-                        return False  # Abort immediately rather than waiting out the timeout
-
-                # If hidden and still running, drain pipes to prevent buffer deadlock
-                if not logging_on and process:
-                    try:
-                        _get_std_msg_and_err_from_QPS_process(process)
-                    except Exception:
-                        pass
-
-                # Guard against infinite loops (guaranteed to exit after timeout)
-                if time.time() - start_time > timeout:
-                    logger.error(f"QPS failed to launch on port {port} within timelimit of {timeout} sec.")
-                    return False
-
-                time.sleep(0.2)

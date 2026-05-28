@@ -179,7 +179,7 @@ def startLocalQis(
     current_dir = os.getcwd()
     try:
         os.chdir(qis_dir)
-        process = _launch_qis_process(command, launch_args)
+        process = _launch_qis_process(command, launch_args, timeout)
     finally:
         os.chdir(current_dir)
 
@@ -437,8 +437,8 @@ def _prepare_qis_launch_env(terminal: bool, headless: bool, args: List[str]) -> 
             if option != "-headless":
                 cmd_suffix += f" {option}"
 
-    # Add emit token argument if not already present to ensure we can detect when QPS is ready
-    if "-emitreadytoken=ON" not in cmd_suffix.lower():
+    # Add emit token argument if not already present to ensure we can detect when QIS is ready
+    if "-emitreadytoken=on" not in cmd_suffix.lower():
         cmd_suffix += " -emitreadytoken=ON"
 
     # 7. Final Command
@@ -447,7 +447,7 @@ def _prepare_qis_launch_env(terminal: bool, headless: bool, args: List[str]) -> 
     return command, qis_dir
 
 
-def _launch_qis_process(command: str, args: List[str]) -> Union[Popen, CompletedProcess]:
+def _launch_qis_process(command: str, args: List[str], timeout_seconds: int=30) -> Union[Popen, CompletedProcess]:
     """Launches QIS, checking for logging flags."""
     args_str = " ".join(args) if args else ""
 
@@ -459,7 +459,6 @@ def _launch_qis_process(command: str, args: List[str]) -> Union[Popen, Completed
     else:
         popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "shell": True, "text": True}
         target_message = "QIS Server Ready"
-        timeout_seconds = 30
 
         process = subprocess.Popen(command, **popen_kwargs)
         start_time = time.time()
@@ -468,6 +467,7 @@ def _launch_qis_process(command: str, args: List[str]) -> Union[Popen, Completed
             # 1. Check if we've exceeded our time limit
             if time.time() - start_time > timeout_seconds:
                 process.terminate()
+                logging.error("QIS failed to start within the given timeout.")
                 raise TimeoutError("Application failed to start within the given timeout.")
 
             # 2. Read the line (Will block until a newline character '\n' arrives)

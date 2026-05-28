@@ -194,7 +194,7 @@ def startLocalQps(
 
     try:
         os.chdir(qps_dir)  # Switch to QPS dir for launch dependencies
-        process = _launch_process(command, args)
+        process = _launch_process(command, args, timeout)
     finally:
         os.chdir(current_dir)  # Always return to original dir
 
@@ -383,7 +383,7 @@ def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> Tuple[O
         args_str += " -ccs=MIN"
 
     # Add emit token argument if not already present to ensure we can detect when QPS is ready
-    if "-emitreadytoken=ON" not in args_str.lower():
+    if "-emitreadytoken=on" not in args_str.lower():
         args_str += " -emitreadytoken=ON"
 
     # Build Final Command
@@ -407,7 +407,7 @@ def _handle_java_permissions() -> None:
         if user_input.strip().lower() in ['y', 'yes']:
             fix_permissions()
 
-def _launch_process(command: str, args: List[str]) -> Union[subprocess.Popen, subprocess.CompletedProcess]:
+def _launch_process(command: str, args: List[str], timeout_seconds: int=30) -> Union[subprocess.Popen, subprocess.CompletedProcess]:
     """Launches the subprocess, handling logging flags and waits for Telnet Server to be ready."""
     args_str = " ".join(args) if args else ""
 
@@ -422,7 +422,6 @@ def _launch_process(command: str, args: List[str]) -> Union[subprocess.Popen, su
     else:
         popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "shell": True, "text": True}
         target_message = "QPS Telnet Server is ready"
-        timeout_seconds = 30
 
         process = subprocess.Popen(command, **popen_kwargs)
         start_time = time.time()

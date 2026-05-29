@@ -1211,34 +1211,19 @@ class QisInterface:
 
             # If reading until a cursor comes back, then keep reading until a cursor appears or max tries exceeded
             # Because large XML responses are possible, we need to validate them as complete before looking
-            # for a final cursor
+            # for the terminator
             if read_until_cursor:
-
                 max_reads = 1000
                 count = 1
-                is_xml = False
 
+                # Define the expected terminators
+                terminator = "\r\n>"
+
+                # 1. READ PHASE: Keep reading until QIS signals it is done
                 while True:
-
-                    # Determine if the response is XML based on its start
-                    if count == 1:  # Only check this on the first read
-                        if res.startswith("<?xml"):  # Likely XML if it starts with '<'
-                            is_xml = True
-                        elif res.startswith("<XmlResponse"):
-                            is_xml = True
-
-
-                    if is_xml:
-                        # Try to parse the XML to check if it's complete
-                        try:
-                            ET.fromstring(res[:-1])  # If it parses, the response is complete
-                            return res[:-1]  # Exit the loop, valid XML received
-                        except ET.ParseError:
-                            pass  # Keep reading until XML is complete
-                    else:
-                        # Handle normal strings
-                        if res[-1:] == self.cursor:  # If the last character is '>', stop reading
-                            break
+                    # Check if the response ends with our known terminator
+                    if res.endswith(terminator):
+                        break
 
                     # Receive more data
                     res += self.receive_text(sock)
@@ -1248,6 +1233,22 @@ class QisInterface:
                     if count >= max_reads:
                         raise Exception('Count = Error: max reads exceeded before response was complete')
 
+                # 2. VALIDATION PHASE: Data is complete, determine how to process it
+                is_xml = res.startswith("<?xml") or res.startswith("<XmlResponse")
+
+                if is_xml:
+                    xml_content = res[:-1]
+
+                    try:
+                        # If it parses, the response is complete and structurally sound
+                        ET.fromstring(xml_content)
+                        return xml_content
+                    except ET.ParseError as e:
+                        # We already know we have the full payload. If it fails here,
+                        # it's genuinely malformed XML, so we raise an explicit error.
+                        raise Exception(f'Malformed XML received from QIS: {e}')
+
+            # Return the raw response for non-XML data (matching original behavior)
             return res
 
         except Exception as e:

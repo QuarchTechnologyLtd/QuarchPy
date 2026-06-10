@@ -156,8 +156,8 @@ class QisInterface:
             return "FAIL: Unable to close connection to device(s), QIS may be already closed"
 
     def start_stream(self, module: str, file_name: str, max_file_size: int, release_on_data: bool, separator: str,
-                     stream_duration: float=None, in_memory_data: StringIO=None, output_file_handle=None, use_gzip: bool=None,
-                     gzip_compress_level: int=9):
+                     stream_duration: float = None, in_memory_data: StringIO = None, output_file_handle=None,
+                     use_gzip: bool = None, gzip_compress_level: int = 9, block: bool = False):
         """
         Begins a stream process which will record data from the module to a CSV file or in memory CSV equivalent
 
@@ -180,6 +180,11 @@ class QisInterface:
                 A file handle to an output file where the stream data is written as an alternate to a file name
             use_gzip:
                 A flag indicating whether the output file should be compressed using gzip to reduce disk use
+            gzip_compress_level:
+                (Default: 9) The compression level (0-9) to use for gzip.
+                1 is fastest with low compression. 9 is slowest with high compression.
+            block:
+                If True, blocks the calling thread until the stream has initialized. Defaults to False (returns immediately).
 
         Returns:
             None
@@ -198,8 +203,11 @@ class QisInterface:
         # Start the thread
         t1.start()
 
-        while self.stripesEvent.is_set():
-            pass
+        # Conditionally block based on the new argument
+        if block:
+            while self.stripesEvent.is_set():
+                # Added a tiny sleep to prevent pure busy-waiting and high CPU load
+                time.sleep(0.01)
 
     def stop_stream(self, module, blocking:bool = True):
         """

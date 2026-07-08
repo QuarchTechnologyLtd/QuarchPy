@@ -160,6 +160,8 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
         QquarchDevice.SetTimeout(2000)
         serialNo = (QquarchDevice.RunCommand("*serial?")).replace("\r\n", "")
         enclNo = (QquarchDevice.RunCommand("*enclosure?")).replace("\r\n", "")
+        if 'Not Set' in enclNo:
+            enclNo = serialNo
 
         keyToFind = "USB:QTL" + serialNo
 
@@ -378,6 +380,11 @@ def get_user_level_serial_number(network_modules):
                 break
     elif "\\x86" in network_modules.keys():
         module_name = network_modules.get("\\x86").strip()  # enclosure number only
+        if "\\xff" in module_name:
+            if "131" in network_modules.keys():
+                module_name = module_name = network_modules.get("131").strip()  # serial number
+            elif "\\x83" in network_modules.keys():
+                module_name = module_name = network_modules.get("\\x83").strip()  # serial number
         for module in list_of_multi_module_units:
             if module in module_name:
                 module_name += "-" + network_modules.get("\\x87").strip()  # enclosure number with port

@@ -570,6 +570,8 @@ class TQuarchUSB_IF:
         
                     dump = self.idnEnclosure
                     retString = self.idnEnclosure
+                    if "Not Set" in retString:
+                        retString = self.idnSerialNumber
                             
                     if (NeedToClose == True):
                         pass

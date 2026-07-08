@@ -27,6 +27,7 @@ from quarchpy.debug.upgrade_quarchpy import main as uprade_quarchpy_main
 from quarchpy.user_interface import *
 from quarchpy.debug.simple_terminal import main as simple_terminal_main
 from quarchpy.install_qps import find_qps
+from quarchpy.scripts import PAMHeaderUtility
 import sys, logging, traceback
 
 
@@ -91,6 +92,7 @@ def _get_run_options():
     run_options.append([None                , "module_debug" , _run_module_debug_function     , "Gives debug info on selected module and DUT"])
     run_options.append([None                , "qcs"          , _run_qcs_function              , "Launches Quarch Compliance Suite server"])
     run_options.append(["calibration_tool"  , "calibration"  , _run_calibration_function      , "Runs the Quarch power module calibration tool"])
+    run_options.append([None                , "pam_header_utility"          , _run_pam_header_utility_function      , "Runs the Quarch PAM Header Utility script"])
     run_options.append([None                , "qis"          , _run_qis_function              ,"Launches Quarch Instrument Server for communication with Quarch power modules"])
     run_options.append([None                , "qps"          , _run_qps_function              , "Launches Quarch Power Studios, for power capture and analysis"])
     run_options.append(["simple_terminal"   , "terminal"     , _run_simple_terminal_function  , "Runs the Simple Terminal script"])
@@ -262,6 +264,12 @@ def _run_calibration_function(args=[]):
         logger.error("'pip install quarchCalibration'")
         logger.error("Then retry this command")
         traceback.print_exc()
+
+def _run_pam_header_utility_function(args=[]):
+    """
+    Executes the pam header utility for power modules
+    """
+    PAMHeaderUtility.main(args)
 
 
 def _run_upgrade_function(args=[]):

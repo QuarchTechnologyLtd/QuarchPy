@@ -88,7 +88,6 @@ class Descriptor:
 
     def __init__(self, inputFile, carrierSerial=None, device=None):
 
-        # --- NEW: Data structures for validation ---
         class DescriptorRequirements:
             VERSION_REQUIREMENTS = {
                 0: {"Applies to", "Carrier Product", "Carrier Version", "Base Sample Rate (Hz)", "Product Name",
@@ -137,7 +136,6 @@ class Descriptor:
         fixedShunts = False
         highBytePowerControl = False
 
-        # --- NEW: Track keys found in the file ---
         found_keys = set()
 
         for x in lines:
@@ -314,7 +312,6 @@ class Descriptor:
                 else:
                     printText("Line not recognised:" + x)
 
-        # --- NEW: Validate required fields based on Header Version ---
         if headerVersion in DescriptorRequirements.VERSION_REQUIREMENTS:
             required_keys = DescriptorRequirements.VERSION_REQUIREMENTS[headerVersion]
             missing_keys = required_keys - found_keys
@@ -329,7 +326,6 @@ class Descriptor:
             self.success = False
             return
 
-        # --- NEW: Validate conditional fields (e.g., External Shunt) ---
         if headerVersion >= 2 and architecture == "External Shunt":
             missing_conditional = DescriptorRequirements.EXTERNAL_SHUNT_REQUIREMENTS - found_keys
             if missing_conditional:

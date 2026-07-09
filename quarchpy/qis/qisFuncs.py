@@ -290,7 +290,7 @@ def checkAndCloseQis(host='127.0.0.1', port=9722):
 def closeQis(host='127.0.0.1', port=9722):
     """
     Helper function to close an instance of QIS.  By default this is the local version, but
-    an address can be specified for remote systems.
+        an address can be specified for remote systems.
     
     Parameters
     ----------
@@ -438,7 +438,7 @@ def _prepare_qis_launch_env(terminal: bool, headless: bool, args: List[str]) -> 
                 cmd_suffix += f" {option}"
 
     # Add emit token argument if not already present to ensure we can detect when QIS is ready
-    if "-emitreadytoken=on" not in cmd_suffix.lower():
+    if "-emitreadytoken" not in cmd_suffix.lower():
         cmd_suffix += " -emitreadytoken=ON"
 
     # 7. Final Command
@@ -467,8 +467,8 @@ def _launch_qis_process(command: str, args: List[str], timeout_seconds: int=30) 
             # 1. Check if we've exceeded our time limit
             if time.time() - start_time > timeout_seconds:
                 process.terminate()
-                logging.error("QIS failed to start within the given timeout.")
-                raise TimeoutError("Application failed to start within the given timeout.")
+                logging.error(f"QIS failed to start within the given timeout. {time.time() - start_time:.2f}s")
+                raise TimeoutError(f"Application failed to start within the given timeout. {timeout_seconds}")
 
             # 2. Read the line (Will block until a newline character '\n' arrives)
             line = process.stdout.readline()

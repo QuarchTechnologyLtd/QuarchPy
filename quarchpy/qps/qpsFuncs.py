@@ -383,7 +383,7 @@ def _prepare_qps_launch_env(args: List[str], startQPSMinimised: bool) -> Tuple[O
         args_str += " -ccs=MIN"
 
     # Add emit token argument if not already present to ensure we can detect when QPS is ready
-    if "-emitreadytoken=on" not in args_str.lower():
+    if "-emitreadytoken" not in args_str.lower():
         args_str += " -emitreadytoken=ON"
 
     # Build Final Command
@@ -411,9 +411,6 @@ def _launch_process(command: str, args: List[str], timeout_seconds: int=30) -> U
     """Launches the subprocess, handling logging flags and waits for Telnet Server to be ready."""
     args_str = " ".join(args) if args else ""
 
-    # Determine text/universal_newlines mode based on Python version
-    text_mode = True if sys.version_info >= (3, 7) else False
-
     if "-logconsole=ON" in args_str:
         if platform.system() == "Windows":
             return subprocess.Popen(command, shell=True)
@@ -430,7 +427,7 @@ def _launch_process(command: str, args: List[str], timeout_seconds: int=30) -> U
             # 1. Check if we've exceeded our time limit
             if time.time() - start_time > timeout_seconds:
                 process.terminate()
-                raise TimeoutError("Application failed to start within the given timeout.")
+                raise TimeoutError(f"Application failed to start within the given timeout. {timeout_seconds} seconds.")
 
             # 2. Read the line (Will block until a newline character '\n' arrives)
             line = process.stdout.readline()

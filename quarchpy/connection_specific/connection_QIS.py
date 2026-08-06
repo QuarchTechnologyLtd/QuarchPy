@@ -156,8 +156,8 @@ class QisInterface:
             return "FAIL: Unable to close connection to device(s), QIS may be already closed"
 
     def start_stream(self, module: str, file_name: str, max_file_size: int, release_on_data: bool, separator: str,
-                     stream_duration: float=None, in_memory_data: StringIO=None, output_file_handle=None, use_gzip: bool=None,
-                     gzip_compress_level: int=9):
+                     stream_duration: float = None, in_memory_data: StringIO = None, output_file_handle=None,
+                     use_gzip: bool = None, gzip_compress_level: int = 9, block: bool = False):
         """
         Begins a stream process which will record data from the module to a CSV file or in memory CSV equivalent
 
@@ -180,6 +180,11 @@ class QisInterface:
                 A file handle to an output file where the stream data is written as an alternate to a file name
             use_gzip:
                 A flag indicating whether the output file should be compressed using gzip to reduce disk use
+            gzip_compress_level:
+                (Default: 9) The compression level (0-9) to use for gzip.
+                1 is fastest with low compression. 9 is slowest with high compression.
+            block:
+                If True, blocks the calling thread until the stream has initialized. Defaults to False (returns immediately).
 
         Returns:
             None
@@ -198,8 +203,11 @@ class QisInterface:
         # Start the thread
         t1.start()
 
-        while self.stripesEvent.is_set():
-            pass
+        # Conditionally block based on the new argument
+        if block:
+            while self.stripesEvent.is_set():
+                # Added a tiny sleep to prevent pure busy-waiting and high CPU load
+                time.sleep(0.01)
 
     def stop_stream(self, module, blocking:bool = True):
         """
@@ -1211,34 +1219,19 @@ class QisInterface:
 
             # If reading until a cursor comes back, then keep reading until a cursor appears or max tries exceeded
             # Because large XML responses are possible, we need to validate them as complete before looking
-            # for a final cursor
+            # for the terminator
             if read_until_cursor:
-
                 max_reads = 1000
                 count = 1
-                is_xml = False
 
+                # Define the expected terminators
+                terminator = "\r\n>"
+
+                # 1. READ PHASE: Keep reading until QIS signals it is done
                 while True:
-
-                    # Determine if the response is XML based on its start
-                    if count == 1:  # Only check this on the first read
-                        if res.startswith("<?xml"):  # Likely XML if it starts with '<'
-                            is_xml = True
-                        elif res.startswith("<XmlResponse"):
-                            is_xml = True
-
-
-                    if is_xml:
-                        # Try to parse the XML to check if it's complete
-                        try:
-                            ET.fromstring(res[:-1])  # If it parses, the response is complete
-                            return res[:-1]  # Exit the loop, valid XML received
-                        except ET.ParseError:
-                            pass  # Keep reading until XML is complete
-                    else:
-                        # Handle normal strings
-                        if res[-1:] == self.cursor:  # If the last character is '>', stop reading
-                            break
+                    # Check if the response ends with our known terminator
+                    if res.endswith(terminator):
+                        break
 
                     # Receive more data
                     res += self.receive_text(sock)
@@ -1248,6 +1241,22 @@ class QisInterface:
                     if count >= max_reads:
                         raise Exception('Count = Error: max reads exceeded before response was complete')
 
+                # 2. VALIDATION PHASE: Data is complete, determine how to process it
+                is_xml = res.startswith("<?xml") or res.startswith("<XmlResponse")
+
+                if is_xml:
+                    xml_content = res[:-1]
+
+                    try:
+                        # If it parses, the response is complete and structurally sound
+                        ET.fromstring(xml_content)
+                        return xml_content
+                    except ET.ParseError as e:
+                        # We already know we have the full payload. If it fails here,
+                        # it's genuinely malformed XML, so we raise an explicit error.
+                        raise Exception(f'Malformed XML received from QIS: {e}')
+
+            # Return the raw response for non-XML data (matching original behavior)
             return res
 
         except Exception as e:

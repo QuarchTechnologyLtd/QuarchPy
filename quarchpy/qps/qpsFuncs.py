@@ -458,3 +458,47 @@ def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subp
             return False
 
         time.sleep(0.2)
+
+        def _wait_for_service(host: str, port: int, timeout: int, process: Optional[subprocess.Popen],
+                              args: List[str]) -> bool:
+            """Polls the port until open, checking process output for errors and premature crashes."""
+            start_time = time.time()
+            args_str = " ".join(args) if args else ""
+            logging_on = "-logconsole=ON" in args_str
+
+            while True:
+                # Check our robust isQpsRunning function from the Canvas
+                if isQpsRunning(host, port):
+                    logger.debug(f"QPS detected on port {port} after {time.time() - start_time:.2f}s")
+                    return True
+
+                # FAST FAIL: Check if the QPS process has crashed or terminated prematurely
+                if process:
+                    exit_code = process.poll()
+                    if exit_code is not None:
+                        logger.error(f"QPS process exited prematurely with exit code {exit_code}.")
+
+                        # If console logging was hidden, grab the final buffer to report the error
+                        if not logging_on:
+                            try:
+                                output = _get_std_msg_and_err_from_QPS_process(process)
+                                if output:
+                                    logger.error(f"Last recorded QPS output before crash:\n{output}")
+                            except Exception as e:
+                                logger.debug(f"Could not retrieve process std messages: {e}")
+
+                        return False  # Abort immediately rather than waiting out the timeout
+
+                # If hidden and still running, drain pipes to prevent buffer deadlock
+                if not logging_on and process:
+                    try:
+                        _get_std_msg_and_err_from_QPS_process(process)
+                    except Exception:
+                        pass
+
+                # Guard against infinite loops (guaranteed to exit after timeout)
+                if time.time() - start_time > timeout:
+                    logger.error(f"QPS failed to launch on port {port} within timelimit of {timeout} sec.")
+                    return False
+
+                time.sleep(0.2)

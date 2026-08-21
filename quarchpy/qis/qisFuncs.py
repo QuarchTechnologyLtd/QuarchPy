@@ -179,7 +179,7 @@ def startLocalQis(
     current_dir = os.getcwd()
     try:
         os.chdir(qis_dir)
-        process = _launch_qis_process(command, launch_args)
+        process = _launch_qis_process(command, launch_args, timeout)
     finally:
         os.chdir(current_dir)
 
@@ -290,7 +290,7 @@ def checkAndCloseQis(host='127.0.0.1', port=9722):
 def closeQis(host='127.0.0.1', port=9722):
     """
     Helper function to close an instance of QIS.  By default this is the local version, but
-    an address can be specified for remote systems.
+        an address can be specified for remote systems.
     
     Parameters
     ----------
@@ -437,13 +437,17 @@ def _prepare_qis_launch_env(terminal: bool, headless: bool, args: List[str]) -> 
             if option != "-headless":
                 cmd_suffix += f" {option}"
 
+    # Add emit token argument if not already present to ensure we can detect when QIS is ready
+    if "-emitreadytoken" not in cmd_suffix.lower():
+        cmd_suffix += " -emitreadytoken=ON"
+
     # 7. Final Command
     command = f'{java_exe_quoted} {cmd_prefix} -jar qis.jar{cmd_suffix}'
 
     return command, qis_dir
 
 
-def _launch_qis_process(command: str, args: List[str]) -> Union[Popen, CompletedProcess]:
+def _launch_qis_process(command: str, args: List[str], timeout_seconds: int=30) -> Union[Popen, CompletedProcess]:
     """Launches QIS, checking for logging flags."""
     args_str = " ".join(args) if args else ""
 
@@ -453,8 +457,26 @@ def _launch_qis_process(command: str, args: List[str]) -> Union[Popen, Completed
         else:
             return subprocess.run(command + "; exec bash", shell=True)
     else:
-        text_mode = True if sys.version_info >= (3, 7) else False
-        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=text_mode, shell=True)
+        popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "shell": True, "text": True}
+        target_message = "QIS Server Ready"
+
+        process = subprocess.Popen(command, **popen_kwargs)
+        start_time = time.time()
+
+        while True:
+            # 1. Check if we've exceeded our time limit
+            if time.time() - start_time > timeout_seconds:
+                process.terminate()
+                logging.error(f"QIS failed to start within the given timeout. {time.time() - start_time:.2f}s")
+                raise TimeoutError(f"Application failed to start within the given timeout. {timeout_seconds}")
+
+            # 2. Read the line (Will block until a newline character '\n' arrives)
+            line = process.stdout.readline()
+
+            if target_message in line:
+                break  # Success!
+
+        return process
 
 
 def _wait_for_qis_service(host: str, port: int, timeout: int, process: Optional[subprocess.Popen], args: List[str]) -> bool:

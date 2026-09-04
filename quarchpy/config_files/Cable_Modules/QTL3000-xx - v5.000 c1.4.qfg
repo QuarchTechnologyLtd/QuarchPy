@@ -191,4 +191,4 @@ GlitchPrbs_Settings=1:2,1:4,1:8,1:16,1:32,1:64,1:128,1:256,1:512,1:1024,1:2048,1
 @MEASURE
 Name=1v2,Type=SelfVoltage,NominalValue=1200
 Name=3v3,Type=SelfVoltage,NominalValue=3300
-Name=12v,Type=SelfVoltage,NominalValue=5000
+Name=12v,Type=SelfVoltage,NominalValue=12000

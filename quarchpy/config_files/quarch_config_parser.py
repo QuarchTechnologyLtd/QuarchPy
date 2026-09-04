@@ -246,7 +246,7 @@ class ModuleRangeParam:
         return valid_value
 
 '''
-Describes a switched signal on a breaaker module
+Describes a switched signal on a breaker module
 '''
 class BreakerModuleSignal:
     def __init__ (self):
@@ -335,7 +335,23 @@ class TorridonBreakerModule:
         return self.config_data["SOURCES"]
 
     def get_general_capabilities(self):
+        # Always a plain dict of legacy ad hoc key/value flags. For .qfg-sourced capabilities this is
+        # read directly from the file's @GENERAL section. For XML-sourced capabilities, sig:xml? has
+        # no equivalent ad hoc section, so only the flags with a confirmed equivalence to a Features
+        # value are synthesised here
         return self.config_data["GENERAL"]
+
+    def get_features(self):
+        # Structured, versioned Supports* feature flags from the sig:xml? "Features" block.
+        # Returns None for .qfg-sourced capabilities, which have no equivalent data.
+        return self.config_data.get ("FEATURES")
+
+    def get_header(self):
+        # Identifying/matching metadata. Always present for .qfg-sourced capabilities. For
+        # XML-sourced capabilities only DeviceClass is known - sig:xml? is read directly from an
+        # already-connected module, so it carries none of the file-matching metadata (device
+        # numbers, firmware/FPGA version ranges, description) a .qfg header exists to provide.
+        return self.config_data.get ("HEADER", dict ())
 
     def get_voltage_measurements(self):
         return self.config_data["MEASURE"]
@@ -548,7 +564,7 @@ def parse_section_to_dictionary (read_file):
                 logger.error("Config line does not meet required format of x=y: " + line)
                 return None
             else:
-                elements[line[:pos]] = line[pos+1:]
+                elements[line[:pos].strip()] = line[pos+1:].strip()
 
     return elements
 
@@ -709,7 +725,7 @@ def parse_config_file (file):
                         signal.signal_type = line_param
                     elif (line_name in ("GlitchEnable_Present", "GlitchPresent")):
                         signal.glitch_present = _parse_bool (line_param)
-                    elif (line_name == "DrivePresent"):
+                    elif (line_name in ("DrivePresent", "SignalDrive_Present")):
                         signal.drive_present = _parse_bool (line_param)
                     elif (line_name == "DriveHost"):
                         signal.drive_host = _parse_drive_level (line_param)
@@ -721,6 +737,13 @@ def parse_config_file (file):
                         signal.monitor_host = _parse_bool (line_param)
                     elif (line_name == "MonitorDevice"):
                         signal.monitor_device = _parse_bool (line_param)
+                    elif (line_name == "SignalMonitor_Present"):
+                        # .qfg files only carry a single monitor-present flag with no host/device
+                        # split, unlike sig:xml?'s MonitorHost/MonitorDevice - apply it to both,
+                        # since that is the closest faithful (if less precise) equivalent.
+                        monitor_present = _parse_bool (line_param)
+                        signal.monitor_host = monitor_present
+                        signal.monitor_device = monitor_present
                     else:
                         signal.parameters[line_name] = line_param
                 # Add signal to the section
@@ -799,8 +822,8 @@ def parse_config_file (file):
                     section_dict.parameters[line_name] = line_value
             else:
                 pos = line.find('=')
-                line_value = line[pos+1:]
-                line_name = line[:pos]
+                line_value = line[pos+1:].strip()
+                line_name = line[:pos].strip()
                 section_dict[line_name] = line_value
     
     # Now build the appropriate module class
@@ -830,12 +853,29 @@ def _parse_xml_range_param (limits_elem):
 
 '''
 Parses the XML returned by the "sig:xml?" command into a TorridonBreakerModule, using the same
-config_data structure (and the same signal/source/measurement classes) as parse_config_file(),
-so callers do not need to care whether capabilities came from the module directly or a .qfg file.
+signal/source/measurement/glitch-engine classes as parse_config_file() for SIGNALS, SIGNAL_GROUPS,
+SOURCES, GLITCH and MEASURE - so callers using those accessors do not need to care whether
+capabilities came from the module directly or a .qfg file.
+
+Two sections cannot be made equivalent, since sig:xml? (read from an already-connected module) does
+not carry the same information as a .qfg file
 '''
 def parse_config_xml (xml_string):
     root = ET.fromstring (xml_string)
     config_dict = dict ()
+
+    # --- Header ---
+    # sig:xml? is read directly from an already-connected module, so unlike a .qfg file it carries
+    # none of the file-matching metadata (device numbers, firmware/FPGA version ranges, description).
+    # DeviceClass is set because this function only ever builds a TorridonBreakerModule, matching the
+    # one DeviceClass parse_config_file() currently supports.
+    config_dict["HEADER"] = {
+        "DeviceClass": "TorridonModule",
+        "DeviceDescription": None,
+        "DeviceNumbers": None,
+        "MinFirmwareRequired": None,
+        "MinFpgaRequired": None,
+    }
 
     # --- Features ---
     features = BreakerFeatures ()
@@ -847,7 +887,23 @@ def parse_config_xml (xml_string):
         features.supports_lane_width = parse_feature_support (features_elem.findtext ("SupportsLaneWidth"))
         features.max_lane_width = int (features_elem.findtext ("MaxLaneWidth") or 0)
         features.supports_glitch = parse_feature_support (features_elem.findtext ("SupportsGlitch"))
-    config_dict["GENERAL"] = features
+    config_dict["FEATURES"] = features
+
+    # --- General capabilities ---
+    # Synthesised from confirmed equivalences with legacy .qfg @GENERAL flags:
+    general = dict ()
+    # HotPlugRead_Present and HostPowerTriggering_Present are true for any module that answers
+    # sig:xml? at all - reaching this point already means that is the case.
+    general["HotPlugRead_Present"] = "true"
+    general["HostPowerTriggering_Present"] = "true"
+    # Triggering_Present <-> SupportsTriggering having a non-zero (present) version
+    if (features.supports_triggering.present):
+        general["Triggering_Present"] = "true"
+    # HighResTiming_Present <-> SupportsBounce at version 2 (or higher - a later version implies at
+    # least what version 2 provides, per the "higher version = newer/restructured" versioning rule)
+    if (features.supports_bounce.version >= 2):
+        general["HighResTiming_Present"] = "true"
+    config_dict["GENERAL"] = general
 
     # --- Signals ---
     signals = list ()

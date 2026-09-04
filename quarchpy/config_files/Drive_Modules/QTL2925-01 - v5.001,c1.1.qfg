@@ -3,7 +3,7 @@
 # PCIe EDSFF Card Module
 @HEADER
 DeviceClass=TorridonModule
-DeviceNumbers=QTL2925-01,QT2925-02
+DeviceNumbers=QTL2925-01,QTL2925-02
 DeviceNumbersExclude=
 MinFirmwareRequired=5.000
 MinFpgaRequired=1.1

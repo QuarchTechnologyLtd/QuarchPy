@@ -25,31 +25,31 @@ OutOfOrderSignalsInLanes_Present=true
 
 #Describes all signals on this module
 @SIGNALS
-Name=PERST0,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
-Name=REFCLKP0,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
-Name=REFCLKN0,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
+Name=PERST0,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=REFCLKP0,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
+Name=REFCLKN0,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
 
-Name=REFCLKP1,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
-Name=REFCLKN1,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
-Name=PERST1,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=REFCLKP1,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
+Name=REFCLKN1,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
+Name=PERST1,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
 
-Name=12V,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
-Name=3V3_AUX,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
+Name=12V,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
+Name=3V3_AUX,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
 
-Name=PRSNT0,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
-Name=PRSNT1,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
-Name=LED,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
-Name=SMBRST,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
-Name=SMBCLK,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=true
-Name=SMBDAT,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=true
-Name=PWRDIS,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
-Name=MFG,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=true
-Name=DUALPORTEN,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=PRSNT0,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=PRSNT1,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=LED,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=SMBRST,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=SMBCLK,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=true
+Name=SMBDAT,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=true
+Name=PWRDIS,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
+Name=MFG,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=true
+Name=DUALPORTEN,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=true,SignalMonitor_Present=true
 
-Name=PETP0,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
-Name=PETN0,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
-Name=PERP0,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
-Name=PERN0,GlitchEnable=Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
+Name=PETP0,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
+Name=PETN0,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
+Name=PERP0,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
+Name=PERN0,GlitchEnable_Present=true,DefaultSource=1,SignalDrive_Present=false,SignalMonitor_Present=false
 
 
 

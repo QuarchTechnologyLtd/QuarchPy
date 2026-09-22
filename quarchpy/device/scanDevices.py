@@ -50,6 +50,11 @@ def list_serial(debugPrint=False):
     serial_modules = dict()
 
     for i in serial_ports:
+        # Bluetooth RFCOMM ports are never Quarch modules and can block for several seconds each
+        # when opened.  The timeouts below only cover read/write, not the port open, so skip them.
+        if "BTHENUM" in str(i[2]).upper():
+            logger.debug("Skipping Bluetooth serial port: " + str(i))
+            continue
         logger.debug("Scanning for Quarch devices on: " + str(i))
         try:
             ser = serial.Serial(i[0], 19200, timeout=0.5, write_timeout=0.5)

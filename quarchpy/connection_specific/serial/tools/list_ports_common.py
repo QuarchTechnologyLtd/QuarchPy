@@ -32,7 +32,7 @@ def numsplit(text):
 class ListPortInfo(object):
     """Info collection base class for serial ports"""
 
-    def __init__(self, device=None):
+    def __init__(self, device=None, skip_link_detection=False):
         self.device = device
         self.name = os.path.basename(device)
         self.description = 'n/a'
@@ -46,7 +46,7 @@ class ListPortInfo(object):
         self.product = None
         self.interface = None
         # special handling for links
-        if device is not None and os.path.islink(device):
+        if not skip_link_detection and device is not None and os.path.islink(device):
             self.hwid = 'LINK={}'.format(os.path.realpath(device))
 
     def usb_description(self):

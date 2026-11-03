@@ -380,9 +380,9 @@ class quarchStream:
     def add_annotation(self, title: str, annotation_time: Union[int, str] = 0, extra_text: str = "",
                        y_pos: Union[int, str] = "",
                        title_color: str = "", annotation_color: str = "", annotation_type: str = "annotate",
-                       time_format: str = "unix") -> str:
+                       time_format: str = "unix", marker_type: str = "") -> str:
         """
-        Adds a custom annotation marker to the active QPS stream.
+        Adds an annotation or comment marker to the active QPS stream.
 
         Args:
             title (str): The primary text label for the annotation.
@@ -391,8 +391,11 @@ class quarchStream:
             y_pos (Union[int, str], optional): Vertical position (0-100). Defaults to "".
             title_color (str, optional): Hex color for the title. Defaults to "".
             annotation_color (str, optional): Hex color for the marker. Defaults to "".
-            annotation_type (str, optional): "annotate" or "comment". Defaults to "annotate".
+            annotation_type (str, optional): "annotate" or "comment". Selects the QPS command
+                ("$stream annotation add" or "$stream comment add"). Defaults to "annotate".
             time_format (str, optional): "unix" or "elapsed". Defaults to "unix".
+            marker_type (str, optional): Name of a QPS custom marker type to file this under.
+                Leave empty for a plain annotation/comment. Defaults to "".
 
         Returns:
             str: The response message from the QPS device.
@@ -409,13 +412,19 @@ class quarchStream:
         title = title.replace("\n", "\\n")
         extra_text = extra_text.replace("\n", "\\n")
 
-        cmd = f'$stream annotation add time={time_val} text="{title}"'
+        # The base type is chosen by the command, not by the 'type' argument. In QPS, 'type'
+        # is the name of a custom marker, so sending type=comment created a custom marker.
+        if str(annotation_type).lower() == "comment":
+            cmd = f'$stream comment add time={time_val} text="{title}"'
+        else:
+            cmd = f'$stream annotation add time={time_val} text="{title}"'
+
         if extra_text:
             cmd += f' extraText="{extra_text}"'
         if y_pos != "":
-            cmd += f' yPos={y_pos}'
-        if annotation_type:
-            cmd += f' type={annotation_type}'
+            cmd += f' yPosition={y_pos}'
+        if marker_type:
+            cmd += f' type="{marker_type}"'
         if annotation_color:
             cmd += f' colour={annotation_color}'
         if title_color:
@@ -491,9 +500,9 @@ class quarchStream:
         Returns:
             str: The response message from the QPS device.
         """
-        return self.add_comment(title, comment_time=commentTime, extraText=extraText, yPos=yPos,
-                                titleColor=titleColor, commentColor=commentColor,
-                                timeFormat=timeFormat)
+        return self.add_comment(title, comment_time=commentTime, extra_text=extraText, y_pos=yPos,
+                                title_color=titleColor, annotation_color=commentColor,
+                                time_format=timeFormat)
 
     def save_csv(self, file_path: str, lines_per_file: Optional[Union[int, str]] = None, use_cr: Optional[bool] = None,
                  delimiter: Optional[str] = None, timeout: int = 180, poll_till_complete: bool = False,

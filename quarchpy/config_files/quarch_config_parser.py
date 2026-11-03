@@ -1,7 +1,9 @@
 import logging
 logger = logging.getLogger(__name__)
 import os, os.path, sys
+import re
 import inspect
+import xml.etree.ElementTree as ET
 import quarchpy.config_files
 from enum import Enum
 
@@ -9,37 +11,133 @@ from enum import Enum
 Describes a unit for time measurement
 '''
 class TimeUnit(Enum):
-    "UNSPECIFIED",
-    "nS",
-    "uS",
-    "mS",
-    "S",
+    UNSPECIFIED = "UNSPECIFIED"
+    nS = "nS"
+    uS = "uS"
+    mS = "mS"
+    S = "S"
 
 '''
 Described a precise time duration for settings
 '''
 class TimeValue:
-    time_value = None
-    time_unit = None
+    def __init__ (self, time_value=0, time_unit=TimeUnit.UNSPECIFIED):
+        self.time_value = time_value
+        self.time_unit = time_unit
 
-    def __init__ (self):
-        time_value = 0
-        time_unit = TimeUnit.UNSPECIFIED
+    def __repr__(self):
+        return f"{self.time_value}{self.time_unit.value}"
+
+
+'''
+Describes which side(s) of a signal can be driven, and to which level(s)
+'''
+class DriveLevel(Enum):
+    NONE = "None"
+    LOW = "Low"
+    HIGH = "High"
+    BOTH = "Both"
+
+
+'''
+Represents a versioned feature support flag, as used in the module "sig:xml?" Features block.
+A version of 0 (or a false/absent flag) means the feature is not present. A positive version
+means the feature is present using that version's semantics - a higher version may add or
+restructure how the feature works, not just indicate "more support".
+'''
+class FeatureSupport:
+    def __init__(self, version=0):
+        self.version = int(version) if version else 0
+
+    @property
+    def present(self):
+        return self.version > 0
+
+    def __bool__(self):
+        return self.present
+
+    def __repr__(self):
+        return f"FeatureSupport(version={self.version})"
+
+
+'''
+Parses a boolean-ish config/XML value ("true"/"false", "1"/"0", "yes"/"no") into a bool
+'''
+def _parse_bool(value):
+    if value is None:
+        return False
+    return str(value).strip().lower() in ("true", "1", "yes")
+
+
+'''
+Parses a config/XML numeric string into an int, or a float if it has a decimal point.
+Returns the original value unchanged if it cannot be parsed as a number.
+'''
+def _parse_numeric(value):
+    try:
+        text = str(value).strip()
+        return float(text) if ("." in text) else int(text)
+    except (TypeError, ValueError):
+        return value
+
+
+'''
+Parses a DriveLevel value ("None"/"Low"/"High"/"Both") from config/XML text
+'''
+def _parse_drive_level(value):
+    if value is None:
+        return DriveLevel.NONE
+    text = str(value).strip().lower()
+    for level in DriveLevel:
+        if level.value.lower() == text:
+            return level
+    return DriveLevel.NONE
+
+
+'''
+Parses a feature support value, which may be a simple boolean flag (legacy .qfg style) or a
+version number (sig:xml style), into a FeatureSupport. False/0/absent all mean "not present".
+'''
+def parse_feature_support(value):
+    if value is None:
+        return FeatureSupport(0)
+    text = str(value).strip().lower()
+    if text in ("", "false", "0", "none"):
+        return FeatureSupport(0)
+    if text in ("true", "yes"):
+        return FeatureSupport(1)
+    try:
+        return FeatureSupport(int(float(text)))
+    except ValueError:
+        logger.debug("Unrecognised feature support value: " + str(value))
+        return FeatureSupport(0)
+
+
+_TIME_UNIT_LOOKUP = {unit.value.lower(): unit for unit in TimeUnit}
+
+'''
+Parses a time string such as "50nS" or "500mS" into a TimeValue
+'''
+def parse_time_value(text):
+    match = re.match(r"^\s*(-?\d+(?:\.\d+)?)\s*([a-zA-Z]+)\s*$", text or "")
+    if not match:
+        logger.debug("Unrecognised time value: " + str(text))
+        return TimeValue(0, TimeUnit.UNSPECIFIED)
+
+    value_str, unit_str = match.groups()
+    unit = _TIME_UNIT_LOOKUP.get(unit_str.lower(), TimeUnit.UNSPECIFIED)
+    value = float(value_str) if "." in value_str else int(value_str)
+    return TimeValue(value, unit)
 
 '''
 Describes a single range element if a module range parameter
 '''
 class ModuleRangeItem:
-    min_value = 0
-    max_value = 0
-    step_value = 0
-    unit = None
-
     def __init__ (self):
-        min_value = 0
-        max_value = 0
-        step_value = 0
-        unit = None
+        self.min_value = 0
+        self.max_value = 0
+        self.step_value = 0
+        self.unit = None
 
 '''
 Describes a range of values which can be applied to the settings on a module
@@ -54,10 +152,8 @@ class ModuleRangeParam:
         self.range_unit = None
 
     def __repr__ (self):
-        str = ""
-        for item in self.ranges:
-            str = str + item.min_value + "," + item.max_value + "," + item.step_value + "," + item.unit + "|"
-        return str
+        return "|".join (
+            f"{item.min_value},{item.max_value},{item.step_value},{item.unit}" for item in self.ranges)
 
     '''
     Adds a new range item, which is verified to match any existing items
@@ -84,31 +180,27 @@ class ModuleRangeParam:
     '''
     def _get_closest_value (self, range_item, value):
 
-        # Check for out of rang values
+        # Check for out of range values
         if (value < range_item.min_value):
-            result = range_item.min_value
+            return range_item.min_value
         elif (value > range_item.max_value):
-            result = range_item.max_value
-        # Else value is in range
-        else:
-            low_steps = int((float(value) / float(range_item.step_value)) + 0.5)
-            low_value = int(low_steps * range_item.step_value)
-            high_value = int(low_value + range_item.step_value)
+            return range_item.max_value
 
-        # Get the closest step
+        # Else value is in range - find the closest step
+        low_steps = int((float(value) / float(range_item.step_value)) + 0.5)
+        low_value = int(low_steps * range_item.step_value)
+        high_value = int(low_value + range_item.step_value)
+
         if (abs(low_value - value) < abs(high_value - value)):
-            result - low_value
+            return low_value
         else:
-            result - high_value
-
-        return result
+            return high_value
 
     '''
     Returns the closest allowable value to the given number
     '''
     def get_closest_value (self, value):
         valid_value = -sys.maxsize -1
-        in_range = list()
         running_error = sys.maxsize
         curr_error = 0
         possible_value = 0
@@ -127,7 +219,7 @@ class ModuleRangeParam:
                     running_error = curr_error
                     valid_value = possible_value
 
-        return possible_value
+        return valid_value
 
     '''
     Returns the largest allowable value
@@ -144,7 +236,7 @@ class ModuleRangeParam:
     '''
     Returns the smallest allowable value
     '''
-    def get_max_value (self):
+    def get_min_value (self):
         valid_value = sys.maxsize
 
         for i in self.ranges:
@@ -154,15 +246,20 @@ class ModuleRangeParam:
         return valid_value
 
 '''
-Describes a switched signal on a breaaker module
+Describes a switched signal on a breaker module
 '''
 class BreakerModuleSignal:
-    name = None
-    parameters = None
-
     def __init__ (self):
         self.name = None
-        self.parameters = dict ()
+        self.signal_type = None            # e.g. "Switched"
+        self.glitch_present = False        # can this signal be glitched
+        self.drive_present = False         # can this signal be actively driven
+        self.drive_host = DriveLevel.NONE      # can the host side be driven, and to which level(s)
+        self.drive_device = DriveLevel.NONE    # can the device side be driven, and to which level(s)
+        self.drive_monitor = False         # can the driven state be read back
+        self.monitor_host = False          # can the host side state be monitored
+        self.monitor_device = False        # can the device side state be monitored
+        self.parameters = dict ()          # any other/legacy key-value data not modelled above
 
 '''
 Describes a signal group on a breaker module
@@ -190,17 +287,42 @@ class BreakerSource:
 Describes control sources on a breaker module
 '''
 class VoltageMeasurements:
-    name = None
-    type = None
-
     def __init__ (self):
         self.name = None
         self.type = None
+        self.unit = None       # e.g. "mV"
+        self.nominal = None    # nominal/expected value, in the given unit
+
+'''
+Describes the module-level feature-support flags on a breaker module (the "Features" block
+of the sig:xml? response). Each Supports* field is a FeatureSupport - falsy/version 0 means
+not present, a positive version indicates the feature is present with that version's behaviour.
+'''
+class BreakerFeatures:
+    def __init__ (self):
+        self.supports_bounce = FeatureSupport()
+        self.supports_drive = FeatureSupport()
+        self.supports_triggering = FeatureSupport()
+        self.supports_lane_width = FeatureSupport()
+        self.max_lane_width = 0
+        self.supports_glitch = FeatureSupport()
+
+'''
+Describes the glitch engine capabilities of a breaker module (the "Glitch_Engine" block of
+the sig:xml? response, or the "@GLITCH" section of a .qfg file)
+'''
+class GlitchEngine:
+    def __init__ (self):
+        self.length_limits = None      # ModuleRangeParam
+        self.cycle_limits = None       # ModuleRangeParam
+        self.multipliers = list ()     # list[TimeValue]
+        self.prbs_ratios = list ()     # list[str], e.g. "1:2".."1:65536"
+        self.parameters = dict ()      # any other/legacy key-value data not modelled above
 
 '''
 Describes a Torridon hot-swap/breaker module and all its capabilities
 '''
-class TorridonBreakerModule:    
+class TorridonBreakerModule:
     config_data = None
 
     def get_signals(self):
@@ -213,20 +335,57 @@ class TorridonBreakerModule:
         return self.config_data["SOURCES"]
 
     def get_general_capabilities(self):
+        # Always a plain dict of legacy ad hoc key/value flags. For .qfg-sourced capabilities this is
+        # read directly from the file's @GENERAL section. For XML-sourced capabilities, sig:xml? has
+        # no equivalent ad hoc section, so only the flags with a confirmed equivalence to a Features
+        # value are synthesised here
         return self.config_data["GENERAL"]
+
+    def get_features(self):
+        # Structured, versioned Supports* feature flags from the sig:xml? "Features" block.
+        # Returns None for .qfg-sourced capabilities, which have no equivalent data.
+        return self.config_data.get ("FEATURES")
+
+    def get_header(self):
+        # Identifying/matching metadata. Always present for .qfg-sourced capabilities. For
+        # XML-sourced capabilities only DeviceClass is known - sig:xml? is read directly from an
+        # already-connected module, so it carries none of the file-matching metadata (device
+        # numbers, firmware/FPGA version ranges, description) a .qfg header exists to provide.
+        return self.config_data.get ("HEADER", dict ())
 
     def get_voltage_measurements(self):
         return self.config_data["MEASURE"]
 
-    def __init__ (self):        
+    def get_glitch_engine(self):
+        return self.config_data.get ("GLITCH")
+
+    def __init__ (self):
         self.config_data = dict ()
 
 
 '''
 Tries to locate configuration data for the given module and return a structure of device capabilities to help the user
-control the module and understand what its features are
+control the module and understand what its features are.
+
+Newer modules support the "sig:xml?" command, which returns a richer, self-describing capability
+set directly from the module. This is tried first (when a module_connection is available); modules
+which do not support it return a response starting "FAIL", in which case we fall back to matching
+a local .qfg config file, as used for older modules.
 '''
 def get_device_capabilities (idn_string = None, module_connection = None):
+    if (module_connection is not None):
+        xml_response = None
+        try:
+            xml_response = module_connection.sendCommand ("sig:xml?")
+        except Exception as e:
+            logger.debug ("sig:xml? command failed, falling back to config file lookup: " + str(e))
+
+        if (xml_response is not None and not xml_response.strip().upper().startswith ("FAIL")):
+            try:
+                return parse_config_xml (xml_response)
+            except ET.ParseError as e:
+                logger.error ("Failed to parse sig:xml? response, falling back to config file lookup: " + str(e))
+
     # Get config data and fail if none is found
     file_path = get_config_path_for_module (idn_string = idn_string, module_connection = module_connection)
     if (file_path is None):
@@ -405,7 +564,7 @@ def parse_section_to_dictionary (read_file):
                 logger.error("Config line does not meet required format of x=y: " + line)
                 return None
             else:
-                elements[line[:pos]] = line[pos+1:]
+                elements[line[:pos].strip()] = line[pos+1:].strip()
 
     return elements
 
@@ -554,7 +713,7 @@ def parse_config_file (file):
                     section_dict = list()
 
                 signal = BreakerModuleSignal ()
-                line_value = line.split(',')                
+                line_value = line.split(',')
                 # Loop to add the optional parameters
                 for i in line_value:
                     pos = i.find('=')
@@ -562,6 +721,29 @@ def parse_config_file (file):
                     line_name = i[:pos]
                     if ("Name" in line_name):
                         signal.name = line_param
+                    elif (line_name == "Type"):
+                        signal.signal_type = line_param
+                    elif (line_name in ("GlitchEnable_Present", "GlitchPresent")):
+                        signal.glitch_present = _parse_bool (line_param)
+                    elif (line_name in ("DrivePresent", "SignalDrive_Present")):
+                        signal.drive_present = _parse_bool (line_param)
+                    elif (line_name == "DriveHost"):
+                        signal.drive_host = _parse_drive_level (line_param)
+                    elif (line_name == "DriveDevice"):
+                        signal.drive_device = _parse_drive_level (line_param)
+                    elif (line_name == "DriveMonitor"):
+                        signal.drive_monitor = _parse_bool (line_param)
+                    elif (line_name == "MonitorHost"):
+                        signal.monitor_host = _parse_bool (line_param)
+                    elif (line_name == "MonitorDevice"):
+                        signal.monitor_device = _parse_bool (line_param)
+                    elif (line_name == "SignalMonitor_Present"):
+                        # .qfg files only carry a single monitor-present flag with no host/device
+                        # split, unlike sig:xml?'s MonitorHost/MonitorDevice - apply it to both,
+                        # since that is the closest faithful (if less precise) equivalent.
+                        monitor_present = _parse_bool (line_param)
+                        signal.monitor_host = monitor_present
+                        signal.monitor_device = monitor_present
                     else:
                         signal.parameters[line_name] = line_param
                 # Add signal to the section
@@ -609,12 +791,39 @@ def parse_config_file (file):
                         signal.name = line_param
                     elif ("Type" in line_name):
                         signal.type = line_param
+                    elif ("Unit" in line_name):
+                        signal.unit = line_param
+                    elif ("Nominal" in line_name):
+                        signal.nominal = line_param
                 # Add signal to the section
                 section_dict.append(signal)
-            else:
+            # Special case for the glitch engine section
+            elif ("GLITCH" in section_name):
+                if not isinstance (section_dict, GlitchEngine):
+                    section_dict = GlitchEngine ()
+
                 pos = line.find('=')
                 line_value = line[pos+1:]
                 line_name = line[:pos]
+
+                if (line_name in ("GlitchLength_Limits", "GlitchCycle_Limits")):
+                    new_range = parse_limits_string (line_value)
+                    attr_name = "length_limits" if line_name == "GlitchLength_Limits" else "cycle_limits"
+                    range_param = getattr (section_dict, attr_name)
+                    if (range_param is None):
+                        range_param = ModuleRangeParam ()
+                        setattr (section_dict, attr_name, range_param)
+                    range_param.add_range (new_range)
+                elif (line_name == "GlitchMultiplier_Settings"):
+                    section_dict.multipliers = [parse_time_value (v) for v in line_value.split(',') if v]
+                elif (line_name == "GlitchPrbs_Settings"):
+                    section_dict.prbs_ratios = [v for v in line_value.split(',') if v]
+                else:
+                    section_dict.parameters[line_name] = line_value
+            else:
+                pos = line.find('=')
+                line_value = line[pos+1:].strip()
+                line_name = line[:pos].strip()
                 section_dict[line_name] = line_value
     
     # Now build the appropriate module class
@@ -626,6 +835,168 @@ def parse_config_file (file):
     else:
         logger.error("Only 'TorridonModule' class devices are currently supported")
         return None
+
+'''
+Parses a single <...Limits> element (e.g. <SourceDelay_Limits>) containing one or more
+<LimitsRange> children into a ModuleRangeParam
+'''
+def _parse_xml_range_param (limits_elem):
+    range_param = ModuleRangeParam ()
+    for range_elem in limits_elem.findall ("LimitsRange"):
+        item = ModuleRangeItem ()
+        item.unit = range_elem.findtext ("Unit")
+        item.min_value = _parse_numeric (range_elem.findtext ("StartTime"))
+        item.max_value = _parse_numeric (range_elem.findtext ("EndTime"))
+        item.step_value = _parse_numeric (range_elem.findtext ("StepSize"))
+        range_param.add_range (item)
+    return range_param
+
+'''
+Parses the XML returned by the "sig:xml?" command into a TorridonBreakerModule, using the same
+signal/source/measurement/glitch-engine classes as parse_config_file() for SIGNALS, SIGNAL_GROUPS,
+SOURCES, GLITCH and MEASURE - so callers using those accessors do not need to care whether
+capabilities came from the module directly or a .qfg file.
+
+Two sections cannot be made equivalent, since sig:xml? (read from an already-connected module) does
+not carry the same information as a .qfg file
+'''
+def parse_config_xml (xml_string):
+    root = ET.fromstring (xml_string)
+    config_dict = dict ()
+
+    # --- Header ---
+    # sig:xml? is read directly from an already-connected module, so unlike a .qfg file it carries
+    # none of the file-matching metadata (device numbers, firmware/FPGA version ranges, description).
+    # DeviceClass is set because this function only ever builds a TorridonBreakerModule, matching the
+    # one DeviceClass parse_config_file() currently supports.
+    config_dict["HEADER"] = {
+        "DeviceClass": "TorridonModule",
+        "DeviceDescription": None,
+        "DeviceNumbers": None,
+        "MinFirmwareRequired": None,
+        "MinFpgaRequired": None,
+    }
+
+    # --- Features ---
+    features = BreakerFeatures ()
+    features_elem = root.find ("Features")
+    if (features_elem is not None):
+        features.supports_bounce = parse_feature_support (features_elem.findtext ("SupportsBounce"))
+        features.supports_drive = parse_feature_support (features_elem.findtext ("SupportsDrive"))
+        features.supports_triggering = parse_feature_support (features_elem.findtext ("SupportsTriggering"))
+        features.supports_lane_width = parse_feature_support (features_elem.findtext ("SupportsLaneWidth"))
+        features.max_lane_width = int (features_elem.findtext ("MaxLaneWidth") or 0)
+        features.supports_glitch = parse_feature_support (features_elem.findtext ("SupportsGlitch"))
+    config_dict["FEATURES"] = features
+
+    # --- General capabilities ---
+    # Synthesised from confirmed equivalences with legacy .qfg @GENERAL flags:
+    general = dict ()
+    # HotPlugRead_Present and HostPowerTriggering_Present are true for any module that answers
+    # sig:xml? at all - reaching this point already means that is the case.
+    general["HotPlugRead_Present"] = "true"
+    general["HostPowerTriggering_Present"] = "true"
+    # Triggering_Present <-> SupportsTriggering having a non-zero (present) version
+    if (features.supports_triggering.present):
+        general["Triggering_Present"] = "true"
+    # HighResTiming_Present <-> SupportsBounce at version 2 (or higher - a later version implies at
+    # least what version 2 provides, per the "higher version = newer/restructured" versioning rule)
+    if (features.supports_bounce.version >= 2):
+        general["HighResTiming_Present"] = "true"
+    config_dict["GENERAL"] = general
+
+    # --- Signals ---
+    signals = list ()
+    signals_elem = root.find ("Signals")
+    if (signals_elem is not None):
+        for sig_elem in signals_elem.findall ("Signal"):
+            signal = BreakerModuleSignal ()
+            signal.name = sig_elem.findtext ("Name")
+            signal.signal_type = sig_elem.findtext ("Type")
+            signal.glitch_present = _parse_bool (sig_elem.findtext ("GlitchPresent"))
+            signal.drive_present = _parse_bool (sig_elem.findtext ("DrivePresent"))
+            signal.drive_host = _parse_drive_level (sig_elem.findtext ("DriveHost"))
+            signal.drive_device = _parse_drive_level (sig_elem.findtext ("DriveDevice"))
+            signal.drive_monitor = _parse_bool (sig_elem.findtext ("DriveMonitor"))
+            signal.monitor_host = _parse_bool (sig_elem.findtext ("MonitorHost"))
+            signal.monitor_device = _parse_bool (sig_elem.findtext ("MonitorDevice"))
+            signals.append (signal)
+    config_dict["SIGNALS"] = signals
+
+    # --- Signal Groups ---
+    groups = list ()
+    groups_elem = root.find ("Groups")
+    if (groups_elem is not None):
+        for group_elem in groups_elem.findall ("Group"):
+            group = BreakerSignalGroup ()
+            group.name = group_elem.findtext ("Name")
+            group_signals_elem = group_elem.find ("Signals")
+            if (group_signals_elem is not None):
+                group.signals = [s.text for s in group_signals_elem.findall ("Signal")]
+            groups.append (group)
+    config_dict["SIGNAL_GROUPS"] = groups
+
+    # --- Sources ---
+    sources = list ()
+    sources_elem = root.find ("Sources")
+    if (sources_elem is not None):
+        for source_elem in sources_elem.findall ("Source"):
+            source = BreakerSource ()
+            source.name = source_elem.findtext ("Name")
+            source.parameters["Type"] = source_elem.findtext ("Type")
+            source.parameters["Number"] = source_elem.findtext ("Number")
+            default_delay = source_elem.findtext ("DefaultDelay")
+            if (default_delay is not None):
+                source.parameters["DefaultDelay"] = default_delay
+
+            delay_limits_elem = source_elem.find ("SourceDelay_Limits")
+            if (delay_limits_elem is not None):
+                source.parameters["SourceDelay_Limits"] = _parse_xml_range_param (delay_limits_elem)
+
+            bounce_elem = source_elem.find ("SourceBounce")
+            if (bounce_elem is not None):
+                for limits_tag in ("BounceLength_Limits", "BouncePeriod_Limits", "BounceDuty_Limits"):
+                    limits_elem = bounce_elem.find (limits_tag)
+                    if (limits_elem is not None):
+                        source.parameters[limits_tag] = _parse_xml_range_param (limits_elem)
+
+            sources.append (source)
+    config_dict["SOURCES"] = sources
+
+    # --- Glitch Engine ---
+    glitch = GlitchEngine ()
+    glitch_elem = root.find ("Glitch_Engine")
+    if (glitch_elem is not None):
+        length_limits_elem = glitch_elem.find ("GlitchLength_Limits")
+        if (length_limits_elem is not None):
+            glitch.length_limits = _parse_xml_range_param (length_limits_elem)
+        cycle_limits_elem = glitch_elem.find ("GlitchCycle_Limits")
+        if (cycle_limits_elem is not None):
+            glitch.cycle_limits = _parse_xml_range_param (cycle_limits_elem)
+        multipliers_elem = glitch_elem.find ("GlitchMultipliers")
+        if (multipliers_elem is not None):
+            glitch.multipliers = [parse_time_value (v.text) for v in multipliers_elem.findall ("Value")]
+        prbs_elem = glitch_elem.find ("GlitchPrbs")
+        if (prbs_elem is not None):
+            glitch.prbs_ratios = [v.text for v in prbs_elem.findall ("Value")]
+    config_dict["GLITCH"] = glitch
+
+    # --- Measurements ---
+    measurements = list ()
+    measurements_elem = root.find ("Measurements")
+    if (measurements_elem is not None):
+        for m_elem in measurements_elem.findall ("Measurement"):
+            measurement = VoltageMeasurements ()
+            measurement.type = m_elem.findtext ("Type")
+            measurement.name = m_elem.findtext ("Name")
+            measurement.unit = m_elem.findtext ("Unit")
+            measurement.nominal = m_elem.findtext ("Nominal")
+            measurements.append (measurement)
+    config_dict["MEASURE"] = measurements
+
+    dev_caps = TorridonBreakerModule ()
+    dev_caps.config_data = config_dict
+    return dev_caps
 
 # Parses the sources section of a Torridon breaker module, returning a list of sources
 def parse_breaker_sources_section(file_access):
@@ -706,9 +1077,9 @@ def parse_limits_string (limit_text):
 
     parts = limit_text.split(',')
     new_item.unit = parts[0]
-    new_item.min_value = parts[1]
-    new_item.max_value = parts[2]
-    new_item.step_value = parts[3]
+    new_item.min_value = _parse_numeric (parts[1])
+    new_item.max_value = _parse_numeric (parts[2])
+    new_item.step_value = _parse_numeric (parts[3])
 
     return new_item
 

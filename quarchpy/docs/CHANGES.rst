@@ -12,13 +12,21 @@ Quarchpy
 
 Change Log
 ----------
+2.2.24
+------
+- New QPS 1.54 and QIS 1.56
+
+2.2.23
+------
+- New QPS 1.53.1 and QIS 1.55.1
+
 2.2.22
 ------
 - New QPS 1.53 and QIS 1.55
 
 2.2.21
 ------
-- Improvements with lanuching QPS timing, and logging.
+- Improvements with launching QPS timing, and logging.
 
 2.2.20
 ------

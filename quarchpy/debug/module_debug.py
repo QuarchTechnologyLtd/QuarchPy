@@ -68,33 +68,29 @@ def main(filepath=None):
     logText("\n\nConnecting to the selected device")
     my_device = get_quarch_device(moduleStr)
 
-    file = None
+    # Get the device capabilities. This prefers the module's own "sig:xml?" description where the
+    # module supports it, and falls back to matching a local .qfg config file for older modules -
+    # either way it returns the same TorridonBreakerModule structure, so the rest of this script
+    # does not need to know or care which source was used.
     try:
-        # Find the correct config file for the connected module (breaker modules only for now)
-        # We're passing the module connection here, the idn_string can be supplied instead if the module is not currently attached (simulation/demo mode)
-        file = get_config_path_for_module(module_connection=my_device)
-    except FileNotFoundError as err:
-        logger.error(f"Config file not found for module : {moduleStr}\nExiting Script")
+        dev_caps = get_device_capabilities(module_connection=my_device)
+    except ValueError as err:
+        logger.error(f"No capability information found for module : {moduleStr}\nExiting Script")
         my_device.close_connection()
         return None
-
-    # Parse the file to get the device capabilities
-    try:
-        dev_caps = parse_config_file(file)
     except Exception as err:
-        logger.error(f"Could not parse config file for {moduleStr}\nExiting Script"
+        logger.error(f"Could not parse capability information for {moduleStr}\nExiting Script"
                      f"\nError details: {err}")
-        print(f"Could not parse config file for {moduleStr}\nPlease note only breaker and hot-plug modules are currently supported."
+        print(f"Could not parse capability information for {moduleStr}\nPlease note only breaker and hot-plug modules are currently supported."
               f"\nExiting Script")
         my_device.close_connection()
         return None
 
     if not dev_caps:
-        logger.error(f"Could not parse config file for {moduleStr}\nExiting Script")
+        logger.error(f"Could not parse capability information for {moduleStr}\nExiting Script")
         my_device.close_connection()
         return None
-    logText("\nCONFIG FILE LOCATED:")
-    logText(file)
+    logText("\nDevice capabilities loaded.")
     logText("\n")
 
     # Print module status i.e,
@@ -115,44 +111,45 @@ def main(filepath=None):
     logText(my_device.send_command("RUN:POWER?"))
     logText("\n")
 
-    for key, value in dev_caps.get_general_capabilities().items():
-        if key == "GlitchState_Read_Present" and value == "true":
-            # Print glitch status of the module
-            logText("Glitch Status:")
-            logText(my_device.send_command("run:glitch?"))
-            logText("\n")
+    # Glitch engine presence is now a structured GlitchEngine object, populated identically whether
+    # capabilities came from "sig:xml?" or a .qfg file
+    if dev_caps.get_glitch_engine() is not None:
+        # Print glitch status of the module
+        logText("Glitch Status:")
+        logText(my_device.send_command("run:glitch?"))
+        logText("\n")
 
-            # Print additional glitch information
-            logText("\nGlitch Engine\n===================\n")
-            logText("Glitch Length: ", "end")
-            logText(my_device.send_command("glitch:length?"))
-            logText("\nGlitch Cycle Length: ", "end")
-            logText(my_device.send_command("glitch:cycle:length?"))
-            logText("\nPRBS Ratio: ", "end")
-            logText(my_device.send_command("glitch:prbs?"))
-            logText("\n")
-        if key == "SignalMonitor_Present" and value == "true":
-            logText("\nSignal Monitoring\n===================\n")
-            for sig in dev_caps.get_signals():
-                for key, value in sig.parameters.items():
-                    if key == "SignalMonitor_Present" and value == "true":
-                        logText(sig.name, "end")
-                        logText(", Host Monitor: " + my_device.send_command("sig:{}:stat:host?".format(sig.name)), "end")
-                        logText(", Device Monitor: " + my_device.send_command("sig:{}:stat:dev?".format(sig.name)), "end")
-                        logText("\n")
+        # Print additional glitch information
+        logText("\nGlitch Engine\n===================\n")
+        logText("Glitch Length: ", "end")
+        logText(my_device.send_command("glitch:length?"))
+        logText("\nGlitch Cycle Length: ", "end")
+        logText(my_device.send_command("glitch:cycle:length?"))
+        logText("\nPRBS Ratio: ", "end")
+        logText(my_device.send_command("glitch:prbs?"))
+        logText("\n")
+
+    # Per-signal monitor_host/monitor_device flags are likewise populated the same way for both sources
+    if any(sig.monitor_host or sig.monitor_device for sig in dev_caps.get_signals()):
+        logText("\nSignal Monitoring\n===================\n")
+        for sig in dev_caps.get_signals():
+            if sig.monitor_host or sig.monitor_device:
+                logText(sig.name, "end")
+                logText(", Host Monitor: " + my_device.send_command("sig:{}:stat:host?".format(sig.name)), "end")
+                logText(", Device Monitor: " + my_device.send_command("sig:{}:stat:dev?".format(sig.name)), "end")
+                logText("\n")
 
     # Print the list of signals on the module, and the capability flags for each signal
     # This can be used to iterate a test over every signal in a module
     logText("\nSignal Setup\n===================\n")
     for sig in dev_caps.get_signals():
         logText(sig.name, "end")
-        for key, value in sig.parameters.items():
-            logText(", Source:" + my_device.send_command("sig:{}:sour?".format(sig.name)), "end")
-            if key == "GlitchEnable_Present" and value == "true":
-                logText(", Glitch Enable: " + my_device.send_command("sig:{}:glit:ena?".format(sig.name)), "end")
-            if key == "SignalDrive_Present" and value == "true":
-                logText(", Drive Open:" + my_device.send_command("sig:{}:dri:ope?".format(sig.name)), "end")
-                logText(", Drive Closed:" + my_device.send_command("sig:{}:dri:clo?".format(sig.name)), "end")
+        logText(", Source:" + my_device.send_command("sig:{}:sour?".format(sig.name)), "end")
+        if sig.glitch_present:
+            logText(", Glitch Enable: " + my_device.send_command("sig:{}:glit:ena?".format(sig.name)), "end")
+        if sig.drive_present:
+            logText(", Drive Open:" + my_device.send_command("sig:{}:dri:ope?".format(sig.name)), "end")
+            logText(", Drive Closed:" + my_device.send_command("sig:{}:dri:clo?".format(sig.name)), "end")
         logText("\n")
     logText("\n")
 
@@ -168,17 +165,18 @@ def main(filepath=None):
     logText("\nSource Status\n===================\n")
     for source in dev_caps.get_sources():
         logText(source.name, "end")
-        for key, value in source.parameters.items():
-            sourcename = source.name[7:]
-            if key == "Type" and value == "TIMED":
-                logText(", Delay: " + my_device.send_command("sour:" + sourcename + ":delay?"), "end")
-            if key == "SourceEnable_Present" and value == "true":
-                logText(", Source: " + my_device.send_command("sour:" + sourcename + ":state?"), "end")
-            if key == "SourceBounce_Present" and value == "true":
-                logText(", Bounce: " + my_device.send_command("sour:" + sourcename + ":boun:mode?"), "end")
-                logText(", Bounce-Length: " + my_device.send_command("sour:" + sourcename + ":boun:len?"), "end")
-                logText(", Bounce-Period: " + my_device.send_command("sour:" + sourcename + ":boun:per?"), "end")
-                logText(", Bounce-Duty: " + my_device.send_command("sour:" + sourcename + ":boun:duty?"), "end")
+        sourcename = source.name[7:]
+        # "TIMED" sources are the ones that support delay/enable state, in both the .qfg and sig:xml
+        # models. Bounce presence is likewise detected the same way for both: whether bounce limits
+        # were populated at all, rather than a source-format-specific "present" flag.
+        if source.parameters.get("Type") == "TIMED":
+            logText(", Delay: " + my_device.send_command("sour:" + sourcename + ":delay?"), "end")
+            logText(", Source: " + my_device.send_command("sour:" + sourcename + ":state?"), "end")
+        if "BounceLength_Limits" in source.parameters:
+            logText(", Bounce: " + my_device.send_command("sour:" + sourcename + ":boun:mode?"), "end")
+            logText(", Bounce-Length: " + my_device.send_command("sour:" + sourcename + ":boun:len?"), "end")
+            logText(", Bounce-Period: " + my_device.send_command("sour:" + sourcename + ":boun:per?"), "end")
+            logText(", Bounce-Duty: " + my_device.send_command("sour:" + sourcename + ":boun:duty?"), "end")
         logText("\n")
 
     logText("Finished script. \nClosing module connection.")

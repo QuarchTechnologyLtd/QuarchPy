@@ -50,6 +50,11 @@ def list_serial(debugPrint=False):
     serial_modules = dict()
 
     for i in serial_ports:
+        # Bluetooth RFCOMM ports are never Quarch modules and can block for several seconds each
+        # when opened.  The timeouts below only cover read/write, not the port open, so skip them.
+        if "BTHENUM" in str(i[2]).upper():
+            logger.debug("Skipping Bluetooth serial port: " + str(i))
+            continue
         logger.debug("Scanning for Quarch devices on: " + str(i))
         try:
             ser = serial.Serial(i[0], 19200, timeout=0.5, write_timeout=0.5)
@@ -160,6 +165,8 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
         QquarchDevice.SetTimeout(2000)
         serialNo = (QquarchDevice.RunCommand("*serial?")).replace("\r\n", "")
         enclNo = (QquarchDevice.RunCommand("*enclosure?")).replace("\r\n", "")
+        if 'Not Set' in enclNo:
+            enclNo = serialNo
 
         keyToFind = "USB:QTL" + serialNo
 
@@ -378,6 +385,11 @@ def get_user_level_serial_number(network_modules):
                 break
     elif "\\x86" in network_modules.keys():
         module_name = network_modules.get("\\x86").strip()  # enclosure number only
+        if "\\xff" in module_name:
+            if "131" in network_modules.keys():
+                module_name = module_name = network_modules.get("131").strip()  # serial number
+            elif "\\x83" in network_modules.keys():
+                module_name = module_name = network_modules.get("\\x83").strip()  # serial number
         for module in list_of_multi_module_units:
             if module in module_name:
                 module_name += "-" + network_modules.get("\\x87").strip()  # enclosure number with port

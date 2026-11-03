@@ -1,4 +1,4 @@
-__all__ = ['get_config_path_for_module','parse_config_file']
+__all__ = ['get_config_path_for_module','parse_config_file','get_device_capabilities']
 
 from .quarch_config_parser import get_config_path_for_module
 from .quarch_config_parser import parse_config_file

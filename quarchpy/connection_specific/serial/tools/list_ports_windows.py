@@ -206,7 +206,9 @@ def iterate_comports():
             # stringify
             szHardwareID_str = szHardwareID.value
 
-            info = list_ports_common.ListPortInfo(port_name_buffer.value)
+            # Link detection is a POSIX concept; on Windows the device is a name such as "COM11",
+            # not a path, and os.path.islink() on it can block for over a second per port.
+            info = list_ports_common.ListPortInfo(port_name_buffer.value, skip_link_detection=True)
 
             # in case of USB, make a more readable string, similar to that form
             # that we also generate on other platforms

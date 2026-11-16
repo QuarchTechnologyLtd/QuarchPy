@@ -643,10 +643,10 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         foundDevices = list_serial()
 
     if target_conn.lower() == "usb":
-        foundDevices = list_USB()
+        foundDevices = list_USB(discovered_devices=discovered_devices)
 
     if target_conn.lower() == "tcp" or target_conn.lower() == "rest" or target_conn.lower() == "telnet":
-        foundDevices = list_network(target_conn, ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout)
+        foundDevices = list_network(target_conn, ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout, discovered_devices=discovered_devices)
         foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
 
     if scanInArray:
@@ -704,7 +704,78 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         foundDevices = filter_module_type(module_type_filter, foundDevices)
     # Cancels the mdns discovery service (required to close active thread)
     browser.cancel()
+
+    # The filters above apply to foundDevices only. Reconcile the collected
+    # records against it so that a filter matching nothing returns nothing,
+    # and so favouriteOnly does not leave the same module listed once per
+    # protocol it answers on.
+    if discovered_devices is not None:
+        _reconcileDiscoveredDevices(discovered_devices, foundDevices)
+
     return foundDevices
+
+
+def _reconcileDiscoveredDevices(discovered_devices, foundDevices):
+    '''
+    Trims the collected device records in place so they describe exactly the
+    modules that survived filtering, one record each.
+
+    The filters above are applied to foundDevices only, so without this the
+    detail list could hold modules that a filter had removed, and could hold
+    the same module more than once when it answered on several protocols.
+
+    Records are matched to the surviving entries by serial number rather than
+    by connection target, because favouriteOnly picks one protocol per module
+    and that is not necessarily the one the record was built from. The
+    surviving key is then written back as the record's connection_target, so
+    the target it carries is always one the caller can open.
+    '''
+    bySerial = {}
+    for device in discovered_devices:
+        serial = _normalisedSerial(getattr(device, "serial_number", None))
+        if serial:
+            bySerial.setdefault(serial, []).append(device)
+
+    byTarget = {}
+    for device in discovered_devices:
+        target = getattr(device, "connection_target", None)
+        if target is not None:
+            byTarget.setdefault(target, device)
+
+    kept = []
+    used = set()
+
+    for target, serialNumber in foundDevices.items():
+        candidates = bySerial.get(_normalisedSerial(serialNumber), [])
+
+        # Prefer the record that was built from this very connection: it was
+        # read from the module itself rather than from a broadcast packet.
+        device = byTarget.get(target)
+        if device is None or device not in candidates:
+            device = next((c for c in candidates if id(c) not in used), None)
+        if device is None or id(device) in used:
+            # Nothing was collected for this entry: a module held by another
+            # program, or one that did not answer *IDN?.
+            continue
+
+        used.add(id(device))
+        device.connection_target = target
+        kept.append(device)
+
+    discovered_devices[:] = kept
+
+
+def _normalisedSerial(serialNumber):
+    '''
+    Serial numbers for comparison only. Returns None for the placeholder
+    values the scan uses when a module could not be read.
+    '''
+    if not serialNumber:
+        return None
+    text = str(serialNumber).strip().upper()
+    if not text or text in ("LOCKED MODULE", "DEVICE IN USE", "???"):
+        return None
+    return text
 
 
 '''
@@ -897,8 +968,14 @@ def userSelectDeviceWithDetails(message=None, title=None, target_conn="all",
     if answer is None or str(answer).strip() == "":
         return []
 
+    wanted = userRangeIntSelection(str(answer), intLength=None)
+    if not wanted:
+        printText("'{0}' is not a selection. Use 1 or 1,3 or 1-3.".format(
+            str(answer).strip()))
+        return []
+
     selected = []
-    for item in userRangeIntSelection(str(answer), intLength=None):
+    for item in wanted:
         try:
             index = int(item)
         except (TypeError, ValueError):

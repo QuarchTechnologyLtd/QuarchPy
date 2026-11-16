@@ -1,5 +1,5 @@
 import socket
-from quarchpy.device.discovered_device import CODE_MAP
+from quarchpy.device.device_info import CODE_MAP
 from typing import List
 
 def decode_locate_packet(packet_fields: List[bytes]) -> dict:

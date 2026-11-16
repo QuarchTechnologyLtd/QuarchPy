@@ -318,7 +318,7 @@ def _check_fw():
     print("FIRMWARE CHECK")
     print("--------------")
     print("")
-    discovered_devices: List[DiscoveredDevice] = []
+    discovered_devices: List[DeviceInfo] = []
     scanDevices(discovered_devices=discovered_devices)
     for module in discovered_devices:
         module.is_update_available()

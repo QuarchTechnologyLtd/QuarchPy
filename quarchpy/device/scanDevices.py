@@ -781,6 +781,21 @@ def _deviceName(discoveredDevice):
     return discoveredDevice.connection_target or "Unknown"
 
 
+def _partNumber(rawValue):
+    '''
+    Returns the part number half of a "part number,version" field, or "-" when
+    the module did not report one. This is what identifies which update file a
+    component needs, so it is shown alongside the version rather than dropped.
+    '''
+    if rawValue is None:
+        return "-"
+    text = str(rawValue).strip()
+    if text == "" or text.lower() in ("not set", "qtl0000", "qtlffff"):
+        return "-"
+    partNumber = text.partition(",")[0].strip()
+    return partNumber if "," in text else "-"
+
+
 def _deviceRow(discoveredDevice):
     '''
     Returns the desired device info for device selection.
@@ -804,9 +819,26 @@ def _deviceRow(discoveredDevice):
         str(getattr(idn, "name", "") or "")[:34],
         _detailValue(getattr(idn, "firmware", None)),
         fpgaText,
+        _fixtureName(discoveredDevice),
+        _partNumber(getattr(fixture, "fixture_fpga", None)),
         _detailValue(getattr(fixture, "fixture_fpga", None)),
         discoveredDevice.connection_target or "-",
     ]
+
+
+def _fixtureName(discoveredDevice):
+    '''
+    Returns the fixture's own identifier, where the module reported one. This
+    is the fixture itself rather than the FPGA fitted to it.
+    '''
+    fixture = discoveredDevice.fixture_idn_info
+    name = getattr(fixture, "fixture_name", None)
+    if name is None:
+        return "-"
+    text = str(name).strip()
+    if text == "" or text.lower() in ("not set", "qtl0000", "qtlffff"):
+        return "-"
+    return text
 
 
 
@@ -824,7 +856,8 @@ table.
 def displayDeviceTable(discovered_devices, message=""):
     displayTable([_deviceRow(device) for device in discovered_devices],
                  tableHeaders=["Module", "Description", "FW", "FPGA",
-                               "Fixture", "Connection"],
+                               "Fixture", "Fixture FPGA", "Fix Ver",
+                               "Connection"],
                  indexReq=True, message=message)
 
 

@@ -93,6 +93,16 @@ class DeviceInfo:
         self.enclosure_serial_number: Optional[str] = None
         self.enclosure_position: Optional[str] = None
 
+        # The serial number printed on the box, which is the only one the
+        # customer ever sees. For a module inside an enclosure that is the
+        # enclosure's number (QTL1999), not the component's (QTL1944), and for
+        # a unit holding several modules it is the enclosure number plus the
+        # port (QTL1995-01-002-003). Often it is simply the serial number
+        # again, but it is always set: every scan path fills it in from the
+        # very same value the scan uses as its own identifier, so the two
+        # always agree. See get_user_level_serial_number() in scanDevices.py.
+        self.user_level_serial_number: Optional[str] = None
+
         # Versions. Each is reported as "part number,version", for example
         # "QTL2267-01,5.000".
         self.firmware: Optional[str] = None

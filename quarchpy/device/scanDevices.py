@@ -1,3 +1,4 @@
+import copy
 import logging
 logger = logging.getLogger(__name__)
 import operator
@@ -187,13 +188,19 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DeviceInfo]] = N
         # the whole loop, so a single module that failed to answer discarded
         # the details for every other module as well, and the caller was handed
         # an empty list with no indication that anything had gone wrong.
-        for connection_target, serial_number in usb_modules.items():
+        for connection_target, userLevelSerial in usb_modules.items():
             # Skip anything already held by another program.
             if connection_target == "USB:???":
                 continue
 
             discovered_device = DeviceInfo()
             discovered_device.connection_target = connection_target
+
+            # The dictionary value is the number printed on the box: the loop
+            # above has already swapped in the enclosure number for the module
+            # types that need it. Keeping it means a caller never has to work
+            # out which of the two serial numbers a customer would recognise.
+            discovered_device.user_level_serial_number = userLevelSerial
 
             quarch_device = None
             try:
@@ -215,11 +222,12 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DeviceInfo]] = N
                              connection_target, response)
                 continue
 
-            # Not every module reports a Serial# line. The USB string
-            # descriptor always carries one, and it is what the scan is keyed
-            # on, so use it rather than leaving the field empty.
+            # Not every module reports a Serial# line. Fall back to what the
+            # scan is keyed on rather than leaving the field empty, accepting
+            # that for a module inside an enclosure this is the enclosure's
+            # number. The user-level serial above is unaffected either way.
             if not discovered_device.serial_number:
-                discovered_device.serial_number = serial_number
+                discovered_device.serial_number = userLevelSerial
 
             discovered_devices.append(discovered_device)
 
@@ -371,6 +379,11 @@ def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLoo
             # Record how to reach this module. A networked module may answer
             # on several protocols; prefer them in the same order scanDevices
             # uses when it picks a favourite connection.
+            if network_discovered_device is not None:
+                # get_user_level_serial_number() produced this from the same
+                # packet, so it matches the scan dictionary exactly.
+                network_discovered_device.user_level_serial_number = module_name
+
             if network_discovered_device is not None and ip_module != "0.0.0.0":
                 for protocol in ("TCP", "REST", "TELNET"):
                     if f"{protocol}:{ip_module}" in lan_modules:
@@ -676,7 +689,6 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
                 if conPref[index] in k:
                     sortedFoundDevices[k] = v
             index += 1
-        foundDevices = sortedFoundDevices
 
         # new dictionary only containing one favourite connection to each device.
         favConFoundDevices = {}
@@ -687,7 +699,6 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         foundDevices = favConFoundDevices
 
     # Sort by alphabetic order of key
-    sortedFoundDevices = {}
     sortedFoundDevices = sorted(foundDevices.items(), key=operator.itemgetter(1))
     foundDevices = dict(sortedFoundDevices)
     if filterStr is not None:
@@ -705,10 +716,7 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
     # Cancels the mdns discovery service (required to close active thread)
     browser.cancel()
 
-    # The filters above apply to foundDevices only. Reconcile the collected
-    # records against it so that a filter matching nothing returns nothing,
-    # and so favouriteOnly does not leave the same module listed once per
-    # protocol it answers on.
+    # The filters above apply to foundDevices only. Filter out the extra
     if discovered_devices is not None:
         _reconcileDiscoveredDevices(discovered_devices, foundDevices)
 
@@ -717,52 +725,103 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
 
 def _reconcileDiscoveredDevices(discovered_devices, foundDevices):
     '''
-    Trims the collected device records in place so they describe exactly the
-    modules that survived filtering, one record each.
+    Rebuilds the collected device records in place so that there is exactly one
+    for every entry the scan returned, in the same order.
 
     The filters above are applied to foundDevices only, so without this the
     detail list could hold modules that a filter had removed, and could hold
     the same module more than once when it answered on several protocols.
 
-    Records are matched to the surviving entries by serial number rather than
+    Records are matched to the entries by user-level serial number rather than
     by connection target, because favouriteOnly picks one protocol per module
-    and that is not necessarily the one the record was built from. The
-    surviving key is then written back as the record's connection_target, so
-    the target it carries is always one the caller can open.
+    and that is not necessarily the one the record was built from. The entry's
+    key is then written back as the record's connection_target, so the target
+    it carries is always one the caller can open.
+
+    The user-level serial is what the scan dictionary is keyed on: for a module
+    inside an enclosure that is the enclosure's number, not the component's, so
+    matching on serial_number would find nothing for exactly those modules.
+    Every scan path sets it, so a record without one has a scan path behind it
+    that forgot to, and dropping that record is how it gets noticed.
+
+    A module can be returned under more protocols than there are records to go
+    round: the network scan builds one record per module from its announce
+    packet, however many protocols that module then answers on. With
+    favouriteOnly off, such a module is copied so that each of its connections
+    is listed, which is the point of turning favouriteOnly off.
     '''
     bySerial = {}
-    for device in discovered_devices:
-        serial = _normalisedSerial(getattr(device, "serial_number", None))
-        if serial:
-            bySerial.setdefault(serial, []).append(device)
-
     byTarget = {}
     for device in discovered_devices:
+        serial = _normalisedSerial(
+            getattr(device, "user_level_serial_number", None))
+        if serial:
+            bySerial.setdefault(serial, []).append(device)
         target = getattr(device, "connection_target", None)
         if target is not None:
             byTarget.setdefault(target, device)
 
-    kept = []
+    def candidatesFor(serialNumber):
+        return bySerial.get(_normalisedSerial(serialNumber), [])
+
+    claimed = {}
     used = set()
 
+    # First claim: the record built from this very connection. A USB record
+    # was read from the module itself with *IDN?, so it is worth more than a
+    # broadcast packet and should not be displaced by one.
     for target, serialNumber in foundDevices.items():
-        candidates = bySerial.get(_normalisedSerial(serialNumber), [])
-
-        # Prefer the record that was built from this very connection: it was
-        # read from the module itself rather than from a broadcast packet.
         device = byTarget.get(target)
-        if device is None or device not in candidates:
-            device = next((c for c in candidates if id(c) not in used), None)
-        if device is None or id(device) in used:
+        if (device is not None and id(device) not in used
+                and device in candidatesFor(serialNumber)):
+            used.add(id(device))
+            claimed[target] = device
+
+    # Then any record not yet spoken for.
+    for target, serialNumber in foundDevices.items():
+        if target in claimed:
+            continue
+        device = next((c for c in candidatesFor(serialNumber)
+                       if id(c) not in used), None)
+        if device is not None:
+            used.add(id(device))
+            claimed[target] = device
+
+    # Finally, copy for the connections left over. Prefer a record from the
+    # same address, so a TCP entry is described by the module's own network
+    # record rather than by what it said over USB.
+    for target, serialNumber in foundDevices.items():
+        if target in claimed:
+            continue
+        candidates = candidatesFor(serialNumber)
+        if not candidates:
             # Nothing was collected for this entry: a module held by another
             # program, or one that did not answer *IDN?.
             continue
+        sameAddress = [c for c in candidates
+                       if _connectionAddress(c.connection_target)
+                       == _connectionAddress(target)]
+        claimed[target] = copy.deepcopy((sameAddress or candidates)[0])
 
-        used.add(id(device))
+    kept = []
+    for target in foundDevices:
+        device = claimed.get(target)
+        if device is None:
+            continue
         device.connection_target = target
         kept.append(device)
 
     discovered_devices[:] = kept
+
+
+def _connectionAddress(connectionTarget):
+    '''
+    The part of a connection target that identifies the module rather than the
+    protocol: "TCP:10.0.9.154" and "REST:10.0.9.154" are the same module.
+    '''
+    if not connectionTarget:
+        return None
+    return str(connectionTarget).partition(":")[2].strip().upper() or None
 
 
 def _normalisedSerial(serialNumber):
@@ -838,17 +897,21 @@ def _detailValue(rawValue):
 
 def _deviceName(discoveredDevice):
     '''
-    Returns the most specific identifier the module reported. Not every module
-    supplies every field, so this falls back through the alternatives rather
-    than returning nothing. #TODO we need to find a way to display the "userLevelSerialNumber" think 1995s with encloser+port.
+    Returns the identifier the customer would recognise.
+
+    That is the user-level serial number: the one printed on the box. For a
+    module inside an enclosure it is the enclosure's number rather than the
+    component's, and for a unit holding several modules it carries the port as
+    well, so a QTL1995 is listed once per port.
+
+    Not every module supplies every field, so this falls back through the
+    alternatives rather than returning nothing.
     '''
-    idn = discoveredDevice.idn_info
-    if idn is not None:
-        for attribute in ("serial_number", "enclosure_serial_number",
-                          "part_number", "name"):
-            value = getattr(idn, attribute, None)
-            if value and str(value).strip().lower() != "not set":
-                return str(value).strip()
+    for attribute in ("user_level_serial_number", "serial_number",
+                      "enclosure_serial_number", "part_number", "name"):
+        value = getattr(discoveredDevice, attribute, None)
+        if value and str(value).strip().lower() != "not set":
+            return str(value).strip()
     return discoveredDevice.connection_target or "Unknown"
 
 

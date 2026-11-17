@@ -61,7 +61,7 @@ def printEverythingKnown(device):
 def test_two():
     """Scan once, show everything found, then select from that same list."""
     print("Scanning...")
-    discovered_devices = scanDevicesWithDetails()
+    discovered_devices = scanDevicesWithDetails()#favouriteOnly=False)
 
     print("")
     print("Found " + str(len(discovered_devices)) + " module(s)")
@@ -83,5 +83,5 @@ def test_two():
 
 
 if __name__ == "__main__":
-    test_one()
+    #test_one()
     test_two()

@@ -1,3 +1,4 @@
+import copy
 import logging
 logger = logging.getLogger(__name__)
 import operator
@@ -15,11 +16,9 @@ except:
     printText("System Compatibility issue - Is your Python architecture consistent with the Operating System?")
     pass
 from quarchpy.device import quarchDevice, quarchArray
-from quarchpy.device.device_idn_info import IDNInfo
-from quarchpy.device.device_fixture_idn_info import FixtureIDNInfo
 from quarchpy.device.device_network_info import DeviceNetworkInfo
 from quarchpy.device.packet_processing import decode_locate_packet
-from quarchpy.device.discovered_device import DiscoveredDevice
+from quarchpy.device.device_info import DeviceInfo
 from quarchpy.connection_specific.connection_Serial import serialList, serial
 from quarchpy.device.quarchArray import isThisAnArrayController
 from quarchpy.connection_specific.connection_USB import TQuarchUSB_IF
@@ -87,7 +86,7 @@ Scan for all Quarch devices available over USB
 '''
 
 
-def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice]] = None):
+def list_USB(debuPrint=False, discovered_devices: Optional[List[DeviceInfo]] = None):
     QUARCH_VENDOR_ID = 0x16d0
     QUARCH_PRODUCT_ID1 = 0x0449
 
@@ -185,33 +184,52 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DiscoveredDevice
     # Ensure discovered usb devices are populated if required.
     # Devices connected via USB must be enquired via *IDN?
     if discovered_devices is not None:
-        try:
-            index = 0
-            cmd = "*IDN?"
-            # Create a temporary list to ensure nothing is overwritten.
-            temp_discovered_devices_list: List[DiscoveredDevice] = []
-            for key, value in usb_modules.items():
-                # Ensure to skip any locked modules.
-                if key != "USB:???":
-                    idn_info = IDNInfo()
-                    fix_idn_info = FixtureIDNInfo()
-                    device_net_info = DeviceNetworkInfo()
-                    discovered_device = DiscoveredDevice(idn_info, fix_idn_info, device_net_info)
-                    temp_discovered_devices_list.append(discovered_device)
-                    quarch_device = quarchDevice(key)
-                    response = quarch_device.send_command(cmd)
-                    is_idn_valid = temp_discovered_devices_list[index].idn_info.parse_idn_response(response)
-                    # Cleanup connection to module
-                    quarch_device.close_connection()
-                    del quarch_device
-                    if is_idn_valid:
-                        index += 1
-                    else:
-                        temp_discovered_devices_list.remove(discovered_device)
+        # Each module is handled on its own. Previously one try/except covered
+        # the whole loop, so a single module that failed to answer discarded
+        # the details for every other module as well, and the caller was handed
+        # an empty list with no indication that anything had gone wrong.
+        for connection_target, userLevelSerial in usb_modules.items():
+            # Skip anything already held by another program.
+            if connection_target == "USB:???":
+                continue
 
-            discovered_devices.extend(temp_discovered_devices_list)
-        except Exception as e:
-            logger.debug(str(e))
+            discovered_device = DeviceInfo()
+            discovered_device.connection_target = connection_target
+
+            # The dictionary value is the number printed on the box: the loop
+            # above has already swapped in the enclosure number for the module
+            # types that need it. Keeping it means a caller never has to work
+            # out which of the two serial numbers a customer would recognise.
+            discovered_device.user_level_serial_number = userLevelSerial
+
+            quarch_device = None
+            try:
+                quarch_device = quarchDevice(connection_target)
+                response = quarch_device.send_command("*IDN?")
+            except Exception as e:
+                logger.debug("No *IDN? from %s: %s", connection_target, e)
+                continue
+            finally:
+                if quarch_device is not None:
+                    try:
+                        quarch_device.close_connection()
+                    except Exception as e:
+                        logger.debug("Could not close %s: %s",
+                                     connection_target, e)
+
+            if not discovered_device.parse_idn_response(response):
+                logger.debug("Unusable *IDN? from %s: %r",
+                             connection_target, response)
+                continue
+
+            # Not every module reports a Serial# line. Fall back to what the
+            # scan is keyed on rather than leaving the field empty, accepting
+            # that for a module inside an enclosure this is the enclosure's
+            # number. The user-level serial above is unaffected either way.
+            if not discovered_device.serial_number:
+                discovered_device.serial_number = userLevelSerial
+
+            discovered_devices.append(discovered_device)
 
     return usb_modules
 
@@ -221,7 +239,7 @@ List all Quarch devices found over LAN, using a UDP broadcast scan
 '''
 
 
-def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLookup=None, discovered_devices: Optional[List[DiscoveredDevice]] = None):
+def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLookup=None, discovered_devices: Optional[List[DeviceInfo]] = None):
     retVal = {}
     lan_modules = dict()
     specifiedDevice = None
@@ -290,14 +308,15 @@ def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLoo
             # ------------------------------
 
             # Decode and extend discovered_devices
+            network_discovered_device = None
             if discovered_devices is not None:
-                idn_info = IDNInfo()
-                fix_idn_info = FixtureIDNInfo()
-                device_net_info = DeviceNetworkInfo()
-                discovered_device: DiscoveredDevice = DiscoveredDevice(idn_info, fix_idn_info, device_net_info)
-                discovered_device.device_info = decode_locate_packet(splits)
-                discovered_device.populate_device_info()
+                discovered_device = DeviceInfo()
+                discovered_device.populate_from_packet(
+                    decode_locate_packet(splits))
                 discovered_devices.append(discovered_device)
+                # Its connection target is filled in further down, once the
+                # protocols this module actually answers on are known.
+                network_discovered_device = discovered_device
 
             cont = 0
             for lines in splits:
@@ -356,6 +375,21 @@ def list_network(target_conn="all", debugPrint=False, lanTimeout=1, ipAddressLoo
                     if not is_duplicate_ghost(module_name, lan_modules, "TCP:"):
                         lan_modules[f"TCP:{ip_module}"] = module_name
                         logger.debug(f"Found TCP module: {module_name} at {ip_module}")
+
+            # Record how to reach this module. A networked module may answer
+            # on several protocols; prefer them in the same order scanDevices
+            # uses when it picks a favourite connection.
+            if network_discovered_device is not None:
+                # get_user_level_serial_number() produced this from the same
+                # packet, so it matches the scan dictionary exactly.
+                network_discovered_device.user_level_serial_number = module_name
+
+            if network_discovered_device is not None and ip_module != "0.0.0.0":
+                for protocol in ("TCP", "REST", "TELNET"):
+                    if f"{protocol}:{ip_module}" in lan_modules:
+                        network_discovered_device.connection_target = \
+                            f"{protocol}:{ip_module}"
+                        break
         mySocket.close()
     if ipAddressLookup is not None:
         if moduleFound is None:
@@ -622,10 +656,10 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         foundDevices = list_serial()
 
     if target_conn.lower() == "usb":
-        foundDevices = list_USB()
+        foundDevices = list_USB(discovered_devices=discovered_devices)
 
     if target_conn.lower() == "tcp" or target_conn.lower() == "rest" or target_conn.lower() == "telnet":
-        foundDevices = list_network(target_conn, ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout)
+        foundDevices = list_network(target_conn, ipAddressLookup=ipAddressLookup, lanTimeout=lanTimeout, discovered_devices=discovered_devices)
         foundDevices = mergeDict(foundDevices, mdns_listener.get_found_devices())
 
     if scanInArray:
@@ -655,7 +689,6 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
                 if conPref[index] in k:
                     sortedFoundDevices[k] = v
             index += 1
-        foundDevices = sortedFoundDevices
 
         # new dictionary only containing one favourite connection to each device.
         favConFoundDevices = {}
@@ -666,7 +699,6 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         foundDevices = favConFoundDevices
 
     # Sort by alphabetic order of key
-    sortedFoundDevices = {}
     sortedFoundDevices = sorted(foundDevices.items(), key=operator.itemgetter(1))
     foundDevices = dict(sortedFoundDevices)
     if filterStr is not None:
@@ -683,7 +715,126 @@ def scanDevices(target_conn="all", lanTimeout=1, scanInArray=True, favouriteOnly
         foundDevices = filter_module_type(module_type_filter, foundDevices)
     # Cancels the mdns discovery service (required to close active thread)
     browser.cancel()
+
+    # The filters above apply to foundDevices only. Filter out the extra
+    if discovered_devices is not None:
+        _reconcileDiscoveredDevices(discovered_devices, foundDevices)
+
     return foundDevices
+
+
+def _reconcileDiscoveredDevices(discovered_devices, foundDevices):
+    '''
+    Rebuilds the collected device records in place so that there is exactly one
+    for every entry the scan returned, in the same order.
+
+    The filters above are applied to foundDevices only, so without this the
+    detail list could hold modules that a filter had removed, and could hold
+    the same module more than once when it answered on several protocols.
+
+    Records are matched to the entries by user-level serial number rather than
+    by connection target, because favouriteOnly picks one protocol per module
+    and that is not necessarily the one the record was built from. The entry's
+    key is then written back as the record's connection_target, so the target
+    it carries is always one the caller can open.
+
+    The user-level serial is what the scan dictionary is keyed on: for a module
+    inside an enclosure that is the enclosure's number, not the component's, so
+    matching on serial_number would find nothing for exactly those modules.
+    Every scan path sets it, so a record without one has a scan path behind it
+    that forgot to, and dropping that record is how it gets noticed.
+
+    A module can be returned under more protocols than there are records to go
+    round: the network scan builds one record per module from its announce
+    packet, however many protocols that module then answers on. With
+    favouriteOnly off, such a module is copied so that each of its connections
+    is listed, which is the point of turning favouriteOnly off.
+    '''
+    bySerial = {}
+    byTarget = {}
+    for device in discovered_devices:
+        serial = _normalisedSerial(
+            getattr(device, "user_level_serial_number", None))
+        if serial:
+            bySerial.setdefault(serial, []).append(device)
+        target = getattr(device, "connection_target", None)
+        if target is not None:
+            byTarget.setdefault(target, device)
+
+    def candidatesFor(serialNumber):
+        return bySerial.get(_normalisedSerial(serialNumber), [])
+
+    claimed = {}
+    used = set()
+
+    # First claim: the record built from this very connection. A USB record
+    # was read from the module itself with *IDN?, so it is worth more than a
+    # broadcast packet and should not be displaced by one.
+    for target, serialNumber in foundDevices.items():
+        device = byTarget.get(target)
+        if (device is not None and id(device) not in used
+                and device in candidatesFor(serialNumber)):
+            used.add(id(device))
+            claimed[target] = device
+
+    # Then any record not yet spoken for.
+    for target, serialNumber in foundDevices.items():
+        if target in claimed:
+            continue
+        device = next((c for c in candidatesFor(serialNumber)
+                       if id(c) not in used), None)
+        if device is not None:
+            used.add(id(device))
+            claimed[target] = device
+
+    # Finally, copy for the connections left over. Prefer a record from the
+    # same address, so a TCP entry is described by the module's own network
+    # record rather than by what it said over USB.
+    for target, serialNumber in foundDevices.items():
+        if target in claimed:
+            continue
+        candidates = candidatesFor(serialNumber)
+        if not candidates:
+            # Nothing was collected for this entry: a module held by another
+            # program, or one that did not answer *IDN?.
+            continue
+        sameAddress = [c for c in candidates
+                       if _connectionAddress(c.connection_target)
+                       == _connectionAddress(target)]
+        claimed[target] = copy.deepcopy((sameAddress or candidates)[0])
+
+    kept = []
+    for target in foundDevices:
+        device = claimed.get(target)
+        if device is None:
+            continue
+        device.connection_target = target
+        kept.append(device)
+
+    discovered_devices[:] = kept
+
+
+def _connectionAddress(connectionTarget):
+    '''
+    The part of a connection target that identifies the module rather than the
+    protocol: "TCP:10.0.9.154" and "REST:10.0.9.154" are the same module.
+    '''
+    if not connectionTarget:
+        return None
+    return str(connectionTarget).partition(":")[2].strip().upper() or None
+
+
+def _normalisedSerial(serialNumber):
+    '''
+    Serial numbers for comparison only. Returns None for the placeholder
+    values the scan uses when a module could not be read.
+    '''
+    if not serialNumber:
+        return None
+    text = str(serialNumber).strip().upper()
+    if not text or text in ("LOCKED MODULE", "DEVICE IN USE", "???"):
+        return None
+    return text
 
 
 '''
@@ -700,6 +851,208 @@ def listDevices(scanDictionary):
             printText('{0:>3}'.format(str(x)) + " - " + '{0:<18}'.format(
                 v) + "\t" + k)  # add padding to keep responses in line
             x += 1
+
+
+
+
+
+def scanDevicesWithDetails(target_conn="all", lanTimeout=1, scanInArray=False,
+                           favouriteOnly=True, filterStr=None,
+                           module_type_filter=None, ipAddressLookup=None):
+    '''
+    Scans for Quarch modules and returns what each one reports about itself.
+
+    Unlike scanDevices(), which returns a {connection target: serial} dictionary,
+    this returns DeviceInfo objects carrying the module's firmware, FPGA,
+    fixture and network details, along with the connection target needed to open
+    a connection to it.
+
+    Reading the details of a USB module requires briefly connecting to it and
+    sending *IDN?. Network modules are decoded from their announce packet and cost
+    nothing extra.
+    '''
+
+    discovered_devices: List[DeviceInfo] = []
+    scanDevices(target_conn=target_conn, lanTimeout=lanTimeout,
+                scanInArray=scanInArray, favouriteOnly=favouriteOnly,
+                filterStr=filterStr, module_type_filter=module_type_filter,
+                ipAddressLookup=ipAddressLookup,
+                discovered_devices=discovered_devices)
+    return discovered_devices
+
+
+def _detailValue(rawValue):
+    '''
+    Returns the version half of a "part number,version" field, or "-" when the
+    module did not report one. Modules report these as a single string, for
+    example "QTL2267-01,5.000".
+    '''
+    if rawValue is None:
+        return "-"
+    text = str(rawValue).strip()
+    if text == "" or text.lower() in ("not set", "qtl0000", "qtlffff"):
+        return "-"
+    return text.partition(",")[2].strip() or text
+
+
+def _deviceName(discoveredDevice):
+    '''
+    Returns the identifier the customer would recognise.
+
+    That is the user-level serial number: the one printed on the box. For a
+    module inside an enclosure it is the enclosure's number rather than the
+    component's, and for a unit holding several modules it carries the port as
+    well, so a QTL1995 is listed once per port.
+
+    Not every module supplies every field, so this falls back through the
+    alternatives rather than returning nothing.
+    '''
+    for attribute in ("user_level_serial_number", "serial_number",
+                      "enclosure_serial_number", "part_number", "name"):
+        value = getattr(discoveredDevice, attribute, None)
+        if value and str(value).strip().lower() != "not set":
+            return str(value).strip()
+    return discoveredDevice.connection_target or "Unknown"
+
+
+def _partNumber(rawValue):
+    '''
+    Returns the part number half of a "part number,version" field, or "-" when
+    the module did not report one. This is what identifies which update file a
+    component needs, so it is shown alongside the version rather than dropped.
+    '''
+    if rawValue is None:
+        return "-"
+    text = str(rawValue).strip()
+    if text == "" or text.lower() in ("not set", "qtl0000", "qtlffff"):
+        return "-"
+    partNumber = text.partition(",")[0].strip()
+    return partNumber if "," in text else "-"
+
+
+def _deviceRow(discoveredDevice):
+    '''
+    Returns the desired device info for device selection.
+    '''
+    idn = discoveredDevice.idn_info
+    fixture = discoveredDevice.fixture_idn_info
+
+    fpgas = []
+    if idn is not None:
+        for attribute in ("fpga_1", "fpga_2", "fpga_3", "fpga_4"):
+            value = getattr(idn, attribute, None)
+            if value:
+                fpgas.append(value)
+
+    fpgaText = _detailValue(fpgas[0]) if fpgas else "-"
+    if len(fpgas) > 1:
+        fpgaText += " (+{0})".format(len(fpgas) - 1)
+
+    return [
+        _deviceName(discoveredDevice),
+        str(getattr(idn, "name", "") or "")[:34],
+        _detailValue(getattr(idn, "firmware", None)),
+        fpgaText,
+        _fixtureName(discoveredDevice),
+        _partNumber(getattr(fixture, "fixture_fpga", None)),
+        _detailValue(getattr(fixture, "fixture_fpga", None)),
+        discoveredDevice.connection_target or "-",
+    ]
+
+
+def _fixtureName(discoveredDevice):
+    '''
+    Returns the fixture's own identifier, where the module reported one. This
+    is the fixture itself rather than the FPGA fitted to it.
+    '''
+    fixture = discoveredDevice.fixture_idn_info
+    name = getattr(fixture, "fixture_name", None)
+    if name is None:
+        return "-"
+    text = str(name).strip()
+    if text == "" or text.lower() in ("not set", "qtl0000", "qtlffff"):
+        return "-"
+    return text
+
+
+
+
+
+'''
+Prints a numbered table of modules and what each one reports about itself.
+
+Separate from userSelectDeviceWithDetails so that a caller which already has
+a device list, or which does not want to prompt, can still show the same
+table.
+'''
+
+
+def displayDeviceTable(discovered_devices, message=""):
+    displayTable([_deviceRow(device) for device in discovered_devices],
+                 tableHeaders=["Module", "Description", "FW", "FPGA",
+                               "Fixture", "Fixture FPGA", "Fix Ver",
+                               "Connection"],
+                 indexReq=True, message=message)
+
+
+def userSelectDeviceWithDetails(message=None, title=None, target_conn="all",
+                                lanTimeout=1, favouriteOnly=True,
+                                filterStr=None, discovered_devices=None):
+    '''
+    Scans for modules, shows what each one reports, and asks the user to choose.
+
+    Accepts a single index ("3"), a list ("1,2,5") or a range ("1-3"), and any
+    mixture of those. Returns the DeviceInfo objects selected, each carrying
+    the connection_target needed to open it:
+
+        for device in userSelectDeviceWithDetails():
+            myQuarchDevice = getQuarchDevice(device.connection_target)
+
+    Returns an empty list if nothing was found or nothing was chosen.
+    '''
+    if title is None:
+        title = "Select a Device"
+    if message is None:
+        message = "Select one or more modules. Use 1 or 1,3 or 1-3."
+
+    if discovered_devices is None:
+        printText("Scanning for devices...")
+        discovered_devices = scanDevicesWithDetails(
+            target_conn=target_conn, lanTimeout=lanTimeout,
+            favouriteOnly=favouriteOnly, filterStr=filterStr)
+
+    if not discovered_devices:
+        printText("No Quarch modules found.")
+        return []
+
+    displayDeviceTable(discovered_devices, message=title)
+
+    answer = requestDialog(title=title, message=message)
+    if answer is None or str(answer).strip() == "":
+        return []
+
+    wanted = userRangeIntSelection(str(answer), intLength=None)
+    if not wanted:
+        printText("'{0}' is not a selection. Use 1 or 1,3 or 1-3.".format(
+            str(answer).strip()))
+        return []
+
+    selected = []
+    for item in wanted:
+        try:
+            index = int(item)
+        except (TypeError, ValueError):
+            printText("Ignoring '{0}': not a number.".format(item))
+            continue
+        if 1 <= index <= len(discovered_devices):
+            device = discovered_devices[index - 1]
+            if device not in selected:
+                selected.append(device)
+        else:
+            printText("Ignoring '{0}': there are {1} modules.".format(
+                index, len(discovered_devices)))
+
+    return selected
 
 
 '''

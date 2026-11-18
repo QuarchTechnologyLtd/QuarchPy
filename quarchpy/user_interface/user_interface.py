@@ -496,13 +496,27 @@ Takes a string input of comma seperated ints or range of ints and converts it to
 intLength tells the function to zeo pad the int before returning it.
 '''
 def userRangeIntSelection(inputString, intLength=3):
+    '''
+    Turns "1", "1,3,5" or "1-3" (or any mixture) into a list of numbers.
+
+    Anything that is not a number is skipped rather than raising, so that a
+    typed answer such as "1-" or "x-2" is treated the same way as any other
+    unusable entry. A caller that needs to tell the user their answer was
+    rejected should check for an empty list.
+    '''
     inputList = inputString.split(",")
     returnList = []
     for item in inputList:
         if "-" in item:
             myRange = item.split("-")
-            myRange = range(int(myRange[0]), int(myRange[1]) + 1)
-            returnList.extend(myRange)
+            if len(myRange) != 2:
+                continue
+            try:
+                start = int(myRange[0])
+                end = int(myRange[1])
+            except ValueError:
+                continue
+            returnList.extend(range(start, end + 1))
         else:
             if validateUserInput(item, "int", 0, 999):
                 returnList.append(item)

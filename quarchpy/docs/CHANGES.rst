@@ -12,6 +12,24 @@ Quarchpy
 
 Change Log
 ----------
+2.2.25
+------
+- Scanning can now report what each module is, not just that it is there.
+  ``scanDevicesWithDetails()`` returns a ``DeviceInfo`` per module carrying
+  identity, firmware, FPGA and fixture details, along with the connection
+  target needed to open it. ``userSelectDeviceWithDetails()`` shows those
+  details in the selection table and accepts a single index, a list or a
+  range. ``displayDeviceTable()`` draws the same table without prompting.
+- Fixed: modules found over the network reported no firmware and no FPGA
+  version, because the announce packet was read under the wrong keys.
+- Fixed: one module that failed to answer during a USB scan discarded the
+  details collected for every other module.
+- Fixed: a mistyped selection such as "1-" raised instead of being rejected.
+- Removed: ``IDNInfo``, ``FixtureIDNInfo`` and ``DiscoveredDevice``, which
+  were three overlapping records of the same thing. Use ``DeviceInfo``, which
+  carries every field all three had. ``idn_info`` and ``fixture_idn_info``
+  still work as properties.
+
 2.2.24
 ------
 - New QPS 1.54 and QIS 1.56

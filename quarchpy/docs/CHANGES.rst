@@ -22,6 +22,11 @@ Change Log
   range. ``displayDeviceTable()`` draws the same table without prompting.
 - Fixed: modules found over the network reported no firmware and no FPGA
   version, because the announce packet was read under the wrong keys.
+- Fixed: a module found over USB reported no fixture, where the same module
+  found over the network reported its name, FPGA part number and version.
+  The ``Fixture`` line of an ``*IDN?`` reply was being discarded, and the
+  fixture's FPGA version was never asked for. A USB scan now reads that line
+  and, only when a fixture is present, sends ``fix idn?`` for the version.
 - Fixed: one module that failed to answer during a USB scan discarded the
   details collected for every other module.
 - Fixed: a mistyped selection such as "1-" raised instead of being rejected.

@@ -44,7 +44,7 @@ CODE_MAP = {
 }
 
 # Values a module sends when a field is not set, rather than sending nothing.
-UNSET_VALUES = ("", "not set", "qtl0000", "qtlffff")
+UNSET_VALUES = ("", "not set", "not found", "qtl0000", "qtlffff")
 
 # Keys found in an *IDN? response, and the field each one fills.
 _IDN_KEY_MAP = {
@@ -61,6 +61,10 @@ _IDN_KEY_MAP = {
     "Enclosure#": "enclosure_serial_number",
     "Position#": "enclosure_position",
     "Alias": "alias",
+    # Present over USB only. The announce packet carries the same thing as
+    # TLV 0x8c, and an empty bay reports "Not Found", which UNSET_VALUES
+    # above already covers.
+    "Fixture": "fixture_name",
 }
 
 
@@ -192,6 +196,44 @@ class DeviceInfo:
             attribute = _IDN_KEY_MAP.get(key)
             if attribute:
                 setattr(self, attribute, value)
+                was_successful = True
+
+        return was_successful
+
+    def parse_fixture_idn_response(self, idn_response: str) -> bool:
+        """Fill the fixture fields from the text of a ``fix idn?`` reply.
+
+        Deliberately not parse_idn_response(). That reply describes the
+        fixture, so its Name, Part# and Serial# lines would overwrite the
+        module's own. Only the two fields the announce packet also carries
+        are taken, so a module reads the same whichever way it was found.
+
+        Args:
+            idn_response: the reply, one ``Key: value`` per line. A module
+                with no fixture answers ``FAIL: 0x66 ...``, which sets
+                nothing and returns False.
+
+        Returns:
+            True if a fixture field was filled.
+        """
+        if not idn_response:
+            return False
+
+        was_successful = False
+
+        for line in idn_response.strip().split('\n'):
+            if ':' not in line:
+                continue
+
+            key, value = line.split(':', 1)
+            key = key.strip()
+            value = value.strip()
+
+            if key == "Name":
+                self.fixture_name = value
+                was_successful = True
+            elif key == "FPGA 1":
+                self.fixture_fpga = value
                 was_successful = True
 
         return was_successful

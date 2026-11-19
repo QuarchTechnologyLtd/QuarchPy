@@ -18,7 +18,7 @@ except:
 from quarchpy.device import quarchDevice, quarchArray
 from quarchpy.device.device_network_info import DeviceNetworkInfo
 from quarchpy.device.packet_processing import decode_locate_packet
-from quarchpy.device.device_info import DeviceInfo
+from quarchpy.device.device_info import DeviceInfo, is_set
 from quarchpy.connection_specific.connection_Serial import serialList, serial
 from quarchpy.device.quarchArray import isThisAnArrayController
 from quarchpy.connection_specific.connection_USB import TQuarchUSB_IF
@@ -203,9 +203,25 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DeviceInfo]] = N
             discovered_device.user_level_serial_number = userLevelSerial
 
             quarch_device = None
+            parsed = False
             try:
                 quarch_device = quarchDevice(connection_target)
                 response = quarch_device.send_command("*IDN?")
+                parsed = discovered_device.parse_idn_response(response)
+
+                # The fixture's FPGA version is not in *IDN?, only its name.
+                # Ask for it on the connection we already have, and only when
+                # the module said there is a fixture: an empty bay answers
+                # "FAIL: 0x66 -Fixture is not present or not responding".
+                # Its own try, so a fixture that will not answer costs the
+                # fixture columns and not the whole module.
+                if parsed and discovered_device.has_fixture:
+                    try:
+                        discovered_device.parse_fixture_idn_response(
+                            quarch_device.send_command("fix idn?"))
+                    except Exception as e:
+                        logger.debug("No fix idn? from %s: %s",
+                                     connection_target, e)
             except Exception as e:
                 logger.debug("No *IDN? from %s: %s", connection_target, e)
                 continue
@@ -217,7 +233,7 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DeviceInfo]] = N
                         logger.debug("Could not close %s: %s",
                                      connection_target, e)
 
-            if not discovered_device.parse_idn_response(response):
+            if not parsed:
                 logger.debug("Unusable *IDN? from %s: %r",
                              connection_target, response)
                 continue
@@ -967,12 +983,9 @@ def _fixtureName(discoveredDevice):
     '''
     fixture = discoveredDevice.fixture_idn_info
     name = getattr(fixture, "fixture_name", None)
-    if name is None:
-        return "-"
-    text = str(name).strip()
-    if text == "" or text.lower() in ("not set", "qtl0000", "qtlffff"):
-        return "-"
-    return text
+    # is_set rather than a list of its own: an empty bay reports "Not Found"
+    # over USB, and a second copy of UNSET_VALUES would not know that.
+    return str(name).strip() if is_set(name) else "-"
 
 
 

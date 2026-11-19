@@ -4,7 +4,7 @@ Pure functions only: nothing here needs a Quarch module attached.
 """
 
 from quarchpy.device.device_info import DeviceInfo
-from quarchpy.device.scanDevices import (_deviceName,
+from quarchpy.device.scanDevices import (_deviceName, _fixtureName,
                                          _reconcileDiscoveredDevices)
 from quarchpy.user_interface.user_interface import userRangeIntSelection
 
@@ -169,3 +169,77 @@ def test_a_mistyped_selection_is_rejected_not_raised():
     """A typed answer is user input; it must never produce a traceback."""
     for answer in ["1-", "-2", "x-2", "-", "1-2-3", ""]:
         assert userRangeIntSelection(answer, intLength=None) == [], answer
+
+
+# Captured from a QTL2312 PAM over USB. The fixture lines are the only
+# difference between the two replies.
+
+_IDN_WITH_FIXTURE = """Family:     Power Analysis Modules
+Name:       Power Analysis Module
+Part#:      QTL2312-01
+Processor:  QTL2102-01,5.124
+Bootloader: QTL2102-01,5.123
+FPGA 1:     QTL2103,1.12
+Serial#:    QTL2098-02-269
+Enclosure#: QTL2312-01-263
+Fixture:    QTL2347-02 Gen4 PCIe x16 PAM Fixture"""
+
+_IDN_NO_FIXTURE = _IDN_WITH_FIXTURE.replace(
+    "QTL2347-02 Gen4 PCIe x16 PAM Fixture", "Not Found")
+
+_FIX_IDN = """Name:        Gen4 PCIe x16 PAM Fixture
+Part#:       QTL2347-02
+Serial#:     QTL2347-02-054
+FPGA 1:      QTL2129,1.5
+Internal#:   QTL2347-02-054"""
+
+
+def test_a_fitted_fixture_is_seen_over_usb():
+    """*IDN? names the fixture, so fix idn? is worth sending."""
+    device = DeviceInfo()
+    device.parse_idn_response(_IDN_WITH_FIXTURE)
+
+    assert device.has_fixture is True
+
+
+def test_an_empty_bay_is_not_a_fixture():
+    """A module with no fixture says so in words, not by staying quiet."""
+    device = DeviceInfo()
+    device.parse_idn_response(_IDN_NO_FIXTURE)
+
+    assert device.has_fixture is False
+    assert _fixtureName(device) == "-"
+
+
+def test_the_fixture_reads_the_same_over_usb_as_on_the_network():
+    """fix idn? Name matches the announce packet, where the *IDN? line
+    prefixes the part number and would not."""
+    device = DeviceInfo()
+    device.parse_idn_response(_IDN_WITH_FIXTURE)
+    device.parse_fixture_idn_response(_FIX_IDN)
+
+    assert device.fixture_name == "Gen4 PCIe x16 PAM Fixture"
+    assert device.fixture_fpga == "QTL2129,1.5"
+
+
+def test_the_fixture_reply_does_not_overwrite_the_module():
+    """fix idn? carries its own Name, Part# and Serial#. Parsing it as a
+    module reply would quietly replace the module's own identity."""
+    device = DeviceInfo()
+    device.parse_idn_response(_IDN_WITH_FIXTURE)
+    device.parse_fixture_idn_response(_FIX_IDN)
+
+    assert device.part_number == "QTL2312-01"
+    assert device.serial_number == "QTL2098-02-269"
+    assert device.name == "Power Analysis Module"
+    assert device.fpga_1 == "QTL2103,1.12"
+
+
+def test_a_fixture_that_will_not_answer_sets_nothing():
+    """An empty bay answers with a fault, not a reply."""
+    device = DeviceInfo()
+
+    assert device.parse_fixture_idn_response(
+        "FAIL: 0x66 -Fixture is not present or not responding") is False
+    assert device.fixture_name is None
+    assert device.fixture_fpga is None

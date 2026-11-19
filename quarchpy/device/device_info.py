@@ -129,10 +129,6 @@ class DeviceInfo:
         #: network. Empty for USB.
         self.device_info: dict = {}
 
-        # Set by firmware_check, which is the only thing that uses them.
-        self.is_update_required = False
-        self.device_name = None
-
     # -- reading -----------------------------------------------------------
 
     @property
@@ -295,11 +291,10 @@ class DeviceInfo:
         self.populate_from_packet(device_info)
 
     def is_update_available(self):
-        """Deprecated. Use ``quarchpy.device.firmware_check``."""
+        """Whether a newer version is published for this module.
+
+        Kept so existing callers keep working. The check itself lives in
+        ``quarchpy.device.firmware_check``.
+        """
         from quarchpy.device.firmware_check import is_update_available
         return is_update_available(self)
-
-    def get_serial_from_device(self):
-        """Deprecated. Use ``quarchpy.device.firmware_check``."""
-        from quarchpy.device.firmware_check import get_serial_from_device
-        return get_serial_from_device(self)

@@ -34,6 +34,14 @@ Change Log
   were three overlapping records of the same thing. Use ``DeviceInfo``, which
   carries every field all three had. ``idn_info`` and ``fixture_idn_info``
   still work as properties.
+- Removed: the firmware check that scraped quarch.com. It read only the first
+  FPGA, compared both version schemes as decimals so an FPGA at 1.10 sorted
+  below 1.9, had no timeout, and printed its findings.
+  ``is_update_available()`` is still there on ``DeviceInfo`` and in
+  ``quarchpy.device.firmware_check``, and returns False until the replacement
+  lands. ``get_serial_from_device()`` and the ``is_update_required`` and
+  ``device_name`` attributes went with it; they only ever carried the
+  scraper's workings.
 
 2.2.24
 ------

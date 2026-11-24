@@ -15,6 +15,7 @@ internet still gets an answer.
 import json
 import os
 import sys
+import tempfile
 from collections import namedtuple
 from datetime import datetime, timezone
 
@@ -82,6 +83,37 @@ def _readTextFile(path):
             return handle.read()
     except (OSError, UnicodeDecodeError):
         return None
+
+
+def _removeFile(path):
+    """Deletes a file if it is there, and says nothing if it is not."""
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
+def _writeFileAtomically(path, text):
+    """Replaces a file in a single step.
+
+    Opening the real file for writing truncates it before the first byte
+    of the new content arrives. A failure in that window leaves nothing,
+    and a reader arriving in it gets a fragment. Writing a temporary file
+    beside it and renaming means the path is always either the old
+    content or the new, never a part-written mixture. The temporary file
+    goes in the same directory because a rename is only atomic within one
+    filesystem.
+    """
+    handle, temporary = tempfile.mkstemp(dir=os.path.dirname(path),
+                                         suffix=".part")
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8",
+                       newline="\n") as part:
+            part.write(text)
+        os.replace(temporary, path)
+    except Exception:
+        _removeFile(temporary)
+        raise
 
 
 def _isReadableManifest(text):
@@ -202,18 +234,12 @@ def refresh_manifest(url=None, timeout=MANIFEST_TIMEOUT):
 
     try:
         os.makedirs(manifest_cache_dir(), exist_ok=True)
-        with open(cached_manifest_path(), "w", encoding="utf-8",
-                  newline="\n") as handle:
-            handle.write(text)
+        _removeFile(cached_etag_path())
+        _writeFileAtomically(cached_manifest_path(), text)
+
         newEtag = response.headers.get("ETag")
         if newEtag:
-            with open(cached_etag_path(), "w", encoding="utf-8") as handle:
-                handle.write(newEtag)
-        elif os.path.exists(cached_etag_path()):
-            # No ETag this time, so the stored one no longer describes what
-            # is on disk. Leaving it would make the next check answer 304
-            # about the wrong file.
-            os.remove(cached_etag_path())
+            _writeFileAtomically(cached_etag_path(), newEtag)
     except OSError as e:
         return RefreshResult(FAILED, None,
                              "downloaded, but could not save it: {0}".format(e))

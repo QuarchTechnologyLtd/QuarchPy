@@ -309,3 +309,56 @@ def test_a_damaged_cache_does_not_beat_the_bundled_manifest(tmp_path,
 
     assert (firmware_check._preferredManifest()
             == firmware_check.BUNDLED_MANIFEST)
+
+
+def test_a_write_that_fails_leaves_the_previous_manifest_intact(server, cache,
+                                                                monkeypatch):
+    """Opening the real file truncates it before the new bytes arrive.
+
+    A refresh that dies part way through would then have destroyed the only
+    good copy, which is worse than not having refreshed at all.
+    """
+    _plantCache(cache, GOOD_MANIFEST)
+    before = (cache / "update_manifest.json").read_text()
+
+    def fail(*args, **kwargs):
+        raise OSError("disk full")
+    monkeypatch.setattr(firmware_check.os, "replace", fail)
+
+    result = refresh_manifest(url=server)
+
+    assert result.status == FAILED
+    assert "could not save" in result.message
+    assert (cache / "update_manifest.json").read_text() == before
+
+
+def test_a_failed_write_leaves_no_part_file_behind(server, cache,
+                                                   monkeypatch):
+    """The cache directory is not a place to accumulate debris."""
+    def fail(*args, **kwargs):
+        raise OSError("disk full")
+    monkeypatch.setattr(firmware_check.os, "replace", fail)
+
+    refresh_manifest(url=server)
+
+    assert list(cache.glob("*.part")) == []
+
+
+def test_the_etag_never_outlives_the_manifest_it_describes(server, cache,
+                                                           monkeypatch):
+    """An ETag is a claim about what is on disk.
+
+    If it survives a refresh that did not land, the next check is answered
+    304 against a manifest that was never written, and the stale copy is
+    never replaced.
+    """
+    _plantCache(cache, GOOD_MANIFEST)
+    (cache / "update_manifest.etag").write_text('"an-old-etag"')
+
+    def fail(*args, **kwargs):
+        raise OSError("disk full")
+    monkeypatch.setattr(firmware_check.os, "replace", fail)
+
+    refresh_manifest(url=server)
+
+    assert not (cache / "update_manifest.etag").exists()

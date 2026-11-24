@@ -14,6 +14,7 @@ return the object itself, so existing code reading
 ``device.idn_info.firmware`` keeps working.
 """
 
+import re
 from typing import List, Optional
 
 from quarchpy.device.device_network_info import DeviceNetworkInfo
@@ -73,6 +74,62 @@ def is_set(value) -> bool:
     return bool(value) and str(value).strip().lower() not in UNSET_VALUES
 
 
+def split_version(reported):
+    """Splits a reported version into its part number and its version.
+
+    A module reports each component as "part number,version", for example
+    "QTL2102-01,5.124". The part number is a label: it is not what the
+    published file is named after, and often differs from both the product
+    and the file. Matching is done on product, hardware version and boot
+    type, not on this.
+
+    Args:
+        reported: the field as the module gave it, or None.
+
+    Returns:
+        (part_number, version), either of which may be None.
+    """
+    if not is_set(reported):
+        return (None, None)
+
+    part_number, _, version = str(reported).strip().partition(",")
+    return (part_number.strip() or None, version.strip() or None)
+
+
+def split_serial(serial_number):
+    """Splits a serial into the product and hardware version it names.
+
+    "QTL1999-06-243" is product QTL1999, hardware version 06. A fixture's
+    part number, "QTL2347-02", gives the same two. Both are needed to find
+    what is published: hardware versions of one product can be given
+    different firmware, and nothing inside a .qfw file would refuse the
+    wrong one.
+
+    Args:
+        serial_number: a user-level serial or a part number, or None.
+
+    Returns:
+        (product_number, hardware_version), or (None, None) if it does not
+        read as either. Never a product with no hardware version: that would
+        match every hardware version of that product.
+    """
+    if not is_set(serial_number):
+        return (None, None)
+
+    match = re.match(r"\s*(QTL\d+)-(\d+)", str(serial_number).strip(),
+                     re.IGNORECASE)
+    if not match:
+        return (None, None)
+    return (match.group(1).upper(), match.group(2))
+
+
+#: The fields that name something which can be updated, in the order they
+#: should be shown. The bootloader is left out: nothing publishes one, so
+#: including it would put a permanent "unknown" against every module.
+COMPONENT_FIELDS = ("firmware", "fpga_1", "fpga_2", "fpga_3", "fpga_4",
+                    "fixture_fpga")
+
+
 class DeviceInfo:
     """A module found by a scan, and what it reported about itself.
 
@@ -121,6 +178,13 @@ class DeviceInfo:
         self.fixture_name: Optional[str] = None
         self.fixture_fpga: Optional[str] = None
 
+        # The fixture's own part number, for example "QTL2347-02". A fixture
+        # is a product in its own right and its FPGA is published under its
+        # own number, so without this there is no way to look one up. Only a
+        # "fix idn?" reply carries it, so it is None for a module found over
+        # the network, where the announce packet gives only name and FPGA.
+        self.fixture_part_number: Optional[str] = None
+
         #: Addresses and ports. Empty for a module found over USB.
         self.network: DeviceNetworkInfo = \
             network if network is not None else DeviceNetworkInfo()
@@ -141,6 +205,28 @@ class DeviceInfo:
         return [value for value in
                 (self.fpga_1, self.fpga_2, self.fpga_3, self.fpga_4)
                 if is_set(value)]
+
+    @property
+    def components(self) -> List[tuple]:
+        """Everything this module reported that could be updated.
+
+        Each entry is (field, part_number, version), where field is the name
+        it was reported under: "firmware", "fpga_1" and so on. Keeping the
+        field rather than a general "fpga" means a module with two of them
+        can still be told apart.
+
+        A component the module did not report is left out rather than
+        returned with an empty version. For a module found over USB with no
+        fixture fitted, and for every module found over the network, that is
+        how "not reported" and "nothing there" both read.
+        """
+        found = []
+        for field in COMPONENT_FIELDS:
+            part_number, version = split_version(getattr(self, field, None))
+            if version is None:
+                continue
+            found.append((field, part_number, version))
+        return found
 
     @property
     def has_fixture(self) -> bool:
@@ -227,6 +313,9 @@ class DeviceInfo:
 
             if key == "Name":
                 self.fixture_name = value
+                was_successful = True
+            elif key == "Part#":
+                self.fixture_part_number = value
                 was_successful = True
             elif key == "FPGA 1":
                 self.fixture_fpga = value

@@ -8,7 +8,7 @@ test_two   - scan once, print everything the scan found out about every
 
 from quarchpy.device import (DeviceInfo, getQuarchDevice,
                              scanDevicesWithDetails,
-                             userSelectDeviceWithDetails)
+                             userSelectDeviceWithDetails, userSelectDeviceFWCheck)
 
 
 def test_one():
@@ -81,7 +81,10 @@ def test_two():
               "   FW " + str(device.firmware) +
               "   FPGA " + str(device.fpga_1))
 
+def test_three():
+    userSelectDeviceFWCheck(filterStr="qtl1999")
 
 if __name__ == "__main__":
     #test_one()
-    test_two()
+    #test_two()
+    test_three()

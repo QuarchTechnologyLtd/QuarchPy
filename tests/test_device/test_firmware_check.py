@@ -1,7 +1,9 @@
 """Tests for reading the published update manifest.
 
 Nothing here needs a Quarch module attached or a network connection: the
-manifest that ships with quarchpy is the thing under test.
+manifest that ships with quarchpy is the thing under test. conftest redirects
+the per-user cache to a temp directory, so Catalogue.load() reads that bundled
+copy rather than one a developer happens to have downloaded.
 """
 
 import json

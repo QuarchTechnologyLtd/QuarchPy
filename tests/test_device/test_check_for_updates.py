@@ -1,7 +1,9 @@
 """Tests for answering "is this module up to date?".
 
-Uses the manifest bundled with quarchpy and modules built from what real
-hardware reported. Nothing here reaches the network.
+Modules built from what real hardware reported, checked against the manifest
+bundled with quarchpy. conftest redirects the per-user cache to a temp
+directory, so this really is the bundled copy and not whatever the developer
+last downloaded. Nothing here reaches the network.
 """
 
 import pytest

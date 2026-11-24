@@ -99,6 +99,40 @@ def _isReadableManifest(text):
             and isinstance(manifest.get("products"), dict))
 
 
+def _manifestGeneratedAt(text):
+    """When a manifest was built, read from its text, or None."""
+    try:
+        manifest = json.loads(text, parse_float=str)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(manifest, dict):
+        return None
+    return parse_generated(manifest.get("generated"))
+
+
+def _preferredManifest():
+    """Which manifest to read: the downloaded one, or the one quarchpy ships.
+
+    Normally the cache, because that is the refreshed copy. But installing a
+    newer quarchpy brings a newer bundled manifest with it, and a cache from
+    before that upgrade would otherwise keep answering with older versions
+    for ever, every time a refresh cannot be made.
+
+    A copy with no build time at all predates the field, so a dated copy
+    wins over an undated one either way round.
+    """
+    cachedText = _readTextFile(cached_manifest_path()) or ""
+    if not _isReadableManifest(cachedText):
+        return BUNDLED_MANIFEST
+
+    cachedAt = _manifestGeneratedAt(cachedText)
+    bundledAt = _manifestGeneratedAt(_readTextFile(BUNDLED_MANIFEST) or "")
+
+    if bundledAt is not None and (cachedAt is None or bundledAt > cachedAt):
+        return BUNDLED_MANIFEST
+    return cached_manifest_path()
+
+
 def refresh_manifest(url=None, timeout=MANIFEST_TIMEOUT):
     """Downloads the published manifest if ours is not already current.
 
@@ -122,8 +156,12 @@ def refresh_manifest(url=None, timeout=MANIFEST_TIMEOUT):
     url = url or MANIFEST_URL
 
     headers = {}
+    # Only offer the ETag when the cached manifest is readable. Offering it
+    # because the file merely exists means a damaged cache is answered with
+    # 304 for ever: the server agrees nothing changed, nothing is
+    # downloaded, and the broken copy is never replaced.
     etag = _readTextFile(cached_etag_path())
-    if etag and os.path.exists(cached_manifest_path()):
+    if etag and _isReadableManifest(_readTextFile(cached_manifest_path()) or ""):
         headers["If-None-Match"] = etag.strip()
 
     try:
@@ -353,10 +391,11 @@ class Catalogue:
     def load(cls, path=None):
         """Reads a manifest from disk. Never touches the network.
 
-        A downloaded copy in the cache is preferred over the one bundled
-        with quarchpy, so a refresh takes effect without needing to write
-        inside the installed package. If the cached copy cannot be read the
-        bundled one is used instead, because a damaged cache should cost
+        Reads whichever of the downloaded copy and the bundled one was
+        built most recently, so a refresh takes effect without writing
+        inside the installed package, and upgrading quarchpy is not undone
+        by a cache left over from before it. If the cached copy cannot be
+        read the bundled one is used, because a damaged cache should cost
         accuracy, not the whole feature.
 
         Args:
@@ -369,11 +408,7 @@ class Catalogue:
             ValueError: the file is not a manifest layout this code reads.
         """
         if path is None:
-            cached = cached_manifest_path()
-            if _isReadableManifest(_readTextFile(cached) or ""):
-                path = cached
-            else:
-                path = BUNDLED_MANIFEST
+            path = _preferredManifest()
 
         with open(path, encoding="utf-8") as manifest_file:
             # parse_float=str, always. FirmwareVersion is a JSON number, and
@@ -418,7 +453,15 @@ class Catalogue:
 
         result = refresh_manifest(url=url, timeout=timeout)
         catalogue = cls.load()
-        catalogue.verified = result.status in (UPDATED, ALREADY_CURRENT)
+
+        # The refresh confirms the cached copy, so it says nothing about a
+        # catalogue that fell back to the bundled one. Claiming otherwise is
+        # how a damaged cache ends up reported as checked and current.
+        confirmed = result.status in (UPDATED, ALREADY_CURRENT)
+        catalogue.verified = bool(
+            confirmed and result.path
+            and os.path.abspath(catalogue.path or "")
+            == os.path.abspath(result.path))
         return catalogue, result
 
     @property

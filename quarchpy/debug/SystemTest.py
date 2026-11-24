@@ -317,9 +317,6 @@ def _check_fw():
     print("FIRMWARE CHECK")
     print("--------------")
     print("")
-    # is_update_available() answers without printing, by design, so the
-    # diagnostic has to render the findings itself. The table shows every
-    # component rather than one yes/no, which is what a support log needs.
     displayDeviceFWTable()
 
 def main(args=None):

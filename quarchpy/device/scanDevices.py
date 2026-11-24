@@ -1114,11 +1114,14 @@ def _checkRow(discoveredDevice, components):
     return retVal
 
 
-def displayDeviceFWTable(discovered_devices, catalogue=None, message=""):
+def displayDeviceFWTable(discovered_devices=None, catalogue=None, message=""):
     """Prints the modules with each component checked against what is published.
 
     Args:
-        discovered_devices: the DeviceInfo records to show.
+        discovered_devices: the DeviceInfo records to show. Omit it to scan
+            first. Pass the records from an earlier scan to show them
+            without scanning again, which over USB costs a connection to
+            every module.
         catalogue: the published list. Fetched, and refreshed where that is
             possible, if not given.
         message: a heading for the table.
@@ -1127,6 +1130,11 @@ def displayDeviceFWTable(discovered_devices, catalogue=None, message=""):
         The catalogue used, so a caller showing several tables does not
         fetch it again.
     """
+    if discovered_devices is None:
+        discovered_devices = scanDevicesWithDetails()
+
+    # None means "not scanned yet"; an empty list means a scan found
+    # nothing. Only the second is something to tell the user about.
     if not discovered_devices:
         printText("No Quarch modules to check.")
         return catalogue

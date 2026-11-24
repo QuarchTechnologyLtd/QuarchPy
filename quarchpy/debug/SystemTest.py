@@ -1,7 +1,6 @@
 import os
 import platform
 import subprocess
-from typing import List
 from typing_extensions import Literal
 
 from quarchpy import *
@@ -318,10 +317,10 @@ def _check_fw():
     print("FIRMWARE CHECK")
     print("--------------")
     print("")
-    discovered_devices: List[DeviceInfo] = []
-    scanDevices(discovered_devices=discovered_devices)
-    for module in discovered_devices:
-        module.is_update_available()
+    # is_update_available() answers without printing, by design, so the
+    # diagnostic has to render the findings itself. The table shows every
+    # component rather than one yes/no, which is what a support log needs.
+    displayDeviceFWTable()
 
 def main(args=None):
     """

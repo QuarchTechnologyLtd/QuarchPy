@@ -273,3 +273,39 @@ def test_an_undated_cache_loses_to_a_dated_bundled_copy(cache):
     _plantCache(cache, undated)
 
     assert Catalogue.load().path == BUNDLED_MANIFEST
+
+
+def test_a_manifest_shaped_wrong_inside_is_not_accepted():
+    """The two outer keys are not enough to prove a manifest is usable.
+
+    A document can carry the right manifest_format and a products object and
+    still be laid out wrongly underneath. Accepting it caches it over a good
+    copy, and the damage only shows later, as an AttributeError from
+    files_for() rather than a refusal here.
+    """
+    outwardly_fine = json.dumps({
+        "manifest_format": firmware_check.SUPPORTED_MANIFEST_FORMAT,
+        "products": {"QTL2266": {"hardware": [{}]}}})
+
+    assert not firmware_check._isReadableManifest(outwardly_fine)
+
+
+def test_a_damaged_cache_does_not_beat_the_bundled_manifest(tmp_path,
+                                                            monkeypatch):
+    """Being newer must not let a broken cache win the choice.
+
+    _preferredManifest() picks on build date, so a copy that is wrong inside
+    but dated tomorrow would otherwise be preferred for ever.
+    """
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    monkeypatch.setattr(firmware_check, "manifest_cache_dir",
+                        lambda: str(cache))
+
+    (cache / "manifest.json").write_text(json.dumps({
+        "manifest_format": firmware_check.SUPPORTED_MANIFEST_FORMAT,
+        "generated": "2099-01-01T00:00:00Z",
+        "products": {"QTL2266": {"hardware": [{}]}}}), encoding="utf-8")
+
+    assert (firmware_check._preferredManifest()
+            == firmware_check.BUNDLED_MANIFEST)

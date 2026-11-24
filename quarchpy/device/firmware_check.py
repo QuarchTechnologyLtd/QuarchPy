@@ -94,9 +94,20 @@ def _isReadableManifest(text):
         manifest = json.loads(text, parse_float=str)
     except (TypeError, ValueError):
         return False
-    return (isinstance(manifest, dict)
+    if not (isinstance(manifest, dict)
             and manifest.get("manifest_format") == SUPPORTED_MANIFEST_FORMAT
-            and isinstance(manifest.get("products"), dict))
+            and isinstance(manifest.get("products"), dict)):
+        return False
+
+    catalogue = Catalogue(manifest["products"])
+    try:
+        for product_number in catalogue.product_numbers:
+            for hardware_version in catalogue.hardware_versions(
+                    product_number):
+                catalogue.files_for(product_number, hardware_version)
+    except (AttributeError, TypeError, ValueError):
+        return False
+    return True
 
 
 def _manifestGeneratedAt(text):
@@ -530,11 +541,6 @@ class Catalogue:
                     path=entry.get("path"),
                     boot_type=entry.get("boot_type"),
                     part_number=entry.get("firmware_part_number"),
-                    # Always text. parse_float=str keeps "5.000" from
-                    # becoming 5.0, but a version published as a bare
-                    # integer, as QTL2266 firmware is, arrives as int 5
-                    # because parse_float does not see ints. One mixed type
-                    # in a comparison is all it takes.
                     version=_asText(entry.get("firmware_version")),
                     targets=tuple(header.get("FirmwareTarget") or ()),
                     sha256=entry.get("sha256"),

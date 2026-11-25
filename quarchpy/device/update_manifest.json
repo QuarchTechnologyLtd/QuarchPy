@@ -1,0 +1,218 @@
+{
+  "manifest_format": 1,
+  "generated": "2026-11-23T16:22:01Z",
+  "products": {
+    "QTL1999": {
+      "hardware": {
+        "QTL1999-05_08": {
+          "hardware_versions": [
+            "05",
+            "06",
+            "07",
+            "08"
+          ],
+          "files": [
+            {
+              "path": "Products/QTL1999 - HD PPM/QTL1999-05_08/QTL1999 FPGA v1.11.qfw",
+              "boot_type": "FPGA",
+              "firmware_version": "1.11",
+              "sha256": "5124a3240cf58c242a2f51e2ea4f77c355bb22fe02dde94f3fa35642180ca6e0"
+            },
+            {
+              "path": "Products/QTL1999 - HD PPM/QTL1999-05_08/QTL1999 FW v6.016.qfw",
+              "boot_type": "Firmware",
+              "firmware_version": "6.016",
+              "sha256": "b665157d8aefaa0206b726a9f5242f2faee649c083357bf5635add02c22db3a4"
+            }
+          ]
+        }
+      }
+    },
+    "QTL2266": {
+      "hardware": {
+        "QTL2266-02": {
+          "hardware_versions": [
+            "02"
+          ],
+          "files": [
+            {
+              "path": "Products/QTL2266 - GEN4 PCIe U.2 Module +Triggering/QTL2266-02/QTL2266 FPGA v1.6.qfw",
+              "boot_type": "FPGA",
+              "firmware_version": "1.6",
+              "sha256": "7ceebf98bac2dd04e4eb6f541e863abf2f8338cbaf93d521c1a72fd6478a7de2"
+            },
+            {
+              "path": "Products/QTL2266 - GEN4 PCIe U.2 Module +Triggering/QTL2266-02/QTL2266 FW v5.qfw",
+              "boot_type": "Firmware",
+              "firmware_version": 5,
+              "sha256": "7faa421f7237dde252f0b4347196d75228a5ab4fdc0519400e554f70648f7e8c"
+            }
+          ]
+        }
+      }
+    },
+    "QTL2312": {
+      "hardware": {
+        "QTL2312-01": {
+          "hardware_versions": [
+            "01"
+          ],
+          "files": [
+            {
+              "path": "Products/QTL2312 - PAM Controller/QTL2312-01/QTL2102 FW v5.124.qfw",
+              "boot_type": "Firmware",
+              "firmware_version": "5.124",
+              "sha256": "6252494712b4ecf20770382af6da83e903d3a380a214dc4f8174b59382b93a28"
+            },
+            {
+              "path": "Products/QTL2312 - PAM Controller/QTL2312-01/QTL2103 FPGA v1.12.qfw",
+              "boot_type": "FPGA",
+              "firmware_version": "1.12",
+              "sha256": "bef0c62d02111a1d983db9ae6adc0be109cf7090ce2ced1cec51c7e0d5058278"
+            }
+          ]
+        }
+      }
+    },
+    "QTL2347": {
+      "hardware": {
+        "QTL2347-02": {
+          "hardware_versions": [
+            "02"
+          ],
+          "files": [
+            {
+              "path": "Products/QTL2347 - PCIe x16 Power Analysis Fixture/QTL2347-02/QTL2347 FPGA v1.5.qfw",
+              "boot_type": "FPGA",
+              "firmware_version": "1.5",
+              "sha256": "38098671a5e2ab45db18adc2ba591d2bfd966a9400d6a1f368d8e0c97fa0d9e7"
+            }
+          ]
+        }
+      }
+    },
+    "QTL3216": {
+      "hardware": {
+        "QTL3216-01": {
+          "hardware_versions": [
+            "01"
+          ],
+          "files": [
+            {
+              "path": "Products/QTL3216 - Gen6 PCIe x16 PAM Fixture/QTL3216-01/QTL3220 FPGA v1.4.qfw",
+              "boot_type": "FPGA",
+              "firmware_version": "1.4",
+              "sha256": "2cd4ff4edc6a75e0bea661472914f1caa0d16f8240541ce39fcfe0789bb3bba2"
+            }
+          ]
+        }
+      }
+    },
+    "QTL3235": {
+      "hardware": {
+        "QTL3235-01_02": {
+          "hardware_versions": [
+            "01",
+            "02"
+          ],
+          "files": [
+            {
+              "path": "Products/QTL3235 - Gen6 EDSFF x4-4 Breaker +RefclkMod/QTL3235-01_02/QTL3138 FPGA v1.4.qfw",
+              "boot_type": "FPGA",
+              "firmware_version": "1.4",
+              "sha256": "673cbae529f14d14d08d74a8891900513a1ee6b6e81713612314e1a6b331774c"
+            },
+            {
+              "path": "Products/QTL3235 - Gen6 EDSFF x4-4 Breaker +RefclkMod/QTL3235-01_02/QTL3139 FW v5.006.qfw",
+              "boot_type": "Firmware",
+              "firmware_version": "5.006",
+              "sha256": "5bb1d79a15a0f4c9daa0394b13438c8fdb983ff3868f87264afd8554d7cdd7d9"
+            }
+          ]
+        }
+      }
+    },
+    "QTL3236": {
+      "hardware": {
+        "QTL3236-01": {
+          "hardware_versions": [
+            "01"
+          ],
+          "files": [
+            {
+              "path": "Products/QTL3236 - Gen6 EDSFF x4-4 Breaker + Triggering with refclk mod/QTL3236-01/QTL3138 FPGA v1.3.qfw",
+              "boot_type": "FPGA",
+              "firmware_version": "1.3",
+              "sha256": "2dbbd63504a9663047ee697c62e960fcbc6756e85635e954c8e87cb8bafe0573"
+            },
+            {
+              "path": "Products/QTL3236 - Gen6 EDSFF x4-4 Breaker + Triggering with refclk mod/QTL3236-01/QTL3139 FW v5.005.qfw",
+              "boot_type": "Firmware",
+              "firmware_version": "5.005",
+              "sha256": "3654b002a19dc10c3ed5356d811880f174334729d9216ce0ffaa23f05c79afed"
+            }
+          ]
+        },
+        "QTL3236-02": {
+          "hardware_versions": [
+            "02"
+          ],
+          "files": [
+            {
+              "path": "Products/QTL3236 - Gen6 EDSFF x4-4 Breaker + Triggering with refclk mod/QTL3236-02/QTL3138 FPGA v1.4.qfw",
+              "boot_type": "FPGA",
+              "firmware_version": "1.4",
+              "sha256": "dbde1ac6e62c45b79cfa7c11edc9670c31fbf4b9caa5918067acabfb256f5229"
+            },
+            {
+              "path": "Products/QTL3236 - Gen6 EDSFF x4-4 Breaker + Triggering with refclk mod/QTL3236-02/QTL3139 FW v5.006.qfw",
+              "boot_type": "Firmware",
+              "firmware_version": "5.006",
+              "sha256": "5c9e5973278df6d6b385afaf7e2fee905f8898c923ee10e4a318cf0f3aabe330"
+            }
+          ]
+        }
+      }
+    },
+    "QTL3346": {
+      "hardware": {
+        "QTL3346-01": {
+          "hardware_versions": [
+            "01"
+          ],
+          "files": [
+            {
+              "path": "Products/QTL3346 - Gen6 SFF PAM Fixture/QTL3346-01/QTL3350 FPGA v1.3.qfw",
+              "boot_type": "FPGA",
+              "firmware_version": "1.3",
+              "sha256": "37e71b736e21cf935e0c9130121dd67c412dce5bddccd40fc514b8665417c1ca"
+            }
+          ]
+        }
+      }
+    },
+    "QTL3351": {
+      "hardware": {
+        "QTL3351-01": {
+          "hardware_versions": [
+            "01"
+          ],
+          "files": [
+            {
+              "path": "Products/QTL3351 - Gen6 PCIe U.2 x4-1 Breaker/QTL3351-01/QTL3342 FW v5.000.qfw",
+              "boot_type": "Firmware",
+              "firmware_version": "5.000",
+              "sha256": "d66dd86d67531e502cae656a5ca713911ae8458d27cdbb271b55288a7239e527"
+            },
+            {
+              "path": "Products/QTL3351 - Gen6 PCIe U.2 x4-1 Breaker/QTL3351-01/QTL3343 FPGA v1.1.qfw",
+              "boot_type": "FPGA",
+              "firmware_version": "1.1",
+              "sha256": "00b08adc6e1e659eed92bfa50a3b744b81898f4bd0c1973f12250406ad1ba322"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -22,6 +22,11 @@ Change Log
   range. ``displayDeviceTable()`` draws the same table without prompting.
 - Fixed: modules found over the network reported no firmware and no FPGA
   version, because the announce packet was read under the wrong keys.
+- Fixed: a module found over USB reported no fixture, where the same module
+  found over the network reported its name, FPGA part number and version.
+  The ``Fixture`` line of an ``*IDN?`` reply was being discarded, and the
+  fixture's FPGA version was never asked for. A USB scan now reads that line
+  and, only when a fixture is present, sends ``fix idn?`` for the version.
 - Fixed: one module that failed to answer during a USB scan discarded the
   details collected for every other module.
 - Fixed: a mistyped selection such as "1-" raised instead of being rejected.
@@ -29,6 +34,42 @@ Change Log
   were three overlapping records of the same thing. Use ``DeviceInfo``, which
   carries every field all three had. ``idn_info`` and ``fixture_idn_info``
   still work as properties.
+- The list of published firmware and FPGA versions now ships with quarchpy,
+  as ``quarchpy/device/update_manifest.json``. ``Catalogue.load()`` reads it
+  and ``files_for()`` returns what is published for a product and hardware
+  version, so a machine with no internet can still be told what the latest
+  version is.
+- ``userSelectDeviceFWCheck()`` scans and shows the same selection table as
+  ``userSelectDeviceWithDetails()``, with each version marked up to date,
+  out of date or unknown, and says underneath whether the published list it
+  compared against could be confirmed as current. ``displayDeviceFWTable()``
+  draws the same table without prompting.
+- ``check_for_updates()`` reports, for every component a module has, the
+  version it is running, the version published for it, and whether that is
+  an update. ``is_update_available()`` works again on top of it, answering
+  from the published manifest instead of a scraped web page. A fixture is
+  checked against its own product, using the part number a USB scan now
+  reads from ``fix idn?``; where it cannot be identified the answer is
+  unknown rather than the module's own file.
+- ``DeviceInfo.components`` lists everything a module reported that can be
+  updated, as (field, part number, version), and ``split_version()`` reads
+  one reported field. ``compare_versions()`` compares two versions by their
+  own scheme, so an FPGA at 1.10 is correctly newer than 1.9, and a module
+  ahead of the published version is reported as unknown rather than as up
+  to date.
+- The bundled list can be refreshed from the published one.
+  ``refresh_manifest()`` downloads it only when it has changed, using an
+  ETag, and keeps the copy in a per-user cache rather than inside the
+  installed package, which is often not writable. ``Catalogue.load()``
+  prefers that cache and never uses the network;
+  ``Catalogue.load_latest()`` refreshes first and reports whether the
+  answers could be confirmed as current.
+- Removed: the firmware check that scraped quarch.com. It read only the first
+  FPGA, compared both version schemes as decimals so an FPGA at 1.10 sorted
+  below 1.9, had no timeout, and printed its findings.
+  ``get_serial_from_device()`` and the ``is_update_required`` and
+  ``device_name`` attributes went with it; they only ever carried the
+  scraper's workings.
 
 2.2.24
 ------

@@ -18,7 +18,9 @@ except:
 from quarchpy.device import quarchDevice, quarchArray
 from quarchpy.device.device_network_info import DeviceNetworkInfo
 from quarchpy.device.packet_processing import decode_locate_packet
-from quarchpy.device.device_info import DeviceInfo
+from quarchpy.device.device_info import DeviceInfo, is_set
+from quarchpy.device.firmware_check import (Catalogue, UNKNOWN, UPDATE_AVAILABLE, check_for_updates,
+    status_symbol)
 from quarchpy.connection_specific.connection_Serial import serialList, serial
 from quarchpy.device.quarchArray import isThisAnArrayController
 from quarchpy.connection_specific.connection_USB import TQuarchUSB_IF
@@ -203,9 +205,25 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DeviceInfo]] = N
             discovered_device.user_level_serial_number = userLevelSerial
 
             quarch_device = None
+            parsed = False
             try:
                 quarch_device = quarchDevice(connection_target)
                 response = quarch_device.send_command("*IDN?")
+                parsed = discovered_device.parse_idn_response(response)
+
+                # The fixture's FPGA version is not in *IDN?, only its name.
+                # Ask for it on the connection we already have, and only when
+                # the module said there is a fixture: an empty bay answers
+                # "FAIL: 0x66 -Fixture is not present or not responding".
+                # Its own try, so a fixture that will not answer costs the
+                # fixture columns and not the whole module.
+                if parsed and discovered_device.has_fixture:
+                    try:
+                        discovered_device.parse_fixture_idn_response(
+                            quarch_device.send_command("fix idn?"))
+                    except Exception as e:
+                        logger.debug("No fix idn? from %s: %s",
+                                     connection_target, e)
             except Exception as e:
                 logger.debug("No *IDN? from %s: %s", connection_target, e)
                 continue
@@ -217,7 +235,7 @@ def list_USB(debuPrint=False, discovered_devices: Optional[List[DeviceInfo]] = N
                         logger.debug("Could not close %s: %s",
                                      connection_target, e)
 
-            if not discovered_device.parse_idn_response(response):
+            if not parsed:
                 logger.debug("Unusable *IDN? from %s: %r",
                              connection_target, response)
                 continue
@@ -967,12 +985,9 @@ def _fixtureName(discoveredDevice):
     '''
     fixture = discoveredDevice.fixture_idn_info
     name = getattr(fixture, "fixture_name", None)
-    if name is None:
-        return "-"
-    text = str(name).strip()
-    if text == "" or text.lower() in ("not set", "qtl0000", "qtlffff"):
-        return "-"
-    return text
+    # is_set rather than a list of its own: an empty bay reports "Not Found"
+    # over USB, and a second copy of UNSET_VALUES would not know that.
+    return str(name).strip() if is_set(name) else "-"
 
 
 
@@ -1026,6 +1041,154 @@ def userSelectDeviceWithDetails(message=None, title=None, target_conn="all",
         return []
 
     displayDeviceTable(discovered_devices, message=title)
+
+    answer = requestDialog(title=title, message=message)
+    if answer is None or str(answer).strip() == "":
+        return []
+
+    wanted = userRangeIntSelection(str(answer), intLength=None)
+    if not wanted:
+        printText("'{0}' is not a selection. Use 1 or 1,3 or 1-3.".format(
+            str(answer).strip()))
+        return []
+
+    selected = []
+    for item in wanted:
+        try:
+            index = int(item)
+        except (TypeError, ValueError):
+            printText("Ignoring '{0}': not a number.".format(item))
+            continue
+        if 1 <= index <= len(discovered_devices):
+            device = discovered_devices[index - 1]
+            if device not in selected:
+                selected.append(device)
+        else:
+            printText("Ignoring '{0}': there are {1} modules.".format(
+                index, len(discovered_devices)))
+
+    return selected
+
+
+def _componentCell(component):
+    """One component as a table cell: what it runs, and what is published.
+
+    An update shows both versions, so the user sees what they would be
+    moving to without opening anything. A module ahead of the published
+    version shows that version in brackets: a smaller number than the one
+    they are running, which explains the "?" on its own.
+    """
+    symbol = status_symbol(component.status)
+    if component.status == UPDATE_AVAILABLE:
+        return "{0} {1} {2}".format(component.currentV, symbol,
+                                    component.latestV)
+    if component.status == UNKNOWN and component.latestV:
+        # Ahead of what is published. Showing that version explains the
+        # "?": it is smaller than the one they are running.
+        return "{0} {1}({2})".format(component.currentV, symbol,
+                                     component.latestV)
+    # Up to date, or nothing published. Repeating a version that matches
+    # would only add noise to the column.
+    return "{0} {1}".format(component.currentV, symbol)
+
+
+def _checkRow(discoveredDevice, components):
+    byRole = {component.role: component for component in components}
+
+    # Every FPGA, not just the first. Collapsing them into one cell with a
+    # "(+1)" would hide an available update on the second, which is the one
+    # thing this table exists to show.
+    fpgas = [_componentCell(byRole[role])
+             for role in ("fpga_1", "fpga_2", "fpga_3", "fpga_4")
+             if role in byRole]
+    retVal=[
+        _deviceName(discoveredDevice),
+        str(getattr(discoveredDevice, "name", "") or "")[:28],
+        _componentCell(byRole["firmware"]) if "firmware" in byRole else "-",
+        "; ".join(fpgas) if fpgas else "-",
+        _fixtureName(discoveredDevice),
+        (_componentCell(byRole["fixture_fpga"])
+         if "fixture_fpga" in byRole else "-"),
+        discoveredDevice.connection_target or "-",
+    ]
+    return retVal
+
+
+def displayDeviceFWTable(discovered_devices=None, catalogue=None, message=""):
+    """Prints the modules with each component checked against what is published.
+
+    Args:
+        discovered_devices: the DeviceInfo records to show. Omit it to scan
+            first. Pass the records from an earlier scan to show them
+            without scanning again, which over USB costs a connection to
+            every module.
+        catalogue: the published list. Fetched, and refreshed where that is
+            possible, if not given.
+        message: a heading for the table.
+
+    Returns:
+        The catalogue used, so a caller showing several tables does not
+        fetch it again.
+    """
+    if discovered_devices is None:
+        discovered_devices = scanDevicesWithDetails()
+
+    # None means "not scanned yet"; an empty list means a scan found
+    # nothing. Only the second is something to tell the user about.
+    if not discovered_devices:
+        printText("No Quarch modules to check.")
+        return catalogue
+
+    result = None
+    if catalogue is None:
+        catalogue, result = Catalogue.load_latest()
+
+    displayTable([_checkRow(device, check_for_updates(device, catalogue))
+                  for device in discovered_devices],
+                 tableHeaders=["Module", "Description", "FW", "FPGA",
+                               "Fixture", "Fixture FPGA", "Connection"],
+                 indexReq=True, message=message)
+
+    # Say what the answers are worth. "Up to date" means nothing unless the
+    # list being compared against is known to be the current one.
+    if catalogue.verified:
+        printText("Checked against the published versions.")
+    else:
+        built = catalogue.generated or "an unknown date"
+        printText("Could not check for a newer published list, so these are "
+                  "accurate up to {0}.".format(built))
+        if result is not None and result.message:
+            logger.debug("manifest refresh: %s", result.message)
+
+    return catalogue
+
+
+def userSelectDeviceFWCheck(message=None, title=None, target_conn="all",
+                            lanTimeout=1, favouriteOnly=True,
+                            filterStr=None, discovered_devices=None,
+                            catalogue=None):
+    """Scans, shows what is out of date, and asks the user to choose.
+
+    Takes the same arguments as userSelectDeviceWithDetails and returns the
+    same DeviceInfo list, so a caller swaps one call for the other.
+    """
+    if title is None:
+        title = "Select a Device"
+    if message is None:
+        message = "Select one or more modules. Use 1 or 1,3 or 1-3."
+
+    if discovered_devices is None:
+        printText("Scanning for devices...")
+        discovered_devices = scanDevicesWithDetails(
+            target_conn=target_conn, lanTimeout=lanTimeout,
+            favouriteOnly=favouriteOnly, filterStr=filterStr)
+
+    if not discovered_devices:
+        printText("No Quarch modules found.")
+        return []
+
+    displayDeviceFWTable(discovered_devices, catalogue=catalogue,
+                         message=title)
 
     answer = requestDialog(title=title, message=message)
     if answer is None or str(answer).strip() == "":

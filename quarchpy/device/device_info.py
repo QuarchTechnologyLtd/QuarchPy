@@ -14,6 +14,7 @@ return the object itself, so existing code reading
 ``device.idn_info.firmware`` keeps working.
 """
 
+import re
 from typing import List, Optional
 
 from quarchpy.device.device_network_info import DeviceNetworkInfo
@@ -44,7 +45,7 @@ CODE_MAP = {
 }
 
 # Values a module sends when a field is not set, rather than sending nothing.
-UNSET_VALUES = ("", "not set", "qtl0000", "qtlffff")
+UNSET_VALUES = ("", "not set", "not found", "qtl0000", "qtlffff")
 
 # Keys found in an *IDN? response, and the field each one fills.
 _IDN_KEY_MAP = {
@@ -61,12 +62,72 @@ _IDN_KEY_MAP = {
     "Enclosure#": "enclosure_serial_number",
     "Position#": "enclosure_position",
     "Alias": "alias",
+    # Present over USB only. The announce packet carries the same thing as
+    # TLV 0x8c, and an empty bay reports "Not Found", which UNSET_VALUES
+    # above already covers.
+    "Fixture": "fixture_name",
 }
 
 
 def is_set(value) -> bool:
     """False for a field a module left empty, however it chose to say so."""
     return bool(value) and str(value).strip().lower() not in UNSET_VALUES
+
+
+def split_version(reported):
+    """Splits a reported version into its part number and its version.
+
+    A module reports each component as "part number,version", for example
+    "QTL2102-01,5.124". The part number is a label: it is not what the
+    published file is named after, and often differs from both the product
+    and the file. Matching is done on product, hardware version and boot
+    type, not on this.
+
+    Args:
+        reported: the field as the module gave it, or None.
+
+    Returns:
+        (part_number, version), either of which may be None.
+    """
+    if not is_set(reported):
+        return (None, None)
+
+    part_number, _, version = str(reported).strip().partition(",")
+    return (part_number.strip() or None, version.strip() or None)
+
+
+def split_serial(serial_number):
+    """Splits a serial into the product and hardware version it names.
+
+    "QTL1999-06-243" is product QTL1999, hardware version 06. A fixture's
+    part number, "QTL2347-02", gives the same two. Both are needed to find
+    what is published: hardware versions of one product can be given
+    different firmware, and nothing inside a .qfw file would refuse the
+    wrong one.
+
+    Args:
+        serial_number: a user-level serial or a part number, or None.
+
+    Returns:
+        (product_number, hardware_version), or (None, None) if it does not
+        read as either. Never a product with no hardware version: that would
+        match every hardware version of that product.
+    """
+    if not is_set(serial_number):
+        return (None, None)
+
+    match = re.match(r"\s*(QTL\d+)-(\d+)", str(serial_number).strip(),
+                     re.IGNORECASE)
+    if not match:
+        return (None, None)
+    return (match.group(1).upper(), match.group(2))
+
+
+#: The fields that name something which can be updated, in the order they
+#: should be shown. The bootloader is left out: nothing publishes one, so
+#: including it would put a permanent "unknown" against every module.
+COMPONENT_FIELDS = ("firmware", "fpga_1", "fpga_2", "fpga_3", "fpga_4",
+                    "fixture_fpga")
 
 
 class DeviceInfo:
@@ -117,6 +178,13 @@ class DeviceInfo:
         self.fixture_name: Optional[str] = None
         self.fixture_fpga: Optional[str] = None
 
+        # The fixture's own part number, for example "QTL2347-02". A fixture
+        # is a product in its own right and its FPGA is published under its
+        # own number, so without this there is no way to look one up. Only a
+        # "fix idn?" reply carries it, so it is None for a module found over
+        # the network, where the announce packet gives only name and FPGA.
+        self.fixture_part_number: Optional[str] = None
+
         #: Addresses and ports. Empty for a module found over USB.
         self.network: DeviceNetworkInfo = \
             network if network is not None else DeviceNetworkInfo()
@@ -124,10 +192,6 @@ class DeviceInfo:
         #: The decoded announce packet, when the module was found on the
         #: network. Empty for USB.
         self.device_info: dict = {}
-
-        # Set by firmware_check, which is the only thing that uses them.
-        self.is_update_required = False
-        self.device_name = None
 
     # -- reading -----------------------------------------------------------
 
@@ -141,6 +205,28 @@ class DeviceInfo:
         return [value for value in
                 (self.fpga_1, self.fpga_2, self.fpga_3, self.fpga_4)
                 if is_set(value)]
+
+    @property
+    def components(self) -> List[tuple]:
+        """Everything this module reported that could be updated.
+
+        Each entry is (field, part_number, version), where field is the name
+        it was reported under: "firmware", "fpga_1" and so on. Keeping the
+        field rather than a general "fpga" means a module with two of them
+        can still be told apart.
+
+        A component the module did not report is left out rather than
+        returned with an empty version. For a module found over USB with no
+        fixture fitted, and for every module found over the network, that is
+        how "not reported" and "nothing there" both read.
+        """
+        found = []
+        for field in COMPONENT_FIELDS:
+            part_number, version = split_version(getattr(self, field, None))
+            if version is None:
+                continue
+            found.append((field, part_number, version))
+        return found
 
     @property
     def has_fixture(self) -> bool:
@@ -192,6 +278,47 @@ class DeviceInfo:
             attribute = _IDN_KEY_MAP.get(key)
             if attribute:
                 setattr(self, attribute, value)
+                was_successful = True
+
+        return was_successful
+
+    def parse_fixture_idn_response(self, idn_response: str) -> bool:
+        """Fill the fixture fields from the text of a ``fix idn?`` reply.
+
+        Deliberately not parse_idn_response(). That reply describes the
+        fixture, so its Name, Part# and Serial# lines would overwrite the
+        module's own. Only the two fields the announce packet also carries
+        are taken, so a module reads the same whichever way it was found.
+
+        Args:
+            idn_response: the reply, one ``Key: value`` per line. A module
+                with no fixture answers ``FAIL: 0x66 ...``, which sets
+                nothing and returns False.
+
+        Returns:
+            True if a fixture field was filled.
+        """
+        if not idn_response:
+            return False
+
+        was_successful = False
+
+        for line in idn_response.strip().split('\n'):
+            if ':' not in line:
+                continue
+
+            key, value = line.split(':', 1)
+            key = key.strip()
+            value = value.strip()
+
+            if key == "Name":
+                self.fixture_name = value
+                was_successful = True
+            elif key == "Part#":
+                self.fixture_part_number = value
+                was_successful = True
+            elif key == "FPGA 1":
+                self.fixture_fpga = value
                 was_successful = True
 
         return was_successful
@@ -253,11 +380,10 @@ class DeviceInfo:
         self.populate_from_packet(device_info)
 
     def is_update_available(self):
-        """Deprecated. Use ``quarchpy.device.firmware_check``."""
+        """Whether a newer version is published for this module.
+
+        Kept so existing callers keep working. The check itself lives in
+        ``quarchpy.device.firmware_check``.
+        """
         from quarchpy.device.firmware_check import is_update_available
         return is_update_available(self)
-
-    def get_serial_from_device(self):
-        """Deprecated. Use ``quarchpy.device.firmware_check``."""
-        from quarchpy.device.firmware_check import get_serial_from_device
-        return get_serial_from_device(self)
